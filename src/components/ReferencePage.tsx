@@ -102,7 +102,7 @@ function ReferenceLine({
     const isCMarker = block.marker === 'C.'
     return (
       <div
-        className={`grid gap-3 border-l py-3 pr-3 ${
+        className={`grid items-baseline gap-3 border-l py-3 pr-3 ${
           major
             ? 'mt-4 border-[var(--accent)] bg-[rgba(236,226,196,0.045)]'
             : 'border-[rgba(236,226,196,0.09)]'
@@ -114,7 +114,7 @@ function ReferenceLine({
         {...matchData}
       >
         <span
-          className={`pt-[0.15em] text-right font-light tabular-nums ${
+          className={`text-right font-light tabular-nums ${
             major
               ? 'text-[16px] text-[var(--accent)]'
               : 'text-[12px] text-[#a99f7c]'

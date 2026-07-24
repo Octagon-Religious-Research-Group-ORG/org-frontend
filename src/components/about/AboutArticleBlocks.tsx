@@ -110,9 +110,9 @@ function OutlineList({
       {nodes.map((node, index) => {
         const key = `${idBase}-${index}`
         return (
-          <li key={key} className="flex gap-2.5">
+          <li key={key} className="flex items-baseline gap-2.5">
             <span
-              className={`flex-none whitespace-nowrap pt-[0.05em] text-right tabular-nums ${tier.marker} min-w-[2em] text-[0.86em] tracking-wide`}
+              className={`flex-none whitespace-nowrap text-right tabular-nums ${tier.marker} min-w-[2em] text-[0.86em] tracking-wide`}
             >
               {node.marker}
             </span>
