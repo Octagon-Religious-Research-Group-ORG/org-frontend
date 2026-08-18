@@ -31,8 +31,8 @@ function CallbackPage() {
           </h1>
           <p className="mt-4 max-w-lg text-sm leading-7 text-[#b8ad8d]">
             {auth.isLoading
-              ? 'Auth0 is confirming your identity. You will continue automatically.'
-              : 'No completed Auth0 sign-in was found. Return to the member entrance and try again.'}
+              ? 'Confirming your identity. You will continue automatically.'
+              : 'No completed sign-in was found. Return to the member entrance and try again.'}
           </p>
           {!auth.isLoading ? (
             <Link

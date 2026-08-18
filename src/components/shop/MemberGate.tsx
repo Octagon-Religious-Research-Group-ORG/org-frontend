@@ -29,8 +29,8 @@ export function MemberGate({
           Sign in to continue.
         </h1>
         <p className="mt-4 max-w-lg text-sm leading-7 text-[#b8ad8d]">
-          Auth0 securely handles sign-in and account creation. ORG never
-          receives or stores your password.
+          Sign-in and account creation are handled securely by a dedicated
+          identity service. ORG never receives or stores your password.
         </p>
         <div className="mt-7 grid gap-3 sm:grid-cols-2">
           <button

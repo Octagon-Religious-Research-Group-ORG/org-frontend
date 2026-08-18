@@ -116,11 +116,8 @@ function AdminQueue() {
           Admin permission required.
         </h1>
         <p className="mt-4 text-sm leading-7 text-[#b8ad8d]">
-          Assign the Auth0 permissions
-          <span className="font-mono text-[#ece2c4]"> read:orders </span>
-          and
-          <span className="font-mono text-[#ece2c4]"> update:orders </span>
-          to this member through the ORG Shop Admin role.
+          Ask an ORG administrator to add your email to the admin allowlist,
+          then sign in again.
         </p>
         <Link
           to="/profile"

@@ -1,5 +1,4 @@
-import { Auth0Provider, useAuth0 } from '@auth0/auth0-react'
-import type { AppState, RedirectLoginOptions } from '@auth0/auth0-react'
+import { ClerkProvider, useAuth, useClerk, useUser } from '@clerk/react'
 import { useRouter } from '@tanstack/react-router'
 import {
   createContext,
@@ -42,42 +41,58 @@ const serverAuth: OrgAuth = {
   isLoading: true,
 }
 
-function Auth0Bridge({ children }: { children: ReactNode }) {
-  const auth = useAuth0()
+function ClerkBridge({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn, getToken: getClerkToken } = useAuth()
+  const { user: clerkUser } = useUser()
+  const clerk = useClerk()
 
+  // Auth0 redirected away to a hosted page; Clerk opens in-page. `returnTo` is
+  // preserved via forceRedirectUrl, which overrides Clerk's own redirect_url.
   const login = useCallback(
     async (returnTo = window.location.pathname, signup = false) => {
-      const options: RedirectLoginOptions<AppState> = {
-        appState: { returnTo },
-        authorizationParams: signup ? { screen_hint: 'signup' } : undefined,
+      const options = { forceRedirectUrl: returnTo }
+      if (signup) {
+        clerk.openSignUp(options)
+      } else {
+        clerk.openSignIn(options)
       }
-      await auth.loginWithRedirect(options)
     },
-    [auth],
+    [clerk],
   )
 
   const logout = useCallback(async () => {
-    auth.logout({
-      logoutParams: { returnTo: `${window.location.origin}/logout` },
-    })
-  }, [auth])
+    await clerk.signOut({ redirectUrl: `${window.location.origin}/logout` })
+  }, [clerk])
 
+  // Clerk returns null when signed out; the OrgAuth contract is undefined.
   const getToken = useCallback(async () => {
-    if (!auth.isAuthenticated) return undefined
-    return auth.getAccessTokenSilently()
-  }, [auth])
+    if (!isSignedIn) return undefined
+    return (await getClerkToken()) ?? undefined
+  }, [isSignedIn, getClerkToken])
+
+  // Mapped to the Auth0-shaped claims the rest of the app already reads.
+  // `sub` becomes the Clerk user id and is what MemberProfile keys on.
+  const user = useMemo(() => {
+    if (!clerkUser) return undefined
+    return {
+      sub: clerkUser.id,
+      name: clerkUser.fullName ?? undefined,
+      email: clerkUser.primaryEmailAddress?.emailAddress,
+      picture: clerkUser.imageUrl,
+    }
+  }, [clerkUser])
 
   const value = useMemo<OrgAuth>(
     () => ({
       configured: true,
-      isAuthenticated: auth.isAuthenticated,
-      isLoading: auth.isLoading,
-      user: auth.user,
+      isAuthenticated: Boolean(isSignedIn),
+      isLoading: !isLoaded,
+      user,
       login,
       logout,
       getToken,
     }),
-    [auth.isAuthenticated, auth.isLoading, auth.user, login, logout, getToken],
+    [isSignedIn, isLoaded, user, login, logout, getToken],
   )
 
   return (
@@ -87,19 +102,11 @@ function Auth0Bridge({ children }: { children: ReactNode }) {
 
 export function OrgAuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
-  const domain = import.meta.env.VITE_AUTH0_DOMAIN
-  const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID
-  const audience = import.meta.env.VITE_AUTH0_AUDIENCE
+  const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
   const hydrated = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false,
-  )
-  const handleRedirect = useCallback(
-    (appState?: AppState) => {
-      router.history.replace(appState?.returnTo || '/profile')
-    },
-    [router.history],
   )
 
   if (!hydrated) {
@@ -110,7 +117,7 @@ export function OrgAuthProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  if (!domain || !clientId || !audience) {
+  if (!publishableKey) {
     return (
       <OrgAuthContext.Provider value={missingAuth}>
         {children}
@@ -119,20 +126,16 @@ export function OrgAuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Auth0Provider
-      domain={domain}
-      clientId={clientId}
-      authorizationParams={{
-        redirect_uri: `${window.location.origin}/callback`,
-        audience,
-        scope:
-          'openid profile email read:orders update:orders read:content update:content publish:content',
-      }}
-      onRedirectCallback={handleRedirect}
-      useRefreshTokens
+    <ClerkProvider
+      publishableKey={publishableKey}
+      afterSignOutUrl="/logout"
+      signInFallbackRedirectUrl="/profile"
+      signUpFallbackRedirectUrl="/profile"
+      routerPush={(to) => router.history.push(to)}
+      routerReplace={(to) => router.history.replace(to)}
     >
-      <Auth0Bridge>{children}</Auth0Bridge>
-    </Auth0Provider>
+      <ClerkBridge>{children}</ClerkBridge>
+    </ClerkProvider>
   )
 }
 

@@ -41,8 +41,8 @@ describe('MemberProfileSync', () => {
   })
 
   it.each([
-    ['while Auth0 is loading', true, { sub: 'auth0|member' }],
-    ['without an Auth0 subject', false, {}],
+    ['while Clerk is loading', true, { sub: 'user_member' }],
+    ['without an authenticated subject', false, {}],
   ])('does nothing %s', (_name, isLoading, user) => {
     mocks.auth.isAuthenticated = true
     mocks.auth.isLoading = isLoading
@@ -54,11 +54,11 @@ describe('MemberProfileSync', () => {
     expect(mocks.apiRequest).not.toHaveBeenCalled()
   })
 
-  it('loads the member profile once after Auth0 authentication', async () => {
+  it('loads the member profile once after authentication', async () => {
     mocks.auth.isAuthenticated = true
-    mocks.auth.user = { sub: 'auth0|member' }
+    mocks.auth.user = { sub: 'user_member' }
     mocks.auth.getToken.mockResolvedValue('access-token')
-    mocks.apiRequest.mockResolvedValue({ auth0Sub: 'auth0|member' })
+    mocks.apiRequest.mockResolvedValue({ auth0Sub: 'user_member' })
 
     const view = render(<MemberProfileSync />)
 
@@ -78,7 +78,7 @@ describe('MemberProfileSync', () => {
 
   it('does not call the profile API when no token is available', async () => {
     mocks.auth.isAuthenticated = true
-    mocks.auth.user = { sub: 'auth0|member' }
+    mocks.auth.user = { sub: 'user_member' }
     mocks.auth.getToken.mockResolvedValue(undefined)
 
     render(<MemberProfileSync />)
@@ -89,7 +89,7 @@ describe('MemberProfileSync', () => {
 
   it('keeps background synchronization failures out of the UI', async () => {
     mocks.auth.isAuthenticated = true
-    mocks.auth.user = { sub: 'auth0|member' }
+    mocks.auth.user = { sub: 'user_member' }
     mocks.auth.getToken.mockResolvedValue('access-token')
     mocks.apiRequest.mockRejectedValue(new Error('temporarily unavailable'))
 
