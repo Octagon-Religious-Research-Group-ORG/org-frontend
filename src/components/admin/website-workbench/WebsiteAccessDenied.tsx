@@ -9,8 +9,8 @@ export function WebsiteAccessDenied() {
         Website admin required.
       </h1>
       <p className="mt-4 text-sm leading-7 text-[#b8ad8d]">
-        Ask an Auth0 administrator to assign the ORG Website Admin role, then
-        sign in again.
+        Ask an ORG administrator to add your email to the website admin
+        allowlist, then sign in again.
       </p>
       <Link
         to="/profile"

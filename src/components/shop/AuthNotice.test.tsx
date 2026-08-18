@@ -11,6 +11,6 @@ vi.mock('#/lib/auth', () => ({
 describe('AuthNotice', () => {
   it('explains the required environment configuration', () => {
     render(<AuthNotice />)
-    expect(screen.getByText(/Auth0 is not configured yet/i)).toBeTruthy()
+    expect(screen.getByText(/Sign-in is not configured yet/i)).toBeTruthy()
   })
 })

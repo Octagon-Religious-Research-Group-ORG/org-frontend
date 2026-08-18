@@ -11,7 +11,7 @@ export const Route = createFileRoute('/join')({
       {
         name: 'description',
         content:
-          'Create an ORG member identity or sign in securely through Auth0.',
+          'Create an ORG member identity or sign in securely.',
       },
     ],
   }),
@@ -41,16 +41,16 @@ function JoinPage() {
             />
             <div className="relative flex h-full flex-col justify-between">
               <div className="font-mono text-[10px] uppercase tracking-[0.3em]">
-                Living covenant · Auth0 protected
+                Living covenant · Secure sign-in
               </div>
               <div>
                 <h1 className="font-display max-w-lg text-[clamp(62px,9vw,104px)] uppercase leading-[0.78] tracking-[-0.01em]">
                   One identity. Your member record.
                 </h1>
                 <p className="mt-6 max-w-md text-sm leading-7">
-                  Auth0 handles the account and password. ORG stores only the
-                  profile, contact, shipping, cart, and order information needed
-                  for membership and requested offerings.
+                  A dedicated identity service handles the account and password.
+                  ORG stores only the profile, contact, shipping, cart, and order
+                  information needed for membership and requested offerings.
                 </p>
               </div>
             </div>
@@ -67,12 +67,11 @@ function JoinPage() {
                   Member access
                 </div>
                 <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.03em] text-[#f6efd9]">
-                  Enter through Auth0.
+                  Enter the member area.
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-[#b8ad8d]">
-                  New members complete Auth0 signup first, then add their ORG
-                  profile details. Existing members return through the same
-                  secure login.
+                  New members create an account first, then add their ORG profile
+                  details. Existing members return through the same secure login.
                 </p>
                 <div className="mt-7 grid gap-3">
                   <button
@@ -95,8 +94,8 @@ function JoinPage() {
               </>
             )}
             <div className="mt-8 border-t border-dashed border-[#ece2c4]/18 pt-5 text-[10px] leading-5 text-[#7f775f]">
-              Passwords and authentication credentials stay with Auth0. ORG
-              never receives them.
+              Passwords and authentication credentials stay with the identity
+              service. ORG never receives them.
             </div>
           </section>
         </div>

@@ -12,27 +12,35 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OrgAuthProvider, useOrgAuth } from './auth'
 
+const PUBLISHABLE_KEY = 'pk_test_stub'
+
 const mocks = vi.hoisted(() => ({
-  auth0Logout: vi.fn(),
-  auth0Login: vi.fn(),
-  auth0GetToken: vi.fn(),
-  auth0State: {
-    isAuthenticated: false,
-    isLoading: false,
+  openSignIn: vi.fn(),
+  openSignUp: vi.fn(),
+  signOut: vi.fn(),
+  getToken: vi.fn(),
+  clerkState: {
+    isLoaded: true,
+    isSignedIn: false,
     user: undefined as
       | {
-          sub?: string
-          name?: string
+          id: string
+          fullName: string | null
+          imageUrl: string
+          primaryEmailAddress?: { emailAddress: string }
         }
       | undefined,
   },
+  historyPush: vi.fn(),
   historyReplace: vi.fn(),
   providerProps: undefined as
     | {
-        authorizationParams?: {
-          redirect_uri?: string
-        }
-        onRedirectCallback?: (appState?: { returnTo?: string }) => void
+        publishableKey?: string
+        afterSignOutUrl?: string
+        signInFallbackRedirectUrl?: string
+        signUpFallbackRedirectUrl?: string
+        routerPush?: (to: string) => unknown
+        routerReplace?: (to: string) => unknown
       }
     | undefined,
 }))
@@ -40,30 +48,36 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@tanstack/react-router', () => ({
   useRouter: () => ({
     history: {
+      push: mocks.historyPush,
       replace: mocks.historyReplace,
     },
   }),
 }))
 
-vi.mock('@auth0/auth0-react', () => ({
-  Auth0Provider: (
+vi.mock('@clerk/react', () => ({
+  ClerkProvider: (
     props: React.PropsWithChildren<{
-      authorizationParams?: {
-        redirect_uri?: string
-      }
-      onRedirectCallback?: (appState?: { returnTo?: string }) => void
+      publishableKey?: string
+      afterSignOutUrl?: string
+      signInFallbackRedirectUrl?: string
+      signUpFallbackRedirectUrl?: string
+      routerPush?: (to: string) => unknown
+      routerReplace?: (to: string) => unknown
     }>,
   ) => {
     mocks.providerProps = props
     return props.children
   },
-  useAuth0: () => ({
-    getAccessTokenSilently: mocks.auth0GetToken,
-    isAuthenticated: mocks.auth0State.isAuthenticated,
-    isLoading: mocks.auth0State.isLoading,
-    loginWithRedirect: mocks.auth0Login,
-    logout: mocks.auth0Logout,
-    user: mocks.auth0State.user,
+  useAuth: () => ({
+    isLoaded: mocks.clerkState.isLoaded,
+    isSignedIn: mocks.clerkState.isSignedIn,
+    getToken: mocks.getToken,
+  }),
+  useUser: () => ({ user: mocks.clerkState.user }),
+  useClerk: () => ({
+    openSignIn: mocks.openSignIn,
+    openSignUp: mocks.openSignUp,
+    signOut: mocks.signOut,
   }),
 }))
 
@@ -95,14 +109,17 @@ function AuthProbe() {
   )
 }
 
-describe('OrgAuthProvider redirect callback', () => {
+describe('OrgAuthProvider', () => {
   beforeEach(() => {
-    mocks.auth0Logout.mockReset()
-    mocks.auth0Login.mockReset()
-    mocks.auth0GetToken.mockReset()
-    mocks.auth0State.isAuthenticated = false
-    mocks.auth0State.isLoading = false
-    mocks.auth0State.user = undefined
+    vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', PUBLISHABLE_KEY)
+    mocks.openSignIn.mockReset()
+    mocks.openSignUp.mockReset()
+    mocks.signOut.mockReset()
+    mocks.getToken.mockReset()
+    mocks.clerkState.isLoaded = true
+    mocks.clerkState.isSignedIn = false
+    mocks.clerkState.user = undefined
+    mocks.historyPush.mockReset()
     mocks.historyReplace.mockReset()
     mocks.providerProps = undefined
     delete document.body.dataset.token
@@ -113,33 +130,20 @@ describe('OrgAuthProvider redirect callback', () => {
     vi.unstubAllEnvs()
   })
 
-  it('sends Auth0 to the dedicated callback route', () => {
+  it('configures Clerk with the publishable key and post-auth destinations', () => {
     render(
       <OrgAuthProvider>
         <div>child</div>
       </OrgAuthProvider>,
     )
 
-    expect(mocks.providerProps?.authorizationParams?.redirect_uri).toBe(
-      `${window.location.origin}/callback`,
-    )
+    expect(mocks.providerProps?.publishableKey).toBe(PUBLISHABLE_KEY)
+    expect(mocks.providerProps?.afterSignOutUrl).toBe('/logout')
+    expect(mocks.providerProps?.signInFallbackRedirectUrl).toBe('/profile')
+    expect(mocks.providerProps?.signUpFallbackRedirectUrl).toBe('/profile')
   })
 
-  it('uses client-side router history so the Auth0 memory cache survives', () => {
-    render(
-      <OrgAuthProvider>
-        <div>child</div>
-      </OrgAuthProvider>,
-    )
-
-    act(() => {
-      mocks.providerProps?.onRedirectCallback?.({ returnTo: '/profile' })
-    })
-
-    expect(mocks.historyReplace).toHaveBeenCalledWith('/profile')
-  })
-
-  it('falls back to the profile route when Auth0 has no return target', () => {
+  it('routes Clerk navigation through client-side router history', () => {
     render(
       <OrgAuthProvider>
         <div>child</div>
@@ -147,13 +151,15 @@ describe('OrgAuthProvider redirect callback', () => {
     )
 
     act(() => {
-      mocks.providerProps?.onRedirectCallback?.()
+      mocks.providerProps?.routerPush?.('/pushed')
+      mocks.providerProps?.routerReplace?.('/replaced')
     })
 
-    expect(mocks.historyReplace).toHaveBeenCalledWith('/profile')
+    expect(mocks.historyPush).toHaveBeenCalledWith('/pushed')
+    expect(mocks.historyReplace).toHaveBeenCalledWith('/replaced')
   })
 
-  it('returns from Auth0 logout through the dedicated logout route', () => {
+  it('returns from sign-out through the dedicated logout route', () => {
     render(
       <OrgAuthProvider>
         <AuthProbe />
@@ -162,10 +168,8 @@ describe('OrgAuthProvider redirect callback', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
 
-    expect(mocks.auth0Logout).toHaveBeenCalledWith({
-      logoutParams: {
-        returnTo: `${window.location.origin}/logout`,
-      },
+    expect(mocks.signOut).toHaveBeenCalledWith({
+      redirectUrl: `${window.location.origin}/logout`,
     })
   })
 
@@ -180,8 +184,8 @@ describe('OrgAuthProvider redirect callback', () => {
     expect(html).toContain('&quot;isLoading&quot;:true')
   })
 
-  it('uses inert auth actions when Auth0 configuration is missing', async () => {
-    vi.stubEnv('VITE_AUTH0_DOMAIN', '')
+  it('uses inert auth actions when the publishable key is missing', async () => {
+    vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', '')
 
     render(
       <OrgAuthProvider>
@@ -196,11 +200,12 @@ describe('OrgAuthProvider redirect callback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     fireEvent.click(screen.getByRole('button', { name: 'Get token' }))
     await waitFor(() => expect(document.body.dataset.token).toBe('none'))
-    expect(mocks.auth0Login).not.toHaveBeenCalled()
-    expect(mocks.auth0Logout).not.toHaveBeenCalled()
+    expect(mocks.openSignIn).not.toHaveBeenCalled()
+    expect(mocks.openSignUp).not.toHaveBeenCalled()
+    expect(mocks.signOut).not.toHaveBeenCalled()
   })
 
-  it('passes default login and explicit signup options to Auth0', () => {
+  it('opens sign-in by default and sign-up when requested, preserving returnTo', () => {
     render(
       <OrgAuthProvider>
         <AuthProbe />
@@ -210,27 +215,93 @@ describe('OrgAuthProvider redirect callback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
-    expect(mocks.auth0Login).toHaveBeenNthCalledWith(1, {
-      appState: { returnTo: window.location.pathname },
-      authorizationParams: undefined,
+    expect(mocks.openSignIn).toHaveBeenCalledWith({
+      forceRedirectUrl: window.location.pathname,
     })
-    expect(mocks.auth0Login).toHaveBeenNthCalledWith(2, {
-      appState: { returnTo: '/profile' },
-      authorizationParams: { screen_hint: 'signup' },
+    expect(mocks.openSignUp).toHaveBeenCalledWith({
+      forceRedirectUrl: '/profile',
     })
   })
 
+  it('reports the loading state until Clerk has loaded', () => {
+    mocks.clerkState.isLoaded = false
+
+    render(
+      <OrgAuthProvider>
+        <AuthProbe />
+      </OrgAuthProvider>,
+    )
+
+    expect(screen.getByTestId('auth-state').textContent).toContain(
+      '"isLoading":true',
+    )
+  })
+
+  it('maps a fully populated Clerk user onto the Auth0-shaped claims', () => {
+    mocks.clerkState.isSignedIn = true
+    mocks.clerkState.user = {
+      id: 'user_123',
+      fullName: 'Member Name',
+      imageUrl: 'https://img.example/avatar.png',
+      primaryEmailAddress: { emailAddress: 'member@example.org' },
+    }
+
+    render(
+      <OrgAuthProvider>
+        <AuthProbe />
+      </OrgAuthProvider>,
+    )
+
+    const state = JSON.parse(
+      screen.getByTestId('auth-state').textContent || '{}',
+    )
+    expect(state.isAuthenticated).toBe(true)
+    expect(state.user).toEqual({
+      sub: 'user_123',
+      name: 'Member Name',
+      email: 'member@example.org',
+      picture: 'https://img.example/avatar.png',
+    })
+  })
+
+  it('omits name and email when Clerk supplies neither', () => {
+    mocks.clerkState.isSignedIn = true
+    mocks.clerkState.user = {
+      id: 'user_456',
+      fullName: null,
+      imageUrl: 'https://img.example/anon.png',
+    }
+
+    render(
+      <OrgAuthProvider>
+        <AuthProbe />
+      </OrgAuthProvider>,
+    )
+
+    const state = JSON.parse(
+      screen.getByTestId('auth-state').textContent || '{}',
+    )
+    expect(state.user.sub).toBe('user_456')
+    expect(state.user.name).toBeUndefined()
+    expect(state.user.email).toBeUndefined()
+  })
+
   it.each([
-    [false, undefined, 'none'],
-    [true, 'access-token', 'access-token'],
+    [false, undefined, 'none', 0],
+    [true, null, 'none', 1],
+    [true, 'session-token', 'session-token', 1],
   ])(
-    'returns the expected access token when authenticated is %s',
-    async (isAuthenticated, token, expected) => {
-      mocks.auth0State.isAuthenticated = isAuthenticated
-      mocks.auth0State.user = isAuthenticated
-        ? { sub: 'auth0|member', name: 'Member' }
+    'resolves the session token when signed in is %s',
+    async (isSignedIn, token, expected, calls) => {
+      mocks.clerkState.isSignedIn = isSignedIn
+      mocks.clerkState.user = isSignedIn
+        ? {
+            id: 'user_123',
+            fullName: 'Member',
+            imageUrl: 'https://img.example/avatar.png',
+          }
         : undefined
-      mocks.auth0GetToken.mockResolvedValue(token)
+      mocks.getToken.mockResolvedValue(token)
 
       render(
         <OrgAuthProvider>
@@ -240,7 +311,7 @@ describe('OrgAuthProvider redirect callback', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Get token' }))
       await waitFor(() => expect(document.body.dataset.token).toBe(expected))
-      expect(mocks.auth0GetToken).toHaveBeenCalledTimes(isAuthenticated ? 1 : 0)
+      expect(mocks.getToken).toHaveBeenCalledTimes(calls)
     },
   )
 })

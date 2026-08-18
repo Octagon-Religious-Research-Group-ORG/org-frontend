@@ -35,7 +35,7 @@ function LogoutPage() {
           </h1>
           <p className="mt-4 max-w-lg text-sm leading-7 text-[#b8ad8d]">
             {auth.isAuthenticated
-              ? 'End your Auth0 session on this browser.'
+              ? 'End your session on this browser.'
               : 'Your ORG member session has ended safely.'}
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
