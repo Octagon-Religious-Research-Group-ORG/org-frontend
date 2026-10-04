@@ -12,6 +12,7 @@ import infrastructureImg from '#/assets/infrastructure.webp'
 import legalImg from '#/assets/legal.webp'
 import researchImg from '#/assets/research.webp'
 import { svgCoord } from '#/lib/svg'
+import { BlotterPerforations } from '#/components/BlotterPerforations'
 import { UserPlus, Search } from 'lucide-react'
 
 export const Route = createFileRoute('/')({ component: SacredGeometry })
@@ -133,50 +134,8 @@ function SacredGeometry() {
 
       <main className="relative z-[3] flex min-h-screen items-center justify-center px-[clamp(12px,4vw,56px)] py-[clamp(16px,4vw,28px)]">
         <div className="relative grid w-full max-w-[min(1400px,calc(100vh-60px))] grid-cols-3 gap-0">
-          {/* Grid-level perforation overlay for the entire 3x3 sheet.
-              Draws thick, sparse dashed perf lines exactly at the seams (0/33/66/100%)
-              so the 9 art squares fill edge-to-edge and touch with only the perfs between them. */}
-          {(() => {
-            const perfColor = 'rgba(236,226,196,0.85)'
-            const d = '25px'
-            const g = '20px'
-            const t = '6px'
-            const vGrad = `repeating-linear-gradient(to bottom, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
-            const hGrad = `repeating-linear-gradient(to right, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
-            const positions = ['0%', '33.333%', '66.666%', '100%']
-            const vBgImages = positions.map(() => vGrad).join(',')
-            const vBgSizes = positions.map(() => `${t} 100%`).join(',')
-            const vBgPositions = positions.map((p) => `${p} 0%`).join(',')
-            const vBgRepeats = positions.map(() => 'no-repeat').join(',')
-            const hBgImages = positions.map(() => hGrad).join(',')
-            const hBgSizes = positions.map(() => `100% ${t}`).join(',')
-            const hBgPositions = positions.map((p) => `0% ${p}`).join(',')
-            const hBgRepeats = positions.map(() => 'no-repeat').join(',')
-            return (
-              <>
-                <div
-                  aria-hidden
-                  className="absolute inset-0 pointer-events-none z-[5]"
-                  style={{
-                    backgroundImage: vBgImages,
-                    backgroundSize: vBgSizes,
-                    backgroundPosition: vBgPositions,
-                    backgroundRepeat: vBgRepeats,
-                  }}
-                />
-                <div
-                  aria-hidden
-                  className="absolute inset-0 pointer-events-none z-[6]"
-                  style={{
-                    backgroundImage: hBgImages,
-                    backgroundSize: hBgSizes,
-                    backgroundPosition: hBgPositions,
-                    backgroundRepeat: hBgRepeats,
-                  }}
-                />
-              </>
-            )
-          })()}
+          {/* Blotter-sheet perforations: fine tab grid across every tile + tear lines between tiles. */}
+          <BlotterPerforations cols={3} rows={3} tabsPerCell={5} />
 
           {GRID_ORDER.map((entry, i) => {
             const isCenter = entry.id === 'home'
