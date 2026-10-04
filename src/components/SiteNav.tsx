@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { X, Search, UserPlus } from 'lucide-react'
+import { BlotterPerforations } from '#/components/BlotterPerforations'
 import { GRID_ORDER } from '#/lib/sections'
 import aboutImg from '#/assets/about.webp'
 import beliefsImg from '#/assets/beliefs.webp'
@@ -146,51 +147,8 @@ export function SiteNav() {
       <header className="fixed inset-x-0 top-0 z-50 bg-[rgba(11,13,18,0.78)] backdrop-blur-md">
         <div className="mx-auto hidden max-w-[1180px] px-[clamp(14px,3vw,32px)] py-4 md:block relative">
           <nav aria-label="Primary" className="relative grid grid-cols-9 gap-0">
-            {/* Grid-level larger perforation lines matching the home page blotter sheet: 6px thick, sparse dashes (d=25px, g=20px) at every tab division + outer frame. */}
-            {(() => {
-              const perfColor = 'rgba(236,226,196,0.85)'
-              const d = '25px'
-              const g = '20px'
-              const t = '6px'
-              const vGrad = `repeating-linear-gradient(to bottom, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
-              const hGrad = `repeating-linear-gradient(to right, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
-              const numTabs = 9
-              const step = 100 / numTabs
-              const vPositions = Array.from({ length: numTabs + 1 }, (_, k) => `${(k * step).toFixed(3)}%`)
-              const hPositions = ['0%', '100%']
-              const vBgImages = vPositions.map(() => vGrad).join(',')
-              const vBgSizes = vPositions.map(() => `${t} 100%`).join(',')
-              const vBgPositions = vPositions.map((p) => `${p} 0%`).join(',')
-              const vBgRepeats = vPositions.map(() => 'no-repeat').join(',')
-              const hBgImages = hPositions.map(() => hGrad).join(',')
-              const hBgSizes = hPositions.map(() => `100% ${t}`).join(',')
-              const hBgPositions = hPositions.map((p) => `0% ${p}`).join(',')
-              const hBgRepeats = hPositions.map(() => 'no-repeat').join(',')
-              return (
-                <>
-                  <div
-                    aria-hidden
-                    className="absolute inset-0 pointer-events-none z-[5]"
-                    style={{
-                      backgroundImage: vBgImages,
-                      backgroundSize: vBgSizes,
-                      backgroundPosition: vBgPositions,
-                      backgroundRepeat: vBgRepeats,
-                    }}
-                  />
-                  <div
-                    aria-hidden
-                    className="absolute inset-0 pointer-events-none z-[6]"
-                    style={{
-                      backgroundImage: hBgImages,
-                      backgroundSize: hBgSizes,
-                      backgroundPosition: hBgPositions,
-                      backgroundRepeat: hBgRepeats,
-                    }}
-                  />
-                </>
-              )
-            })()}
+            {/* Blotter-sheet perforations, same as the home page sheet. */}
+            <BlotterPerforations cols={9} rows={1} tabsPerCell={3} seamWidth={2} />
             {GRID_ORDER.map((item) => (
               <NavSquare
                 key={item.id}
@@ -238,50 +196,8 @@ export function SiteNav() {
       {open ? (
         <div className="fixed inset-0 z-40 bg-[rgba(11,13,18,0.94)] px-4 pb-8 pt-24 backdrop-blur-md md:hidden">
           <nav aria-label="Primary mobile" className="relative mx-auto max-w-[420px] grid grid-cols-3 gap-0">
-            {/* Matching larger perforation overlay for mobile 3-col menu (6px thick, d=25px, g=20px, separate v/h to avoid overlap). */}
-            {(() => {
-              const perfColor = 'rgba(236,226,196,0.85)'
-              const d = '25px'
-              const g = '20px'
-              const t = '6px'
-              const vGrad = `repeating-linear-gradient(to bottom, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
-              const hGrad = `repeating-linear-gradient(to right, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
-              // For 3x3 grid (3 cols, 3 rows): 4 vertical + 4 horizontal perf lines
-              // Separate elements to prevent color overlap at line crossings
-              const positions = Array.from({ length: 4 }, (_, k) => `${(k * 100 / 3).toFixed(3)}%`)
-              const vBgImages = positions.map(() => vGrad).join(',')
-              const vBgSizes = positions.map(() => `${t} 100%`).join(',')
-              const vBgPositions = positions.map((p) => `${p} 0%`).join(',')
-              const vBgRepeats = positions.map(() => 'no-repeat').join(',')
-              const hBgImages = positions.map(() => hGrad).join(',')
-              const hBgSizes = positions.map(() => `100% ${t}`).join(',')
-              const hBgPositions = positions.map((p) => `0% ${p}`).join(',')
-              const hBgRepeats = positions.map(() => 'no-repeat').join(',')
-              return (
-                <>
-                  <div
-                    aria-hidden
-                    className="absolute inset-0 pointer-events-none z-[5]"
-                    style={{
-                      backgroundImage: vBgImages,
-                      backgroundSize: vBgSizes,
-                      backgroundPosition: vBgPositions,
-                      backgroundRepeat: vBgRepeats,
-                    }}
-                  />
-                  <div
-                    aria-hidden
-                    className="absolute inset-0 pointer-events-none z-[6]"
-                    style={{
-                      backgroundImage: hBgImages,
-                      backgroundSize: hBgSizes,
-                      backgroundPosition: hBgPositions,
-                      backgroundRepeat: hBgRepeats,
-                    }}
-                  />
-                </>
-              )
-            })()}
+            {/* Blotter-sheet perforations for the mobile 3x3 menu. */}
+            <BlotterPerforations cols={3} rows={3} tabsPerCell={3} />
             {GRID_ORDER.map((item) => (
               <NavSquare
                 key={item.id}
