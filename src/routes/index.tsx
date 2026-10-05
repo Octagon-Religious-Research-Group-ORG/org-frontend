@@ -12,7 +12,7 @@ import infrastructureImg from '#/assets/infrastructure.webp'
 import legalImg from '#/assets/legal.webp'
 import researchImg from '#/assets/research.webp'
 import { svgCoord } from '#/lib/svg'
-import { BlotterPerforations } from '#/components/BlotterPerforations'
+import { BlotterPerforations, TabPerforations } from '#/components/BlotterPerforations'
 import { UserPlus, Search } from 'lucide-react'
 
 export const Route = createFileRoute('/')({ component: SacredGeometry })
@@ -59,6 +59,10 @@ const LABELS: Record<string, string> = {
 
 const cellWrapper =
   'group relative z-[1] block w-full h-full no-underline text-[#ece2c4] opacity-0 scale-[0.92] animate-[v2-pop_900ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]'
+
+/** Caption BELOW the art, outside it (Tripp, 2026-10-05): text on the image had contrast problems. */
+const tileLabel =
+  'block text-center leading-none tracking-[0.04em] uppercase pt-[8px] pb-[10px] pointer-events-none text-[clamp(7px,calc(1.8vw-4px),24px)] font-bold text-[#ece2c4] group-hover:text-[#d4a24a]'
 
 const perforatedSquare =
   'aspect-square w-full overflow-hidden transition-all duration-300'
@@ -135,7 +139,7 @@ function SacredGeometry() {
       <main className="relative z-[3] flex min-h-screen items-center justify-center px-[clamp(12px,4vw,56px)] py-[clamp(16px,4vw,28px)]">
         <div className="relative grid w-full max-w-[min(1400px,calc(100vh-60px))] grid-cols-3 gap-0">
           {/* Blotter-sheet perforations: fine tab grid across every tile + tear lines between tiles. */}
-          <BlotterPerforations cols={3} rows={3} tabsPerCell={5} />
+          <BlotterPerforations cols={3} rows={3} fine={false} />
 
           {GRID_ORDER.map((entry, i) => {
             const isCenter = entry.id === 'home'
@@ -151,6 +155,7 @@ function SacredGeometry() {
                   className={cellWrapper}
                   style={{ animationDelay: `${delay}ms` }}
                 >
+                  <div className="flex flex-col">
                   <div
                     className={`${perforatedSquare} relative group-hover:border-[3px] group-hover:border-solid group-hover:border-[#d4a24a]`}
                   >
@@ -185,15 +190,11 @@ function SacredGeometry() {
                       <Search size={20} />
                     </button>
 
-                    <span
-                      aria-hidden
-                      className="absolute bottom-0 left-0 right-0 z-[20] text-center leading-none tracking-[0.04em] uppercase pb-[11px] pointer-events-none text-[clamp(7px,calc(1.8vw-4px),24px)] font-bold text-[#ece2c4] group-hover:text-[#f0e6d0]"
-                      style={{
-                        background: 'linear-gradient(to top, rgba(11,13,18,0.65) 0%, rgba(11,13,18,0.3) 55%, transparent 100%)'
-                      }}
-                    >
-                      {LABELS.home}
-                    </span>
+                    <TabPerforations />
+                  </div>
+                  <span aria-hidden className={tileLabel}>
+                    {LABELS.home}
+                  </span>
                   </div>
                 </div>
               )
@@ -203,9 +204,10 @@ function SacredGeometry() {
             const img = IMAGES[s.id]
             const isInternal = s.href.startsWith('/')
             const inner = (
-              <div
-                className={`${perforatedSquare} relative group-hover:border-[3px] group-hover:border-solid group-hover:border-[#d4a24a]`}
-              >
+              <div className="flex flex-col">
+                <div
+                  className={`${perforatedSquare} relative group-hover:border-[3px] group-hover:border-solid group-hover:border-[#d4a24a]`}
+                >
                 <span
                   aria-hidden
                   className="absolute inset-0 bg-cover bg-center"
@@ -215,13 +217,9 @@ function SacredGeometry() {
                       : 'linear-gradient(140deg, rgba(28,30,38,0.92), rgba(15,17,22,0.92))',
                   }}
                 />
-                <span
-                  aria-hidden
-                  className="absolute bottom-0 left-0 right-0 z-[20] text-center leading-none tracking-[0.04em] uppercase pb-[11px] pointer-events-none text-[clamp(7px,calc(1.8vw-4px),24px)] font-bold text-[#ece2c4] group-hover:text-[#f0e6d0]"
-                  style={{
-                    background: 'linear-gradient(to top, rgba(11,13,18,0.65) 0%, rgba(11,13,18,0.3) 55%, transparent 100%)'
-                  }}
-                >
+                  <TabPerforations />
+                </div>
+                <span aria-hidden className={tileLabel}>
                   {LABELS[s.id] ?? s.label}
                 </span>
               </div>
