@@ -13,6 +13,11 @@ type BlotterPerforationsProps = {
   seamColor?: string
   /** Thickness of the tear lines, in px. */
   seamWidth?: number
+  /**
+   * Draw the fine tab grid across the whole sheet. Turn it off when tiles carry a caption below
+   * their art (the fine lines would cross the text) and put a TabPerforations inside each image instead.
+   */
+  fine?: boolean
 }
 
 const layer: CSSProperties = {
@@ -43,6 +48,7 @@ export function BlotterPerforations({
   perfColor = 'rgba(255, 250, 235, 0.5)',
   seamColor = 'rgba(236, 226, 196, 0.9)',
   seamWidth = 3,
+  fine = true,
 }: BlotterPerforationsProps) {
   const fineV = `linear-gradient(to right, ${perfColor} 0 1px, transparent 1px)`
   const fineH = `linear-gradient(to bottom, ${perfColor} 0 1px, transparent 1px)`
@@ -52,26 +58,30 @@ export function BlotterPerforations({
 
   return (
     <>
-      <div
-        aria-hidden
-        className="z-[5]"
-        style={{
-          ...layer,
-          backgroundImage: fineV,
-          backgroundSize: `calc(100% / ${cols * tabsPerCell}) 100%`,
-          ...dashMask('to bottom', 3, 3),
-        }}
-      />
-      <div
-        aria-hidden
-        className="z-[5]"
-        style={{
-          ...layer,
-          backgroundImage: fineH,
-          backgroundSize: `100% calc(100% / ${rows * tabsPerCell})`,
-          ...dashMask('to right', 3, 3),
-        }}
-      />
+      {fine ? (
+        <>
+          <div
+            aria-hidden
+            className="z-[5]"
+            style={{
+              ...layer,
+              backgroundImage: fineV,
+              backgroundSize: `calc(100% / ${cols * tabsPerCell}) 100%`,
+              ...dashMask('to bottom', 3, 3),
+            }}
+          />
+          <div
+            aria-hidden
+            className="z-[5]"
+            style={{
+              ...layer,
+              backgroundImage: fineH,
+              backgroundSize: `100% calc(100% / ${rows * tabsPerCell})`,
+              ...dashMask('to right', 3, 3),
+            }}
+          />
+        </>
+      ) : null}
       <div
         aria-hidden
         className="z-[6]"
@@ -94,6 +104,43 @@ export function BlotterPerforations({
           backgroundPosition: ys.map((y) => `0 ${y}`).join(','),
           backgroundRepeat: 'no-repeat',
           ...dashMask('to right', 7, 4),
+        }}
+      />
+    </>
+  )
+}
+
+/**
+ * The fine perforation grid of small tabs for ONE tile's art. Place it inside the image box
+ * (a `relative` element) when the tile's caption sits outside the art.
+ */
+export function TabPerforations({
+  tabs = 5,
+  perfColor = 'rgba(255, 250, 235, 0.5)',
+}: {
+  tabs?: number
+  perfColor?: string
+}) {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="z-[5]"
+        style={{
+          ...layer,
+          backgroundImage: `linear-gradient(to right, ${perfColor} 0 1px, transparent 1px)`,
+          backgroundSize: `calc(100% / ${tabs}) 100%`,
+          ...dashMask('to bottom', 3, 3),
+        }}
+      />
+      <div
+        aria-hidden
+        className="z-[5]"
+        style={{
+          ...layer,
+          backgroundImage: `linear-gradient(to bottom, ${perfColor} 0 1px, transparent 1px)`,
+          backgroundSize: `100% calc(100% / ${tabs})`,
+          ...dashMask('to right', 3, 3),
         }}
       />
     </>
