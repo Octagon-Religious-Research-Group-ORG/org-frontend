@@ -245,7 +245,7 @@ describe('withHighlight', () => {
 
   it('highlights case-insensitive literal matches', () => {
     const parts = withHighlight('Use a.b then A.B', 'a.b')
-    const marks = parts.filter(isValidElement)
+    const marks = parts.filter(isValidElement<{ children: string }>)
 
     expect(marks).toHaveLength(2)
     expect(marks.map((mark) => mark.props.children)).toEqual(['a.b', 'A.B'])

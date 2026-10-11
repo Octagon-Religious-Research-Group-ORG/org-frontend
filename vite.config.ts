@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import { devtools } from '@tanstack/devtools-vite'
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
@@ -25,6 +25,7 @@ const config = defineConfig({
         'src/lib/sections.ts',
         'src/lib/svg.ts',
         'src/components/shop/MemberProfileSync.tsx',
+        'src/components/TestSiteBanner.tsx',
         'src/components/admin/content-editor/editor-utils.ts',
         'src/components/admin/website-workbench/workbench-state.ts',
         'src/components/admin/website-workbench/website-pages.ts',

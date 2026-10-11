@@ -7,6 +7,7 @@ import '@fontsource/ibm-plex-mono/400.css'
 
 import appCss from '../styles.css?url'
 import { SearchOverlay } from '#/components/SearchOverlay'
+import { TestSiteBanner } from '#/components/TestSiteBanner'
 import { MemberProfileSync } from '#/components/shop/MemberProfileSync'
 import { OrgAuthProvider } from '#/lib/auth'
 import { CartProvider } from '#/lib/cart'
@@ -45,6 +46,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <OrgAuthProvider>
           <CartProvider>
             <MemberProfileSync />
+            <TestSiteBanner />
             {children}
             <SearchOverlay />
           </CartProvider>
