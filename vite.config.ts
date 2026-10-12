@@ -24,6 +24,8 @@ const config = defineConfig({
         'src/lib/search.tsx',
         'src/lib/sections.ts',
         'src/lib/svg.ts',
+        'src/lib/membership-api.ts',
+        'src/components/members/MembersEntry.tsx',
         'src/components/shop/MemberProfileSync.tsx',
         'src/components/TestSiteBanner.tsx',
         'src/components/admin/content-editor/editor-utils.ts',

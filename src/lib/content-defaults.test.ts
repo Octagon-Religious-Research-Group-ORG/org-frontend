@@ -3,10 +3,13 @@ import {
   DEFAULT_WEBSITE_PAGES,
   getDefaultWebsiteContent,
 } from './content-defaults'
+import { WEBSITE_PAGE_IDS } from './content-types'
 
 describe('default website content', () => {
-  it('contains all eight managed pages with stable row IDs', () => {
-    expect(Object.keys(DEFAULT_WEBSITE_PAGES)).toHaveLength(8)
+  it('contains every managed page with stable row IDs', () => {
+    expect(Object.keys(DEFAULT_WEBSITE_PAGES).sort()).toEqual(
+      [...WEBSITE_PAGE_IDS].sort(),
+    )
     const community = DEFAULT_WEBSITE_PAGES.community
     expect(community.kind).toBe('reference')
     if (community.kind !== 'reference') throw new Error('Expected reference')

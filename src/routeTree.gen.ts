@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResearchRouteImport } from './routes/research'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OfferingsRouteImport } from './routes/offerings'
+import { Route as MembershipRouteImport } from './routes/membership'
 import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as JoinRouteImport } from './routes/join'
@@ -25,6 +26,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
 import { Route as OfferingsCheckoutRouteImport } from './routes/offerings.checkout'
+import { Route as MembershipJoinRouteImport } from './routes/membership_.join'
 import { Route as Archive5RouteImport } from './routes/archive/5'
 import { Route as Archive4RouteImport } from './routes/archive/4'
 import { Route as Archive3RouteImport } from './routes/archive/3'
@@ -46,6 +48,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const OfferingsRoute = OfferingsRouteImport.update({
   id: '/offerings',
   path: '/offerings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembershipRoute = MembershipRouteImport.update({
+  id: '/membership',
+  path: '/membership',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogoutRoute = LogoutRouteImport.update({
@@ -113,6 +120,11 @@ const OfferingsCheckoutRoute = OfferingsCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => OfferingsRoute,
 } as any)
+const MembershipJoinRoute = MembershipJoinRouteImport.update({
+  id: '/membership_/join',
+  path: '/membership/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Archive5Route = Archive5RouteImport.update({
   id: '/archive/5',
   path: '/archive/5',
@@ -161,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRoute
   '/legal': typeof LegalRoute
   '/logout': typeof LogoutRoute
+  '/membership': typeof MembershipRoute
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
@@ -171,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/archive/3': typeof Archive3Route
   '/archive/4': typeof Archive4Route
   '/archive/5': typeof Archive5Route
+  '/membership/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
 }
@@ -186,6 +200,7 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRoute
   '/legal': typeof LegalRoute
   '/logout': typeof LogoutRoute
+  '/membership': typeof MembershipRoute
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
@@ -196,6 +211,7 @@ export interface FileRoutesByTo {
   '/archive/3': typeof Archive3Route
   '/archive/4': typeof Archive4Route
   '/archive/5': typeof Archive5Route
+  '/membership/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
 }
@@ -212,6 +228,7 @@ export interface FileRoutesById {
   '/join': typeof JoinRoute
   '/legal': typeof LegalRoute
   '/logout': typeof LogoutRoute
+  '/membership': typeof MembershipRoute
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
@@ -222,6 +239,7 @@ export interface FileRoutesById {
   '/archive/3': typeof Archive3Route
   '/archive/4': typeof Archive4Route
   '/archive/5': typeof Archive5Route
+  '/membership_/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
 }
@@ -239,6 +257,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/legal'
     | '/logout'
+    | '/membership'
     | '/offerings'
     | '/profile'
     | '/research'
@@ -249,6 +268,7 @@ export interface FileRouteTypes {
     | '/archive/3'
     | '/archive/4'
     | '/archive/5'
+    | '/membership/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
@@ -264,6 +284,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/legal'
     | '/logout'
+    | '/membership'
     | '/offerings'
     | '/profile'
     | '/research'
@@ -274,6 +295,7 @@ export interface FileRouteTypes {
     | '/archive/3'
     | '/archive/4'
     | '/archive/5'
+    | '/membership/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
   id:
@@ -289,6 +311,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/legal'
     | '/logout'
+    | '/membership'
     | '/offerings'
     | '/profile'
     | '/research'
@@ -299,6 +322,7 @@ export interface FileRouteTypes {
     | '/archive/3'
     | '/archive/4'
     | '/archive/5'
+    | '/membership_/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
   fileRoutesById: FileRoutesById
@@ -315,6 +339,7 @@ export interface RootRouteChildren {
   JoinRoute: typeof JoinRoute
   LegalRoute: typeof LegalRoute
   LogoutRoute: typeof LogoutRoute
+  MembershipRoute: typeof MembershipRoute
   OfferingsRoute: typeof OfferingsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   ResearchRoute: typeof ResearchRoute
@@ -325,6 +350,7 @@ export interface RootRouteChildren {
   Archive3Route: typeof Archive3Route
   Archive4Route: typeof Archive4Route
   Archive5Route: typeof Archive5Route
+  MembershipJoinRoute: typeof MembershipJoinRoute
   OrdersOrderIdRoute: typeof OrdersOrderIdRoute
 }
 
@@ -349,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/offerings'
       fullPath: '/offerings'
       preLoaderRoute: typeof OfferingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/membership': {
+      id: '/membership'
+      path: '/membership'
+      fullPath: '/membership'
+      preLoaderRoute: typeof MembershipRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logout': {
@@ -442,6 +475,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfferingsCheckoutRouteImport
       parentRoute: typeof OfferingsRoute
     }
+    '/membership_/join': {
+      id: '/membership_/join'
+      path: '/membership/join'
+      fullPath: '/membership/join'
+      preLoaderRoute: typeof MembershipJoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/archive/5': {
       id: '/archive/5'
       path: '/archive/5'
@@ -518,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinRoute: JoinRoute,
   LegalRoute: LegalRoute,
   LogoutRoute: LogoutRoute,
+  MembershipRoute: MembershipRoute,
   OfferingsRoute: OfferingsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   ResearchRoute: ResearchRoute,
@@ -528,6 +569,7 @@ const rootRouteChildren: RootRouteChildren = {
   Archive3Route: Archive3Route,
   Archive4Route: Archive4Route,
   Archive5Route: Archive5Route,
+  MembershipJoinRoute: MembershipJoinRoute,
   OrdersOrderIdRoute: OrdersOrderIdRoute,
 }
 export const routeTree = rootRouteImport

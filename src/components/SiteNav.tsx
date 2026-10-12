@@ -15,7 +15,7 @@ import researchImg from '#/assets/research.webp'
 
 const LABELS: Record<string, string> = {
   about: 'About',
-  community: 'Community',
+  community: 'Members Community',
   beliefs: 'Beliefs',
   infrastructure: 'Infrastructure',
   home: 'ORG',

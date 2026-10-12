@@ -26,6 +26,7 @@ const PAGE_TITLES: Record<SearchPageId, string> = {
   legal: 'Legal',
   future: 'Future Ideas',
   donations: 'Gifts & Contributions',
+  membership: 'Membership',
   about: 'About Us',
 }
 
@@ -37,6 +38,7 @@ const PAGE_HREFS: Record<SearchPageId, string> = {
   legal: '/legal',
   future: '/future-ideas',
   donations: '/gifts-contributions',
+  membership: '/membership',
   about: '/about',
 }
 
@@ -216,5 +218,6 @@ export const PAGE_META: Record<
   legal: { short: 'LEGAL', accent: '#5800FF' },
   future: { short: 'FUTURE IDEAS', accent: '#5800FF' },
   donations: { short: 'GIFTS & CONTRIBUTIONS', accent: '#5800FF' },
+  membership: { short: 'MEMBERSHIP', accent: '#5800FF' },
   about: { short: 'ABOUT US', accent: '#5800FF' },
 }

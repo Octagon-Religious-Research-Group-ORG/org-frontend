@@ -7,6 +7,7 @@ import { withHighlight } from '#/lib/search'
 
 const ACCENTS: Record<string, string> = {
   community: '#78aea2',
+  membership: '#78aea2',
   beliefs: '#e2bd65',
   infrastructure: '#c98b63',
   research: '#8da8dc',
@@ -149,7 +150,17 @@ function ReferenceLine({
   )
 }
 
-export function ReferencePage({ page }: { page: ReferencePageContent }) {
+/**
+ * @param wrapContent - optional gate around the page body, e.g. the Members
+ *   Community entry; the title and subtitle always show.
+ */
+export function ReferencePage({
+  page,
+  wrapContent = (body) => body,
+}: {
+  page: ReferencePageContent
+  wrapContent?: (body: ReactNode) => ReactNode
+}) {
   const location = useLocation()
   const navigate = useNavigate()
   const accent = ACCENTS[page.id] ?? '#d4a24a'
@@ -223,17 +234,19 @@ export function ReferencePage({ page }: { page: ReferencePageContent }) {
           </div>
         </section>
 
-        <article className="mt-12 border-y border-[rgba(236,226,196,0.12)] py-8">
-          <div className="mx-auto flex max-w-[860px] flex-col gap-1">
-            {page.blocks.map((block) => (
-              <ReferenceLine
-                key={block.id}
-                block={block}
-                searchTerm={searchTerm}
-              />
-            ))}
-          </div>
-        </article>
+        {wrapContent(
+          <article className="mt-12 border-y border-[rgba(236,226,196,0.12)] py-8">
+            <div className="mx-auto flex max-w-[860px] flex-col gap-1">
+              {page.blocks.map((block) => (
+                <ReferenceLine
+                  key={block.id}
+                  block={block}
+                  searchTerm={searchTerm}
+                />
+              ))}
+            </div>
+          </article>,
+        )}
       </main>
     </div>
   )

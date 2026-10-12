@@ -47,7 +47,7 @@ const IMAGES: Record<string, string> = {
 
 const LABELS: Record<string, string> = {
   about: 'About',
-  community: 'Community',
+  community: 'Members Community',
   beliefs: 'Beliefs',
   infrastructure: 'Infrastructure',
   home: 'ORG',

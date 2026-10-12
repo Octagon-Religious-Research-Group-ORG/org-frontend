@@ -22,7 +22,7 @@ export const SECTIONS: ReadonlyArray<Section> = [
   },
   {
     id: 'community',
-    label: 'Community',
+    label: 'Members Community',
     href: '/community',
     roman: 'II',
     numeral: '02',
