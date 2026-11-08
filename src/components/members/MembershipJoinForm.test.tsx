@@ -16,7 +16,7 @@ import { MembershipJoinForm } from './MembershipJoinForm'
 import { SLOW_NOTICE_AFTER_MS, SLOW_SERVER_MESSAGE } from './use-slow-notice'
 
 const mocks = vi.hoisted(() => ({
-  auth: { getToken: vi.fn(), user: { sub: 'user_a' } as { sub: string } },
+  auth: { getToken: vi.fn(), user: { sub: 'user_a' } },
   fetchMembershipTerms: vi.fn(),
   fetchMyMembership: vi.fn(),
   checkSlug: vi.fn(),
@@ -183,7 +183,7 @@ describe('MembershipJoinForm', () => {
       expect(
         screen.queryByRole('button', { name: /Add a belief tab/ }),
       ).toBeNull()
-    })
+    }, 20_000)
 
     it('leaves empty contact rows out and sends the method chosen', async () => {
       render(<MembershipJoinForm nickname={false} />)

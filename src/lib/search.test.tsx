@@ -53,6 +53,7 @@ describe('published content search', () => {
 
     expect(results[0]).toMatchObject({
       pageId: 'community',
+      title: 'Members Community',
       href: '/community',
     })
     expect(results[0].snippet).toContain('heliotrope')
