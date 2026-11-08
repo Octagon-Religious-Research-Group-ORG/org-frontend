@@ -144,7 +144,7 @@ export function SiteNav() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 bg-[rgba(11,13,18,0.78)] backdrop-blur-md">
+      <header className="fixed inset-x-0 top-[var(--test-banner-height,0px)] z-50 bg-[rgba(11,13,18,0.78)] backdrop-blur-md">
         <div className="mx-auto hidden max-w-[1180px] px-[clamp(14px,3vw,32px)] py-4 md:block relative">
           <nav aria-label="Primary" className="relative grid grid-cols-9 gap-0">
             {/* Blotter-sheet perforations, same as the home page sheet. */}
@@ -199,7 +199,7 @@ export function SiteNav() {
       </header>
 
       {open ? (
-        <div className="fixed inset-0 z-40 bg-[rgba(11,13,18,0.94)] px-4 pb-8 pt-24 backdrop-blur-md md:hidden">
+        <div className="fixed inset-0 z-40 bg-[rgba(11,13,18,0.94)] px-4 pb-8 pt-[calc(6rem+var(--test-banner-height,0px))] backdrop-blur-md md:hidden">
           <nav
             aria-label="Primary mobile"
             className="relative mx-auto max-w-[420px] grid grid-cols-3 gap-0"
