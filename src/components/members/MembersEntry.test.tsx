@@ -303,12 +303,17 @@ describe('MembersEntry', () => {
       )
     })
 
-    it('keeps waiting without a token', async () => {
-      mocks.auth.getToken.mockResolvedValue(undefined)
+    it('does not hang without a token: offers another try and Guest', async () => {
+      mocks.auth.getToken.mockResolvedValueOnce(undefined)
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'approved' })
       renderEntry()
-      await Promise.resolve()
+      expect((await screen.findByRole('alert')).textContent).toMatch(
+        /confirm that you're signed in/,
+      )
       expect(mocks.fetchMyMembership).not.toHaveBeenCalled()
-      expect(screen.getByText('Checking membership…')).toBeTruthy()
+      expect(screen.getByRole('button', { name: /Guest/ })).toBeTruthy()
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByText('Community content')).toBeTruthy()
     })
 
     it('ignores an answer that arrives after it closed', async () => {

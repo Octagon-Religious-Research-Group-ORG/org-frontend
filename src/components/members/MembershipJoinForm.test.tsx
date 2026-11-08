@@ -153,15 +153,64 @@ describe('MembershipJoinForm', () => {
     })
   })
 
-  it('caps each text box at the server limit', async () => {
-    render(<MembershipJoinForm nickname={false} />)
-    await screen.findByText('Create your page')
-    expect(screen.getByLabelText<HTMLTextAreaElement>('Bio').maxLength).toBe(
+  describe('long text', () => {
+    const long = (length: number) => 'x'.repeat(length)
+
+    it('counts as the member types, per box and overall', async () => {
+      render(<MembershipJoinForm nickname={false} />)
+      await screen.findByText('Create your page')
+      type('Bio', 'Hello')
+      type('Belief 1', 'Abc')
+      expect(screen.getByText('5 / 20,000 characters')).toBeTruthy()
+      expect(screen.getByText('3 / 20,000 characters')).toBeTruthy()
+      expect(
+        screen.getByText(/Bio and beliefs together: 8 \/ 200,000 characters/),
+      ).toBeTruthy()
+    })
+
+    it.each(['Bio', 'Belief 1'])(
+      'keeps all of a long paste in %s, warns, and blocks submitting',
+      async (box) => {
+        render(<MembershipJoinForm nickname={false} />)
+        await fillAndAgree()
+        expect(submitButton().disabled).toBe(false)
+        // The browser would cut a paste at maxLength; jsdom does not, so check the attribute.
+        expect(screen.getByLabelText<HTMLTextAreaElement>(box).maxLength).toBe(
+          -1,
+        )
+        type(box, long(20_001))
+        expect(value(box)).toHaveLength(20_001)
+        expect(screen.getByRole('alert').textContent).toMatch(
+          /Nothing has been cut/,
+        )
+        expect(submitButton().disabled).toBe(true)
+        type(box, long(20_000))
+        expect(screen.queryByRole('alert')).toBeNull()
+        expect(submitButton().disabled).toBe(false)
+      },
       20_000,
     )
-    expect(
-      screen.getByLabelText<HTMLTextAreaElement>('Belief 1').maxLength,
-    ).toBe(20_000)
+
+    it('blocks submitting past the overall limit even when each box fits', async () => {
+      render(<MembershipJoinForm nickname={false} />)
+      await fillAndAgree()
+      const add = screen.getByRole('button', { name: /Add a belief tab/ })
+      type('Bio', long(20_000))
+      type('Belief 1', long(20_000))
+      for (let tab = 2; tab <= 9; tab++) {
+        fireEvent.click(add)
+        type(`Belief ${tab} title`, 'T')
+        type(`Belief ${tab}`, long(20_000))
+      }
+      expect(submitButton().disabled).toBe(false)
+      fireEvent.click(add)
+      type('Belief 10 title', 'T')
+      type('Belief 10', 'y')
+      expect(screen.getByRole('alert').textContent).toMatch(
+        /Please shorten them/,
+      )
+      expect(submitButton().disabled).toBe(true)
+    }, 30_000)
   })
 
   describe('beliefs and contacts', () => {
@@ -617,6 +666,19 @@ describe('MembershipJoinForm', () => {
       expect(stored()).toBe('')
     })
 
+    it('replaces the whole form when the account changes without a sign-out', async () => {
+      const view = render(<MembershipJoinForm nickname={false} />)
+      await fillRequired()
+      mocks.auth = { ...mocks.auth, user: { sub: 'user_b' } }
+      view.rerender(<MembershipJoinForm nickname={false} />)
+      await screen.findByText('Create your page')
+      expect(value('Bio')).toBe('')
+      expect(value('Name')).toBe('')
+      expect(stored()).not.toContain('First.')
+      type('Bio', "B's own words")
+      expect(JSON.parse(stored())).toMatchObject({ owner: 'user_b' })
+    })
+
     it('cannot undo "Join anonymously", and keeps an anonymous choice', async () => {
       render(<MembershipJoinForm nickname={false} />)
       await fillRequired()
@@ -648,6 +710,16 @@ describe('MembershipJoinForm', () => {
       expect(stored()).toBe('')
       fill()
       expect(stored()).not.toBe('')
+    })
+
+    it('still works when the account id is not known', async () => {
+      mocks.auth = { ...mocks.auth, user: undefined as never }
+      render(<MembershipJoinForm nickname={false} />)
+      await screen.findByText('Create your page')
+      type('Bio', 'Text.')
+      remount()
+      await screen.findByText('Create your page')
+      expect(value('Bio')).toBe('Text.')
     })
 
     it('is saved for only a contact on the page', async () => {

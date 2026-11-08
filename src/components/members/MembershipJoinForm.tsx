@@ -26,8 +26,10 @@ import { ContactRows, field } from './ContactRows'
 import { SLOW_SERVER_MESSAGE, useSlowNotice } from './use-slow-notice'
 
 const MAX_BELIEFS = 20
-/** Matches the server's limit per text box. */
+/** Match the server's limits: per text box, and bio plus beliefs together. */
 const MAX_TEXT = 20_000
+const MAX_TOTAL_TEXT = 200_000
+const formatCount = (value: number) => value.toLocaleString('en-US')
 const SLUG_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 type SlugStatus =
@@ -69,13 +71,40 @@ function Section({
   )
 }
 
+/** A live count, and a plain warning instead of quietly cutting long text. */
+function TextCounter({ length }: { length: number }) {
+  const over = length > MAX_TEXT
+  return (
+    <span className={`text-xs ${over ? 'text-[#f1a07a]' : 'text-[#9f9676]'}`}>
+      {formatCount(length)} / {formatCount(MAX_TEXT)} characters
+      {over && (
+        <span role="alert">
+          {' '}
+          This is over the limit. Nothing has been cut; please shorten it.
+        </span>
+      )}
+    </span>
+  )
+}
+
 /**
- * The new-member form (plan Chunk 6): how the member is known, their page
- * address, who can see it, bio, beliefs (one per tab), contacts, and the
- * membership terms, which the server versions and records.
+ * The new-member form (plan Chunk 6). Keyed by account: a different account
+ * gets a new form, never the fields and draft of the previous one.
  */
 export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
+  const account = useOrgAuth().user?.sub
+  return <JoinForm key={account ?? 'no-account'} nickname={nickname} />
+}
+
+/**
+ * How the member is known, their page address, who can see it, bio, beliefs
+ * (one per tab), contacts, and the membership terms, which the server
+ * versions and records.
+ */
+function JoinForm({ nickname }: { nickname: boolean }) {
   const auth = useOrgAuth()
+  // Fixed for the life of this form, so its draft can only ever be this account's.
+  const [draftOwner] = useState(auth.user?.sub)
   const authRef = useRef(auth)
   authRef.current = auth
   const [terms, setTerms] = useState<MembershipTerms>()
@@ -86,7 +115,7 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
   const seenTermsVersion = useRef<string>(undefined)
 
   // Restored once, on first render: what was typed before a session lapse.
-  const [draft] = useState(() => loadJoinDraft(auth.user?.sub))
+  const [draft] = useState(() => loadJoinDraft(draftOwner))
   // A draft can only keep someone anonymous, never undo "Join anonymously".
   const [anonymous, setAnonymous] = useState(
     nickname || (draft?.anonymous ?? false),
@@ -205,7 +234,7 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
       beliefs.some((belief) => belief.title || belief.text) ||
       contacts.some((row) => row.value)
     if (!typed) return
-    saveJoinDraft(auth.user?.sub, {
+    saveJoinDraft(draftOwner, {
       displayName,
       slug,
       slugEdited,
@@ -216,7 +245,7 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
       contacts,
     })
   }, [
-    auth.user?.sub,
+    draftOwner,
     displayName,
     slug,
     slugEdited,
@@ -286,7 +315,14 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
   ) => setBeliefs(beliefs.map((b, i) => (i === index ? { ...b, ...patch } : b)))
 
   const filledBackup = backup.filter((row) => row.value.trim())
+  const totalText =
+    bio.length + beliefs.reduce((sum, belief) => sum + belief.text.length, 0)
+  const tooLong =
+    bio.length > MAX_TEXT ||
+    beliefs.some((belief) => belief.text.length > MAX_TEXT) ||
+    totalText > MAX_TOTAL_TEXT
   const canSubmit =
+    !tooLong &&
     agreed &&
     !submitting &&
     displayName.trim() &&
@@ -468,11 +504,11 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
           aria-label="Bio"
           required
           rows={6}
-          maxLength={MAX_TEXT}
           value={bio}
           onChange={(event) => setBio(event.target.value)}
           className={field}
         />
+        <TextCounter length={bio.length} />
       </Section>
 
       <Section
@@ -514,13 +550,13 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
               placeholder="Your belief, in your own words."
               required
               rows={4}
-              maxLength={MAX_TEXT}
               value={belief.text}
               onChange={(event) =>
                 updateBelief(index, { text: event.target.value })
               }
               className={field}
             />
+            <TextCounter length={belief.text.length} />
           </div>
         ))}
         {beliefs.length < MAX_BELIEFS && (
@@ -532,6 +568,18 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
             <Plus size={13} /> Add a belief tab
           </button>
         )}
+        <p
+          className={`text-xs ${totalText > MAX_TOTAL_TEXT ? 'text-[#f1a07a]' : 'text-[#9f9676]'}`}
+        >
+          Bio and beliefs together: {formatCount(totalText)} /{' '}
+          {formatCount(MAX_TOTAL_TEXT)} characters.
+          {totalText > MAX_TOTAL_TEXT && (
+            <span role="alert">
+              {' '}
+              Please shorten them. You can add more on your page later.
+            </span>
+          )}
+        </p>
       </Section>
 
       <Section

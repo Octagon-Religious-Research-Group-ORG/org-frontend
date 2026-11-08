@@ -23,6 +23,9 @@ export const JOIN_NICKNAME_PATH = '/membership/join?nickname=1'
  */
 export const GUEST_ENTRY_NEEDS_RECORD = true
 
+const SESSION_UNCONFIRMED =
+  "We couldn't confirm that you're signed in. Please try again."
+
 const button =
   'flex items-center justify-center gap-2 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.18em] transition disabled:opacity-35'
 
@@ -73,7 +76,7 @@ export function MembersEntry({
     void (async () => {
       try {
         const token = await auth.getToken()
-        if (!token) return
+        if (!token) throw new Error(SESSION_UNCONFIRMED)
         const summary = await fetchMyMembership(token)
         if (!closed.signal.aborted) setMembership(summary)
       } catch (err) {
