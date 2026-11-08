@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as MembershipApi from '#/lib/membership-api'
 import { MembersEntry } from './MembersEntry'
+import { SLOW_NOTICE_AFTER_MS, SLOW_SERVER_MESSAGE } from './use-slow-notice'
 
 const mocks = vi.hoisted(() => ({
   auth: {
@@ -52,7 +53,10 @@ beforeEach(() => {
   mocks.recordGuestEntry.mockReset().mockResolvedValue(undefined)
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 describe('MembersEntry', () => {
   it('waits while sign-in state loads', () => {
@@ -125,6 +129,39 @@ describe('MembersEntry', () => {
     expect(screen.queryByText('Community content')).toBeNull()
   })
 
+  it('offers guest entry again after it failed, and lets the guest in', async () => {
+    mocks.recordGuestEntry.mockRejectedValueOnce(new Error('Server asleep'))
+    renderEntry()
+    fireEvent.click(screen.getByRole('button', { name: /Guest/ }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Server asleep')
+    fireEvent.click(screen.getByRole('button', { name: /Guest/ }))
+    expect(await screen.findByText('Community content')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('lets a guest in unrecorded only if the owner turns the record off', async () => {
+    mocks.recordGuestEntry.mockRejectedValueOnce(new Error('Server asleep'))
+    render(
+      <MembersEntry guestNeedsRecord={false}>
+        <p>Community content</p>
+      </MembersEntry>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Guest/ }))
+    expect(await screen.findByText('Community content')).toBeTruthy()
+    expect(localStorage.getItem('org-members-guest')).toBe('1')
+  })
+
+  it('says why guest entry is slow', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    mocks.recordGuestEntry.mockReturnValue(new Promise(() => {}))
+    renderEntry()
+    fireEvent.click(screen.getByRole('button', { name: /Guest/ }))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SLOW_NOTICE_AFTER_MS + 10)
+    })
+    expect(screen.getByRole('status').textContent).toBe(SLOW_SERVER_MESSAGE)
+  })
+
   describe('signed in', () => {
     beforeEach(() => {
       mocks.auth.isAuthenticated = true
@@ -139,13 +176,110 @@ describe('MembersEntry', () => {
       expect(mocks.fetchMyMembership).toHaveBeenCalledWith('tok')
     })
 
+    describe.each([
+      ['with no page', { status: 'none' }, 'Finish joining'],
+      [
+        'with a pending page',
+        { status: 'pending', profile: { displayName: 'Quiet Fern' } },
+        /Thank you, Quiet Fern/,
+      ],
+    ])('%s', (_label, summary, marker) => {
+      beforeEach(() => {
+        mocks.fetchMyMembership.mockResolvedValue(summary)
+      })
+
+      it('can still enter as a guest, and leave again', async () => {
+        renderEntry()
+        await screen.findByText(marker)
+        expect(screen.queryByText('Community content')).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: /Guest/ }))
+        expect(await screen.findByText('Community content')).toBeTruthy()
+        expect(mocks.recordGuestEntry).toHaveBeenCalledTimes(1)
+        expect(screen.getByText(/browsing as a guest/)).toBeTruthy()
+        expect(
+          screen.queryByRole('button', { name: 'Become a member' }),
+        ).toBeNull()
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Leave guest mode' }),
+        )
+        expect(screen.queryByText('Community content')).toBeNull()
+        expect(await screen.findByText(marker)).toBeTruthy()
+      })
+
+      it('shows a failed guest entry beside the option', async () => {
+        mocks.recordGuestEntry.mockRejectedValueOnce(new Error('Server asleep'))
+        renderEntry()
+        await screen.findByText(marker)
+        fireEvent.click(screen.getByRole('button', { name: /Guest/ }))
+        expect((await screen.findByRole('alert')).textContent).toBe(
+          'Server asleep',
+        )
+        expect(screen.getByText(marker)).toBeTruthy()
+      })
+    })
+
+    it('points a guest with no page at creating one, but not a pending one', async () => {
+      localStorage.setItem('org-members-guest', '1')
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'none' })
+      const first = renderEntry()
+      expect(
+        (
+          await screen.findByRole('link', { name: 'Create my page' })
+        ).getAttribute('href'),
+      ).toBe('/membership/join')
+      first.unmount()
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'pending' })
+      renderEntry()
+      await screen.findByText('Community content')
+      await act(async () => {
+        await Promise.resolve()
+      })
+      expect(screen.queryByRole('link', { name: 'Create my page' })).toBeNull()
+    })
+
+    it('gives a member the community, not guest mode, even if a guest once', async () => {
+      localStorage.setItem('org-members-guest', '1')
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'approved' })
+      renderEntry()
+      await screen.findByText(/browsing as a guest/)
+      await vi.waitFor(() =>
+        expect(screen.queryByText(/browsing as a guest/)).toBeNull(),
+      )
+      expect(screen.getByText('Community content')).toBeTruthy()
+    })
+
+    it('offers another try and guest entry when the membership check fails', async () => {
+      mocks.fetchMyMembership.mockRejectedValueOnce(
+        new Error("We couldn't reach the ORG server."),
+      )
+      renderEntry()
+      expect((await screen.findByRole('alert')).textContent).toMatch(
+        /couldn't reach/,
+      )
+      expect(screen.getByRole('button', { name: /Guest/ })).toBeTruthy()
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'approved' })
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByText('Community content')).toBeTruthy()
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
+    it('says why the membership check is slow', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      mocks.fetchMyMembership.mockReturnValue(new Promise(() => {}))
+      renderEntry()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SLOW_NOTICE_AFTER_MS + 10)
+      })
+      expect(screen.getByRole('status').textContent).toBe(SLOW_SERVER_MESSAGE)
+    })
+
     it('tells a pending member their page is waiting', async () => {
       mocks.fetchMyMembership.mockResolvedValue({
         status: 'pending',
-        profile: { displayName: 'Stalemate' },
+        profile: { displayName: 'Quiet Fern' },
       })
       renderEntry()
-      expect(await screen.findByText(/Thank you, Stalemate/)).toBeTruthy()
+      expect(await screen.findByText(/Thank you, Quiet Fern/)).toBeTruthy()
       expect(screen.queryByText('Community content')).toBeNull()
     })
 

@@ -1,4 +1,4 @@
-import { apiRequest } from './api'
+import { ApiError, apiRequest } from './api'
 
 /** Who can see a member page, from widest to narrowest (backend enum). */
 export const VISIBILITY_OPTIONS = [
@@ -57,9 +57,10 @@ export interface MembershipSummary {
   }
 }
 
-export type SlugAvailability =
-  | { available: true }
-  | { available: false; reason: 'format' | 'reserved' | 'taken' }
+/** The server says only yes or no; the form explains the format itself. */
+export interface SlugAvailability {
+  available: boolean
+}
 
 export interface JoinMembershipInput {
   displayName: string
@@ -73,26 +74,63 @@ export interface JoinMembershipInput {
   termsVersion: string
 }
 
+/**
+ * How long a Members Community request may take. Long enough for the free test
+ * server to wake from sleep (about 50 seconds).
+ */
+export const MEMBERSHIP_TIMEOUT_MS = 75_000
+
+const SERVER_UNREACHABLE =
+  "We couldn't reach the ORG server. Please check your connection and try again."
+const SERVER_TROUBLE =
+  'The ORG server is having trouble right now. Please try again in a minute.'
+const TOO_MANY_TRIES =
+  'That was a few too many tries. Please wait a minute and try again.'
+
+/**
+ * Every Members Community call: answers within the time limit, and failures
+ * in words a member can act on instead of "Failed to fetch" or a status code.
+ * A refusal the server words itself (for example stale terms) passes through.
+ */
+async function memberRequest<T>(
+  path: string,
+  options: Parameters<typeof apiRequest>[1] = {},
+): Promise<T> {
+  try {
+    return await apiRequest<T>(path, {
+      ...options,
+      timeoutMs: MEMBERSHIP_TIMEOUT_MS,
+    })
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw new ApiError(SERVER_UNREACHABLE, 0)
+    if (err.status === 429) throw new ApiError(TOO_MANY_TRIES, 429)
+    if (err.status >= 500) throw new ApiError(SERVER_TROUBLE, err.status)
+    throw err
+  }
+}
+
 export function fetchMembershipTerms() {
-  return apiRequest<MembershipTerms>('/membership/terms')
+  return memberRequest<MembershipTerms>('/membership/terms')
 }
 
 export function fetchMyMembership(token: string) {
-  return apiRequest<MembershipSummary>('/me/membership', { token })
+  return memberRequest<MembershipSummary>('/me/membership', { token })
 }
 
-export function checkSlug(slug: string) {
-  return apiRequest<SlugAvailability>(
+/** Needs a login: a "no" says a page exists, hidden ones included. */
+export function checkSlug(slug: string, token: string) {
+  return memberRequest<SlugAvailability>(
     `/membership/slug-availability?slug=${encodeURIComponent(slug)}`,
+    { token },
   )
 }
 
 export function recordGuestEntry() {
-  return apiRequest<void>('/membership/guest-entry', { method: 'POST' })
+  return memberRequest<void>('/membership/guest-entry', { method: 'POST' })
 }
 
 export function joinMembership(token: string, input: JoinMembershipInput) {
-  return apiRequest<MembershipSummary>('/me/membership', {
+  return memberRequest<MembershipSummary>('/me/membership', {
     method: 'POST',
     token,
     body: JSON.stringify(input),

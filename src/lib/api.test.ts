@@ -17,6 +17,22 @@ describe('shop API formatting', () => {
 })
 
 describe('apiRequest', () => {
+  it('adds a time limit only when asked', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(new Response(JSON.stringify({ ok: true }))),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    await apiRequest('/plain')
+    await apiRequest('/limited', { timeoutMs: 5000 })
+    const init = (index: number) =>
+      (fetchMock.mock.calls[index] as [string, RequestInit])[1]
+    expect(init(0).signal).toBeUndefined()
+    expect(init(1).signal).toBeInstanceOf(AbortSignal)
+    expect(init(1)).not.toHaveProperty('timeoutMs')
+  })
+
   it('uses the fallback API URL and preserves caller headers', async () => {
     vi.stubEnv('VITE_API_BASE_URL', '')
     vi.resetModules()

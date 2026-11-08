@@ -1,7 +1,5 @@
 export type ProductCategory =
-  | 'vaporizer-accessories'
-  | '3d-printed-parts'
-  | 'laboratory-tools'
+  'vaporizer-accessories' | '3d-printed-parts' | 'laboratory-tools'
 
 export interface ProductVariant {
   id: string
@@ -149,15 +147,18 @@ export class ApiError extends Error {
 type ApiOptions = RequestInit & {
   token?: string
   guestToken?: string
+  /** Give up after this long. Opt-in: no other caller's behaviour changes. */
+  timeoutMs?: number
 }
 
 export async function apiRequest<T>(
   path: string,
   options: ApiOptions = {},
 ): Promise<T> {
-  const { token, guestToken, headers, ...init } = options
+  const { token, guestToken, headers, timeoutMs, ...init } = options
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
     headers: {
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

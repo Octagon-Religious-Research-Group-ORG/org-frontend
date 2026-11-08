@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Plus, X } from 'lucide-react'
@@ -16,16 +16,37 @@ import type {
   MembershipSummary,
   MembershipTerms,
   ProfileVisibility,
-  SlugAvailability,
 } from '#/lib/membership-api'
+import {
+  clearJoinDraft,
+  loadJoinDraft,
+  saveJoinDraft,
+} from '#/lib/membership-draft'
 import { ContactRows, field } from './ContactRows'
+import { SLOW_SERVER_MESSAGE, useSlowNotice } from './use-slow-notice'
 
 const MAX_BELIEFS = 20
+/** Matches the server's limit per text box. */
+const MAX_TEXT = 20_000
+const SLUG_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-const SLUG_MESSAGES: Record<string, string> = {
+type SlugStatus =
+  'idle' | 'format' | 'checking' | 'available' | 'unavailable' | 'failed'
+
+const SLUG_MESSAGES: Partial<Record<SlugStatus, string>> = {
   format: 'Use lowercase letters, numbers and single hyphens (2 to 80).',
-  reserved: 'That address is used by the website. Please choose another.',
-  taken: 'That address is already taken.',
+  checking: 'Checking…',
+  available: 'Available.',
+  unavailable: 'That address is not available. Please choose another.',
+}
+
+/** The terms and this member's status, read together. */
+async function loadJoinState(getToken: () => Promise<string | undefined>) {
+  const token = await getToken()
+  return Promise.all([
+    fetchMembershipTerms(),
+    token ? fetchMyMembership(token) : undefined,
+  ])
 }
 
 function Section({
@@ -55,21 +76,38 @@ function Section({
  */
 export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
   const auth = useOrgAuth()
+  const authRef = useRef(auth)
+  authRef.current = auth
   const [terms, setTerms] = useState<MembershipTerms>()
   const [summary, setSummary] = useState<MembershipSummary>()
   const [loadError, setLoadError] = useState<string>()
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const [termsChanged, setTermsChanged] = useState(false)
+  const seenTermsVersion = useRef<string>(undefined)
 
-  const [anonymous, setAnonymous] = useState(nickname)
-  const [displayName, setDisplayName] = useState('')
-  const [slug, setSlug] = useState('')
-  const [slugEdited, setSlugEdited] = useState(false)
-  const [slugState, setSlugState] = useState<SlugAvailability>()
-  const [visibility, setVisibility] = useState<ProfileVisibility>(
-    nickname ? 'members' : 'public',
+  // Restored once, on first render: what was typed before a session lapse.
+  const [draft] = useState(() => loadJoinDraft(auth.user?.sub))
+  // A draft can only keep someone anonymous, never undo "Join anonymously".
+  const [anonymous, setAnonymous] = useState(
+    nickname || (draft?.anonymous ?? false),
   )
-  const [bio, setBio] = useState('')
-  const [beliefs, setBeliefs] = useState([{ title: '', text: '' }])
-  const [contacts, setContacts] = useState<ContactEntry[]>([])
+  const [displayName, setDisplayName] = useState(draft?.displayName ?? '')
+  const [slug, setSlug] = useState(draft?.slug ?? '')
+  const [slugEdited, setSlugEdited] = useState(draft?.slugEdited ?? false)
+  const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
+  const [slugFailure, setSlugFailure] = useState<string>()
+  const [slugAttempt, setSlugAttempt] = useState(0)
+  const [visibility, setVisibility] = useState<ProfileVisibility>(
+    draft?.visibility ?? (nickname ? 'members' : 'public'),
+  )
+  const [bio, setBio] = useState(draft?.bio ?? '')
+  const [beliefs, setBeliefs] = useState(
+    draft?.beliefs ?? [{ title: '', text: '' }],
+  )
+  const [contacts, setContacts] = useState<ContactEntry[]>(
+    draft?.contacts ?? [],
+  )
+  // Admin-only: deliberately not part of the draft (see membership-draft.ts).
   const [backup, setBackup] = useState<ContactEntry[]>([
     { method: 'telegram', value: '' },
   ])
@@ -77,18 +115,21 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string>()
 
+  const slow = useSlowNotice(
+    submitting || slugStatus === 'checking' || (!terms && !loadError),
+  )
+
   useEffect(() => {
     const closed = new AbortController()
     void (async () => {
       try {
-        const token = await auth.getToken()
-        const [loadedTerms, loadedSummary] = await Promise.all([
-          fetchMembershipTerms(),
-          token ? fetchMyMembership(token) : undefined,
-        ])
+        const [loadedTerms, loadedSummary] = await loadJoinState(() =>
+          auth.getToken(),
+        )
         if (closed.signal.aborted) return
         setTerms(loadedTerms)
         setSummary(loadedSummary)
+        setLoadError(undefined)
       } catch (err) {
         if (!closed.signal.aborted) {
           setLoadError(
@@ -98,34 +139,124 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
       }
     })()
     return () => closed.abort()
-  }, [auth])
+  }, [auth, loadAttempt])
+
+  // New terms mean the earlier agreement no longer stands.
+  useEffect(() => {
+    if (!terms) return
+    if (
+      seenTermsVersion.current &&
+      seenTermsVersion.current !== terms.version
+    ) {
+      setAgreed(false)
+      setTermsChanged(true)
+    }
+    seenTermsVersion.current = terms.version
+  }, [terms])
 
   useEffect(() => {
     if (!slugEdited) setSlug(suggestSlug(displayName))
   }, [displayName, slugEdited])
 
   useEffect(() => {
-    setSlugState(undefined)
-    if (slug.length < 2) return
+    setSlugFailure(undefined)
+    if (slug.length < 2) {
+      setSlugStatus('idle')
+      return
+    }
+    if (!SLUG_FORMAT.test(slug)) {
+      setSlugStatus('format')
+      return
+    }
+    setSlugStatus('idle')
+    // Set when the address changes: a slower answer about an earlier address
+    // must not speak for this one.
+    let stale = false
     const timer = setTimeout(() => {
-      checkSlug(slug)
-        .then(setSlugState)
-        .catch(() => setSlugState(undefined))
+      setSlugStatus('checking')
+      void (async () => {
+        try {
+          const token = await authRef.current.getToken()
+          if (!token) throw new Error('Please sign in again.')
+          const { available } = await checkSlug(slug, token)
+          if (!stale) setSlugStatus(available ? 'available' : 'unavailable')
+        } catch (err) {
+          if (stale) return
+          setSlugFailure(
+            err instanceof Error
+              ? err.message
+              : 'We could not check that address.',
+          )
+          setSlugStatus('failed')
+        }
+      })()
     }, 400)
-    return () => clearTimeout(timer)
-  }, [slug])
+    return () => {
+      stale = true
+      clearTimeout(timer)
+    }
+  }, [slug, slugAttempt])
 
-  if (loadError) {
+  // Typed text, kept in this tab so a session lapse can't lose it.
+  useEffect(() => {
+    const typed =
+      displayName ||
+      bio ||
+      beliefs.some((belief) => belief.title || belief.text) ||
+      contacts.some((row) => row.value)
+    if (!typed) return
+    saveJoinDraft(auth.user?.sub, {
+      displayName,
+      slug,
+      slugEdited,
+      anonymous,
+      visibility,
+      bio,
+      beliefs,
+      contacts,
+    })
+  }, [
+    auth.user?.sub,
+    displayName,
+    slug,
+    slugEdited,
+    anonymous,
+    visibility,
+    bio,
+    beliefs,
+    contacts,
+  ])
+
+  useEffect(() => {
+    if (summary && summary.status !== 'none') clearJoinDraft()
+  }, [summary])
+
+  // Only a first load with nothing to show blocks the page; a later refetch
+  // that fails must never take the form (and what was typed) away.
+  if (loadError && !terms) {
     return (
-      <p role="alert" className="text-sm text-[#f1a07a]">
-        {loadError}
-      </p>
+      <div>
+        <p role="alert" className="text-sm text-[#f1a07a]">
+          {loadError}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setLoadError(undefined)
+            setLoadAttempt((count) => count + 1)
+          }}
+          className="mt-4 bg-[#78aea2] px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#0b0d12]"
+        >
+          Try again
+        </button>
+      </div>
     )
   }
   if (!terms) {
     return (
       <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#9f9676]">
         Loading…
+        {slow && <p role="status">{SLOW_SERVER_MESSAGE}</p>}
       </div>
     )
   }
@@ -162,7 +293,7 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
     bio.trim() &&
     beliefs.every((b) => b.title.trim() && b.text.trim()) &&
     filledBackup.length > 0 &&
-    slugState?.available === true
+    slugStatus === 'available'
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -188,14 +319,35 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
       setSubmitError(
         err instanceof Error ? err.message : 'Your page could not be created.',
       )
+      await refreshAfterRefusal()
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // A refusal can mean the terms changed while reading (409), or that a join
+  // which timed out actually landed. Either way the fresh state fixes it.
+  const refreshAfterRefusal = async () => {
+    try {
+      const [loadedTerms, loadedSummary] = await loadJoinState(() =>
+        auth.getToken(),
+      )
+      setTerms(loadedTerms)
+      setSummary(loadedSummary)
+    } catch {
+      // The refusal is already on screen and the form is still there.
     }
   }
 
   return (
     <form onSubmit={(event) => void submit(event)} className="grid gap-8">
       <header>
+        {draft && (
+          <p role="status" className="mb-3 text-xs leading-6 text-[#9f9676]">
+            We kept what you had typed in this browser tab. For your privacy,
+            backup contacts are not kept, so please add them again.
+          </p>
+        )}
         <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#78aea2]">
           Members Community
         </div>
@@ -257,15 +409,27 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
               className={field}
             />
           </div>
-          {slugState && (
+          {SLUG_MESSAGES[slugStatus] && (
             <span
               className={
-                slugState.available ? 'text-[#9dcf83]' : 'text-[#f1a07a]'
+                slugStatus === 'available' || slugStatus === 'checking'
+                  ? 'text-[#9dcf83]'
+                  : 'text-[#f1a07a]'
               }
             >
-              {slugState.available
-                ? 'Available.'
-                : SLUG_MESSAGES[slugState.reason]}
+              {SLUG_MESSAGES[slugStatus]}
+            </span>
+          )}
+          {slugStatus === 'failed' && (
+            <span role="alert" className="text-[#f1a07a]">
+              {slugFailure}{' '}
+              <button
+                type="button"
+                onClick={() => setSlugAttempt((count) => count + 1)}
+                className="underline underline-offset-4"
+              >
+                Check again
+              </button>
             </span>
           )}
         </label>
@@ -304,6 +468,7 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
           aria-label="Bio"
           required
           rows={6}
+          maxLength={MAX_TEXT}
           value={bio}
           onChange={(event) => setBio(event.target.value)}
           className={field}
@@ -349,6 +514,7 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
               placeholder="Your belief, in your own words."
               required
               rows={4}
+              maxLength={MAX_TEXT}
               value={belief.text}
               onChange={(event) =>
                 updateBelief(index, { text: event.target.value })
@@ -392,12 +558,21 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
             <li key={item.id}>{item.text}</li>
           ))}
         </ul>
+        {termsChanged && (
+          <p role="status" className="text-xs leading-6 text-[#f1a07a]">
+            The terms changed while you were writing. Please read them again and
+            tick the box.
+          </p>
+        )}
         <label className="flex items-start gap-3 text-sm text-[#ece2c4]">
           <input
             type="checkbox"
             className="mt-1"
             checked={agreed}
-            onChange={(event) => setAgreed(event.target.checked)}
+            onChange={(event) => {
+              setAgreed(event.target.checked)
+              setTermsChanged(false)
+            }}
           />
           I have read this and agree.
         </label>
@@ -406,6 +581,11 @@ export function MembershipJoinForm({ nickname }: { nickname: boolean }) {
       {submitError && (
         <p role="alert" className="text-sm text-[#f1a07a]">
           {submitError}
+        </p>
+      )}
+      {slow && (
+        <p role="status" className="text-xs leading-6 text-[#9f9676]">
+          {SLOW_SERVER_MESSAGE}
         </p>
       )}
       <button
