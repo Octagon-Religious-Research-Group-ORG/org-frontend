@@ -41,6 +41,13 @@ describe('join draft', () => {
     expect(sessionStorage.length).toBe(0)
   })
 
+  it('keeps the draft while the signed-in user is not known yet', () => {
+    saveJoinDraft('user_a', draft)
+    expect(loadJoinDraft(undefined)).toBeUndefined()
+    expect(sessionStorage.length).toBe(1)
+    expect(loadJoinDraft('user_a')).toEqual(draft)
+  })
+
   it('expires', () => {
     saveJoinDraft('user_a', draft)
     const later = Date.now() + DRAFT_MAX_AGE_MS + 1

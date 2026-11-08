@@ -64,6 +64,9 @@ export function loadJoinDraft(
   try {
     const saved = readStored()
     if (!saved) return undefined
+    // Signed in but the user isn't known yet: nothing says this is someone
+    // else's draft, so leave it for the render that knows who this is.
+    if (owner === undefined && saved.owner !== undefined) return undefined
     if (saved.owner === owner && isUsable(saved)) return saved.draft
     clearJoinDraft()
     return undefined

@@ -11,6 +11,7 @@ import {
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '#/lib/api'
+import { ADDRESS_CHECK_DAILY_LIMIT } from '#/lib/membership-api'
 import type * as MembershipApi from '#/lib/membership-api'
 import { MembershipJoinForm } from './MembershipJoinForm'
 import { SLOW_NOTICE_AFTER_MS, SLOW_SERVER_MESSAGE } from './use-slow-notice'
@@ -730,5 +731,121 @@ describe('MembershipJoinForm', () => {
       type('Contact 1', '@a')
       expect(stored()).toContain('@a')
     })
+  })
+})
+
+describe('reaching the daily limit on address checks', () => {
+  async function fillWithoutAnAnswer() {
+    await screen.findByText('Create your page')
+    type(/^Name$/, 'Quiet Fern')
+    type('Bio', 'First.\n\nSecond.')
+    type('Belief 1 title', 'God')
+    type('Belief 1', 'One.')
+    type('Backup contact 1', '@fern')
+    agree()
+    await settle()
+  }
+
+  const dailyLimit = () =>
+    new ApiError('Daily checks used.', 429, ADDRESS_CHECK_DAILY_LIMIT)
+
+  it('says so and lets the member submit anyway', async () => {
+    mocks.checkSlug.mockRejectedValue(dailyLimit())
+    render(<MembershipJoinForm nickname={false} />)
+    await fillWithoutAnAnswer()
+
+    expect(await screen.findByText('Daily checks used.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Check again' })).toBeNull()
+    expect(submitButton().disabled).toBe(false)
+
+    fireEvent.click(submitButton())
+    await waitFor(() => expect(mocks.joinMembership).toHaveBeenCalled())
+  })
+
+  it('shows the server refusal at submit and keeps the form', async () => {
+    mocks.checkSlug.mockRejectedValue(dailyLimit())
+    mocks.joinMembership.mockRejectedValue(
+      new ApiError('That page address is already taken.', 409),
+    )
+    render(<MembershipJoinForm nickname={false} />)
+    await fillWithoutAnAnswer()
+    await screen.findByText('Daily checks used.')
+
+    fireEvent.click(submitButton())
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'already taken',
+    )
+    expect(value('Bio')).toBe('First.\n\nSecond.')
+  })
+
+  it('keeps the wait-and-retry path for the per-minute limit', async () => {
+    mocks.checkSlug.mockRejectedValue(new ApiError('Wait a minute.', 429))
+    render(<MembershipJoinForm nickname={false} />)
+    await fillWithoutAnAnswer()
+
+    expect(
+      await screen.findByRole('button', { name: 'Check again' }),
+    ).toBeTruthy()
+    expect(submitButton().disabled).toBe(true)
+  })
+})
+
+describe('telling a screen reader and a sighted member what is going on', () => {
+  it('announces the address status in a live region', async () => {
+    render(<MembershipJoinForm nickname={false} />)
+    await fillRequired()
+    await settle()
+    await screen.findByText('Available.')
+
+    const region = document.querySelector('[aria-live="polite"]')
+    expect(region?.textContent).toContain('Available.')
+  })
+
+  it('says what is still needed while submit is disabled', async () => {
+    render(<MembershipJoinForm nickname={false} />)
+    await screen.findByText('Create your page')
+
+    expect(submitButton().getAttribute('aria-describedby')).toBe(
+      'join-submit-reason',
+    )
+    const reason = document.getElementById('join-submit-reason')?.textContent
+    for (const part of [
+      'your name',
+      'an available page address',
+      'a bio',
+      'a title and text for every belief',
+      'a backup contact',
+      'your agreement to the terms above',
+    ]) {
+      expect(reason).toContain(part)
+    }
+  })
+
+  it('asks for a nickname when joining anonymously', async () => {
+    render(<MembershipJoinForm nickname />)
+    await screen.findByText('Create your page')
+    expect(
+      document.getElementById('join-submit-reason')?.textContent,
+    ).toContain('a nickname')
+  })
+
+  it('names text that is over its limit', async () => {
+    render(<MembershipJoinForm nickname={false} />)
+    await fillRequired()
+    type('Bio', 'x'.repeat(20_001))
+    await settle()
+    expect(document.getElementById('join-submit-reason')?.textContent).toMatch(
+      /over its limit/,
+    )
+  })
+
+  it('gives no reason once the form can be submitted', async () => {
+    render(<MembershipJoinForm nickname={false} />)
+    await fillAndAgree()
+    await waitFor(() => expect(submitButton().disabled).toBe(false))
+
+    expect(submitButton().getAttribute('aria-describedby')).toBeNull()
+    expect(document.getElementById('join-submit-reason')).toBeNull()
   })
 })

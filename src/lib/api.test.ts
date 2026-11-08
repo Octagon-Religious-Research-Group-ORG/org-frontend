@@ -17,6 +17,21 @@ describe('shop API formatting', () => {
 })
 
 describe('apiRequest', () => {
+  it('passes on the code a refusal carries', async () => {
+    vi.stubGlobal(
+      'fetch',
+      async () =>
+        new Response(JSON.stringify({ code: 'X', message: 'No.' }), {
+          status: 429,
+        }),
+    )
+    await expect(apiRequest('/x')).rejects.toMatchObject({
+      status: 429,
+      code: 'X',
+      message: 'No.',
+    })
+  })
+
   it('adds a time limit only when asked', async () => {
     const fetchMock = vi
       .fn()

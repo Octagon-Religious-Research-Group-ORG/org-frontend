@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Plus, X } from 'lucide-react'
+import { ApiError } from '#/lib/api'
 import { useOrgAuth } from '#/lib/auth'
 import {
+  ADDRESS_CHECK_DAILY_LIMIT,
   VISIBILITY_OPTIONS,
   checkSlug,
   fetchMembershipTerms,
@@ -33,7 +35,15 @@ const formatCount = (value: number) => value.toLocaleString('en-US')
 const SLUG_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 type SlugStatus =
-  'idle' | 'format' | 'checking' | 'available' | 'unavailable' | 'failed'
+  | 'idle'
+  | 'format'
+  | 'checking'
+  | 'available'
+  | 'unavailable'
+  | 'failed'
+  // Today's checks are used up. Submitting stays open: the server still
+  // refuses a taken address, so the check is a convenience and not the gate.
+  | 'unchecked'
 
 const SLUG_MESSAGES: Partial<Record<SlugStatus, string>> = {
   format: 'Use lowercase letters, numbers and single hyphens (2 to 80).',
@@ -216,7 +226,11 @@ function JoinForm({ nickname }: { nickname: boolean }) {
               ? err.message
               : 'We could not check that address.',
           )
-          setSlugStatus('failed')
+          setSlugStatus(
+            err instanceof ApiError && err.code === ADDRESS_CHECK_DAILY_LIMIT
+              ? 'unchecked'
+              : 'failed',
+          )
         }
       })()
     }, 400)
@@ -321,15 +335,20 @@ function JoinForm({ nickname }: { nickname: boolean }) {
     bio.length > MAX_TEXT ||
     beliefs.some((belief) => belief.text.length > MAX_TEXT) ||
     totalText > MAX_TOTAL_TEXT
-  const canSubmit =
-    !tooLong &&
-    agreed &&
-    !submitting &&
-    displayName.trim() &&
-    bio.trim() &&
-    beliefs.every((b) => b.title.trim() && b.text.trim()) &&
-    filledBackup.length > 0 &&
-    slugStatus === 'available'
+  const addressUsable = slugStatus === 'available' || slugStatus === 'unchecked'
+  const stillNeeded = [
+    !displayName.trim() && (anonymous ? 'a nickname' : 'your name'),
+    !addressUsable && 'an available page address',
+    !bio.trim() && 'a bio',
+    !beliefs.every((b) => b.title.trim() && b.text.trim()) &&
+      'a title and text for every belief',
+    filledBackup.length === 0 && 'a backup contact',
+    !agreed && 'your agreement to the terms above',
+  ].filter(Boolean)
+  const canSubmit = !tooLong && !submitting && stillNeeded.length === 0
+  const whyDisabled = tooLong
+    ? 'Some of your text is over its limit. Please shorten it to continue.'
+    : `Still needed: ${stillNeeded.join(', ')}.`
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -433,7 +452,7 @@ function JoinForm({ nickname }: { nickname: boolean }) {
         <label className="grid gap-1 text-xs text-[#b8ad8d]">
           Page address
           <div className="flex items-center gap-1">
-            <span className="text-sm text-[#7f775f]">orgspirituality.org/</span>
+            <span className="text-sm text-[#9f9676]">orgspirituality.org/</span>
             <input
               required
               maxLength={80}
@@ -445,6 +464,9 @@ function JoinForm({ nickname }: { nickname: boolean }) {
               className={field}
             />
           </div>
+        </label>
+        {/* Outside the label, so a status isn't read as part of the field's name. */}
+        <div aria-live="polite" className="-mt-2 text-xs">
           {SLUG_MESSAGES[slugStatus] && (
             <span
               className={
@@ -456,19 +478,22 @@ function JoinForm({ nickname }: { nickname: boolean }) {
               {SLUG_MESSAGES[slugStatus]}
             </span>
           )}
-          {slugStatus === 'failed' && (
-            <span role="alert" className="text-[#f1a07a]">
-              {slugFailure}{' '}
-              <button
-                type="button"
-                onClick={() => setSlugAttempt((count) => count + 1)}
-                className="underline underline-offset-4"
-              >
-                Check again
-              </button>
-            </span>
+          {slugStatus === 'unchecked' && (
+            <span className="text-[#f1d78a]">{slugFailure}</span>
           )}
-        </label>
+        </div>
+        {slugStatus === 'failed' && (
+          <span role="alert" className="-mt-2 text-xs text-[#f1a07a]">
+            {slugFailure}{' '}
+            <button
+              type="button"
+              onClick={() => setSlugAttempt((count) => count + 1)}
+              className="underline underline-offset-4"
+            >
+              Check again
+            </button>
+          </span>
+        )}
       </Section>
 
       <Section title="Who can see your page" hint="You can change this later.">
@@ -639,11 +664,17 @@ function JoinForm({ nickname }: { nickname: boolean }) {
       <button
         type="submit"
         disabled={!canSubmit}
+        aria-describedby={canSubmit ? undefined : 'join-submit-reason'}
         className="bg-[#78aea2] px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#0b0d12] disabled:opacity-35"
       >
         {submitting ? 'Creating your page…' : 'Create my page'}
       </button>
-      <p className="text-xs text-[#7f775f]">
+      {!canSubmit && !submitting && (
+        <p id="join-submit-reason" className="text-xs text-[#f1d78a]">
+          {whyDisabled}
+        </p>
+      )}
+      <p className="text-xs text-[#9f9676]">
         An admin reviews every new page before it opens to the community.
       </p>
     </form>

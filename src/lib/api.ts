@@ -139,6 +139,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** The server's machine-readable reason, when it sends one. */
+    readonly code?: string,
   ) {
     super(message)
   }
@@ -169,16 +171,19 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     let message = `Request failed with status ${response.status}.`
+    let code: string | undefined
     try {
       const payload = (await response.json()) as {
         message?: string | string[]
+        code?: string
       }
+      code = payload.code
       if (Array.isArray(payload.message)) message = payload.message.join(' ')
       else if (payload.message) message = payload.message
     } catch {
       // Keep the status-based message when the API did not return JSON.
     }
-    throw new ApiError(message, response.status)
+    throw new ApiError(message, response.status, code)
   }
 
   if (response.status === 204) return undefined as T

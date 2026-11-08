@@ -87,6 +87,12 @@ const SERVER_TROUBLE =
 const TOO_MANY_TRIES =
   'That was a few too many tries. Please wait a minute and try again.'
 
+/** The server's code for the per-account daily ration of address checks. */
+export const ADDRESS_CHECK_DAILY_LIMIT = 'ADDRESS_CHECK_DAILY_LIMIT'
+
+const DAILY_CHECKS_USED =
+  "You've used today's address checks, so we can't check this one ahead of time. You can still create your page: if the address is taken, we'll tell you when you submit, and you can pick another. Checks come back within 24 hours."
+
 /**
  * Every Members Community call: answers within the time limit, and failures
  * in words a member can act on instead of "Failed to fetch" or a status code.
@@ -103,7 +109,11 @@ async function memberRequest<T>(
     })
   } catch (err) {
     if (!(err instanceof ApiError)) throw new ApiError(SERVER_UNREACHABLE, 0)
-    if (err.status === 429) throw new ApiError(TOO_MANY_TRIES, 429)
+    if (err.status === 429) {
+      throw err.code === ADDRESS_CHECK_DAILY_LIMIT
+        ? new ApiError(DAILY_CHECKS_USED, 429, err.code)
+        : new ApiError(TOO_MANY_TRIES, 429)
+    }
     if (err.status >= 500) throw new ApiError(SERVER_TROUBLE, err.status)
     throw err
   }

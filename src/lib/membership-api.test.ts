@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './api'
 import {
+  ADDRESS_CHECK_DAILY_LIMIT,
   MEMBERSHIP_TIMEOUT_MS,
   checkSlug,
   fetchMembershipTerms,
@@ -75,6 +76,26 @@ describe('membership API calls', () => {
     it('explains a server error without its status code', async () => {
       fetchMock.mockResolvedValueOnce(new Response('<html>', { status: 503 }))
       await expect(recordGuestEntry()).rejects.toThrow(/having trouble/)
+    })
+
+    it('says plainly when the daily address checks are used up', async () => {
+      vi.stubGlobal(
+        'fetch',
+        async () =>
+          new Response(
+            JSON.stringify({
+              code: ADDRESS_CHECK_DAILY_LIMIT,
+              message: "You've used today's address checks for this account.",
+            }),
+            { status: 429 },
+          ),
+      )
+      const refusal = checkSlug('abc', 'tok')
+      await expect(refusal).rejects.toThrow(/can still create your page/)
+      await expect(refusal).rejects.toMatchObject({
+        status: 429,
+        code: ADDRESS_CHECK_DAILY_LIMIT,
+      })
     })
 
     it('explains too many tries', async () => {
