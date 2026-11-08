@@ -15,7 +15,7 @@ export const Route = createFileRoute('/community')({
 })
 
 /**
- * The Members Community (Tripp, D09): the community page's content opens
+ * The Members Community (owner, D09): the community page's content opens
  * after the visitor logs in, signs up, or enters as a guest.
  */
 function CommunityRoute() {

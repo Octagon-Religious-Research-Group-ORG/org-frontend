@@ -60,7 +60,7 @@ const LABELS: Record<string, string> = {
 const cellWrapper =
   'group relative z-[1] block w-full h-full no-underline text-[#ece2c4] opacity-0 scale-[0.92] animate-[v2-pop_900ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]'
 
-/** Caption BELOW the art, outside it (Tripp, 2026-10-05): text on the image had contrast problems. */
+/** Caption BELOW the art, outside it (owner, 2026-10-05): text on the image had contrast problems. */
 const tileLabel =
   'block text-center leading-none tracking-[0.04em] uppercase pt-[8px] pb-[10px] pointer-events-none text-[clamp(7px,calc(1.8vw-4px),24px)] font-bold text-[#ece2c4] group-hover:text-[#d4a24a]'
 

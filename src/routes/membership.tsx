@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ReferencePage } from '#/components/ReferencePage'
 import { loadPublishedPage } from '#/lib/content-api'
 
-/** Tripp's Membership guide (plan §2d): editable in the website workbench. */
+/** The owner's Membership guide (plan §2d): editable in the website workbench. */
 export const Route = createFileRoute('/membership')({
   loader: () => loadPublishedPage('membership'),
   head: ({ loaderData }) => ({
