@@ -27,6 +27,23 @@ describe('website content API fallbacks', () => {
     expect(page.content).toEqual(getDefaultWebsiteContent('community'))
   })
 
+  it('keeps real payment handles out of the fallback only on the test site', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
+    const handles = ['$trippaardema', '@trippaardema', '@the_org']
+
+    const live = JSON.stringify(await loadPublishedPage('donations'))
+    for (const handle of handles) expect(live).toContain(handle)
+
+    vi.stubEnv('VITE_SITE_ENV', 'test')
+    vi.resetModules()
+    const onTest = await import('./content-api')
+    const shown = JSON.stringify(await onTest.loadPublishedPage('donations'))
+    vi.unstubAllEnvs()
+
+    for (const handle of handles) expect(shown).not.toContain(handle)
+    expect(shown).toContain('(test site: no real payment)')
+  })
+
   it('returns a successfully published page without replacing it', async () => {
     const published = {
       pageId: 'community',

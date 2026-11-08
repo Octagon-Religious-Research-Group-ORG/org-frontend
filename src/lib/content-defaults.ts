@@ -100,6 +100,27 @@ const about: WebsitePageContent = {
   },
 }
 
+const TEST_SITE_PAYMENT_PLACEHOLDER = '(test site: no real payment)'
+
+/**
+ * The bundled copy is what visitors see when the API does not answer, so on
+ * the test site it must not carry ORG's real payment accounts either.
+ */
+export function blocksForThisSite(
+  pageId: string,
+  blocks: ReferenceBlock[],
+  siteEnv: string | undefined = import.meta.env.VITE_SITE_ENV,
+): ReferenceBlock[] {
+  if (siteEnv !== 'test' || pageId !== 'donations') return blocks
+  return blocks.map((block) => ({
+    ...block,
+    text: block.text.replace(
+      /(^|\s)[$@][\p{L}\p{N}_.-]+/gu,
+      `$1${TEST_SITE_PAYMENT_PLACEHOLDER}`,
+    ),
+  }))
+}
+
 export const DEFAULT_WEBSITE_PAGES: Record<WebsitePageId, WebsitePageContent> =
   Object.fromEntries([
     ['about', about],
@@ -110,7 +131,10 @@ export const DEFAULT_WEBSITE_PAGES: Record<WebsitePageId, WebsitePageContent> =
         id: page.id,
         title: page.title,
         subtitle: page.subtitle,
-        blocks: referenceBlocks(page.id, page.lines),
+        blocks: blocksForThisSite(
+          page.id,
+          referenceBlocks(page.id, page.lines),
+        ),
       },
     ]),
   ]) as Record<WebsitePageId, WebsitePageContent>
