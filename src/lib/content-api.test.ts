@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_WEBSITE_PAGES,
+  blocksForThisSite,
   getDefaultWebsiteContent,
 } from './content-defaults'
 import {
@@ -42,6 +43,24 @@ describe('website content API fallbacks', () => {
 
     for (const handle of handles) expect(shown).not.toContain(handle)
     expect(shown).toContain('(test site: no real payment)')
+  })
+
+  it('cleans the bundled copy on the test site without damaging prices', () => {
+    const shown = (pageId: string, text: string, siteEnv = 'test') =>
+      blocksForThisSite(
+        pageId,
+        [{ id: 'b', kind: 'paragraph', text }],
+        siteEnv,
+      )[0].text
+    const placeholder = '(test site: no real payment)'
+
+    expect(shown('donations', '$60/g')).toBe('$60/g')
+    expect(shown('donations', '(@someone)')).toBe(`(${placeholder})`)
+    expect(shown('donations', 'me@example.org')).toBe('me@example.org')
+    expect(shown('community', 'Telegram @someone')).toBe('Telegram @someone')
+    expect(shown('community', 'Tip @the_org')).toBe(`Tip ${placeholder}`)
+    expect(shown('community', 'paypal.me/x')).toBe(placeholder)
+    expect(shown('donations', '@someone', 'production')).toBe('@someone')
   })
 
   it('returns a successfully published page without replacing it', async () => {

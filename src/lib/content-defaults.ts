@@ -102,6 +102,13 @@ const about: WebsitePageContent = {
 
 const TEST_SITE_PAYMENT_PLACEHOLDER = '(test site: no real payment)'
 
+// Same rules as org-backend src/content/test-site-content.ts
+const PAYMENT_LINK =
+  /(?<![\p{L}\p{N}.@-])(?:https?:\/\/)?(?:[a-z0-9-]+\.)*(?:paypal\.(?:me|com(?:\.[a-z]{2})?)|venmo\.(?:com|me)|cash\.(?:app|me))(?![\p{L}\p{N}-])(?:\/\S*)?/giu
+const KNOWN_HANDLES = /[$@＠](?:trippaardema|the_org)(?![\p{L}\p{N}_])/giu
+const PAYMENT_HANDLE =
+  /(?<![\p{L}\p{N}_.])(?:\$[\p{L}_]|[@＠][\p{L}\p{N}_])[\p{L}\p{N}_]*(?:[.-][\p{L}\p{N}_]+)*/gu
+
 /**
  * The bundled copy is what visitors see when the API does not answer, so on
  * the test site it must not carry ORG's real payment accounts either.
@@ -111,14 +118,19 @@ export function blocksForThisSite(
   blocks: ReferenceBlock[],
   siteEnv: string | undefined = import.meta.env.VITE_SITE_ENV,
 ): ReferenceBlock[] {
-  if (siteEnv !== 'test' || pageId !== 'donations') return blocks
-  return blocks.map((block) => ({
-    ...block,
-    text: block.text.replace(
-      /(^|\s)[$@][\p{L}\p{N}_.-]+/gu,
-      `$1${TEST_SITE_PAYMENT_PLACEHOLDER}`,
-    ),
-  }))
+  if (siteEnv !== 'test') return blocks
+  return blocks.map((block) => {
+    const safe = block.text
+      .replace(PAYMENT_LINK, TEST_SITE_PAYMENT_PLACEHOLDER)
+      .replace(KNOWN_HANDLES, TEST_SITE_PAYMENT_PLACEHOLDER)
+    return {
+      ...block,
+      text:
+        pageId === 'donations'
+          ? safe.replace(PAYMENT_HANDLE, TEST_SITE_PAYMENT_PLACEHOLDER)
+          : safe,
+    }
+  })
 }
 
 export const DEFAULT_WEBSITE_PAGES: Record<WebsitePageId, WebsitePageContent> =
