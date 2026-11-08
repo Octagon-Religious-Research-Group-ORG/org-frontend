@@ -87,3 +87,11 @@ test.describe('public website', () => {
     ).toBeVisible()
   })
 })
+
+test('other sites cannot frame a server-rendered page', async ({ request }) => {
+  const response = await request.get('/about')
+  expect(response.headers()['x-frame-options']).toBe('DENY')
+  expect(response.headers()['content-security-policy']).toBe(
+    "frame-ancestors 'none'",
+  )
+})
