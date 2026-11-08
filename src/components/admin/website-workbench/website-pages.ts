@@ -8,7 +8,7 @@ export interface WebsitePageLedgerEntry {
 
 export const WEBSITE_PAGE_LEDGER: ReadonlyArray<WebsitePageLedgerEntry> = [
   { id: 'about', label: 'About Us', href: '/about' },
-  { id: 'community', label: 'Community', href: '/community' },
+  { id: 'community', label: 'Members Community', href: '/community' },
   { id: 'beliefs', label: 'Beliefs', href: '/beliefs' },
   { id: 'infrastructure', label: 'Infrastructure', href: '/infrastructure' },
   { id: 'research', label: 'Research', href: '/research' },
@@ -19,6 +19,7 @@ export const WEBSITE_PAGE_LEDGER: ReadonlyArray<WebsitePageLedgerEntry> = [
     label: 'Gifts & Contributions',
     href: '/gifts-contributions',
   },
+  { id: 'membership', label: 'Membership', href: '/membership' },
 ]
 
 export function getWebsitePageHref(pageId: WebsitePageId) {

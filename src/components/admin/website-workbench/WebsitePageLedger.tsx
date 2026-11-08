@@ -19,7 +19,9 @@ export function WebsitePageLedger({
           <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-[#9f9676]">
             Page ledger
           </span>
-          <span className="font-mono text-[8px] text-[#6f684f]">008</span>
+          <span className="font-mono text-[8px] text-[#6f684f]">
+            {String(WEBSITE_PAGE_LEDGER.length).padStart(3, '0')}
+          </span>
         </div>
         <div className="border border-[#ece2c4]/16">
           {WEBSITE_PAGE_LEDGER.map((entry, index) => {

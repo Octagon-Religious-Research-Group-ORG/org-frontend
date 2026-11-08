@@ -19,7 +19,7 @@ export interface SearchResult {
 }
 
 const PAGE_TITLES: Record<SearchPageId, string> = {
-  community: 'Community',
+  community: 'Members Community',
   beliefs: 'Beliefs',
   infrastructure: 'Infrastructure',
   research: 'Research',

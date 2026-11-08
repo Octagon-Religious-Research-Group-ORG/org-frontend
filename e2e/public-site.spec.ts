@@ -9,15 +9,15 @@ test.describe('public website', () => {
 
     await page.goto('/')
     await expect(
-      page.getByRole('link', { name: 'Community', exact: true }),
+      page.getByRole('link', { name: 'Members Community', exact: true }),
     ).toBeVisible()
     await page
-      .getByRole('link', { name: 'Community', exact: true })
+      .getByRole('link', { name: 'Members Community', exact: true })
       .first()
       .click()
     await expect(page).toHaveURL(/\/community$/)
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Community' }),
+      page.getByRole('heading', { level: 1, name: 'Members Community' }),
     ).toBeVisible()
 
     await page
