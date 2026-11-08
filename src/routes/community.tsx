@@ -23,6 +23,9 @@ function CommunityRoute() {
   return (
     <ReferencePage
       page={{ ...content, title: 'Members Community' }}
+      // Not an access control: the server sends this content to everyone and
+      // the gate only hides it in the browser. Chunk 7 must not rely on it to
+      // protect anything; restricted content has to stay off this response.
       wrapContent={(body) => <MembersEntry>{body}</MembersEntry>}
     />
   )
