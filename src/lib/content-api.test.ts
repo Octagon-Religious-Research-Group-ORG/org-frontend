@@ -60,6 +60,11 @@ describe('website content API fallbacks', () => {
     expect(shown('community', 'Telegram @someone')).toBe('Telegram @someone')
     expect(shown('community', 'Tip @the_org')).toBe(`Tip ${placeholder}`)
     expect(shown('community', 'paypal.me/x')).toBe(placeholder)
+    expect(shown('community', 'paypal.message')).toBe('paypal.message')
+    expect(shown('community', 'me@paypal.com')).toBe('me@paypal.com')
+    expect(shown('community', 'Tip $TrippAardema')).toBe(`Tip ${placeholder}`)
+    expect(shown('community', 'venmo.me/x')).toBe(placeholder)
+    expect(shown('community', 'cash.me/x')).toBe(placeholder)
     expect(shown('donations', '@someone', 'production')).toBe('@someone')
   })
 
