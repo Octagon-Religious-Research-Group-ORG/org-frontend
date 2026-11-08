@@ -6,6 +6,7 @@ import {
   clearJoinDraft,
   loadJoinDraft,
   saveJoinDraft,
+  sweepExpiredJoinDraft,
 } from './membership-draft'
 import type { JoinDraft } from './membership-draft'
 
@@ -46,6 +47,56 @@ describe('join draft', () => {
     vi.spyOn(Date, 'now').mockReturnValue(later)
     expect(loadJoinDraft('user_a')).toBeUndefined()
     expect(sessionStorage.length).toBe(0)
+  })
+
+  it('treats a draft with no usable date as expired', () => {
+    for (const savedAt of [undefined, 'soon', Date.now() + 60_000]) {
+      sessionStorage.setItem(
+        'org-members-join-draft',
+        JSON.stringify({ owner: 'user_a', savedAt, draft }),
+      )
+      expect(loadJoinDraft('user_a')).toBeUndefined()
+      expect(sessionStorage.length).toBe(0)
+    }
+  })
+
+  it('refuses a draft of the wrong shape', () => {
+    sessionStorage.setItem(
+      'org-members-join-draft',
+      JSON.stringify({ owner: 'user_a', savedAt: Date.now(), draft: {} }),
+    )
+    expect(loadJoinDraft('user_a')).toBeUndefined()
+    expect(sessionStorage.length).toBe(0)
+  })
+
+  it('removes corrupted storage instead of leaving it', () => {
+    sessionStorage.setItem('org-members-join-draft', '{not json')
+    expect(loadJoinDraft('user_a')).toBeUndefined()
+    expect(sessionStorage.length).toBe(0)
+  })
+
+  describe('sweep', () => {
+    it('removes an expired draft nobody is reading', () => {
+      saveJoinDraft('user_a', draft)
+      const later = Date.now() + DRAFT_MAX_AGE_MS + 1
+      vi.spyOn(Date, 'now').mockReturnValue(later)
+      sweepExpiredJoinDraft()
+      expect(sessionStorage.length).toBe(0)
+    })
+
+    it('leaves a recent draft, and an empty store, alone', () => {
+      sweepExpiredJoinDraft()
+      expect(sessionStorage.length).toBe(0)
+      saveJoinDraft('user_a', draft)
+      sweepExpiredJoinDraft()
+      expect(loadJoinDraft('user_a')).toEqual(draft)
+    })
+
+    it('removes corrupted storage', () => {
+      sessionStorage.setItem('org-members-join-draft', '{not json')
+      sweepExpiredJoinDraft()
+      expect(sessionStorage.length).toBe(0)
+    })
   })
 
   it('is cleared on request', () => {

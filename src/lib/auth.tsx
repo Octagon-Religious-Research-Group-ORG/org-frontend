@@ -4,10 +4,17 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useSyncExternalStore,
 } from 'react'
 import type { ReactNode } from 'react'
+import {
+  DRAFT_SWEEP_INTERVAL_MS,
+  clearJoinDraft,
+  loadJoinDraft,
+  sweepExpiredJoinDraft,
+} from './membership-draft'
 
 interface OrgAuth {
   configured: boolean
@@ -61,6 +68,8 @@ function ClerkBridge({ children }: { children: ReactNode }) {
   )
 
   const logout = useCallback(async () => {
+    // Beliefs written in this tab must not outlive a deliberate sign-out.
+    clearJoinDraft()
     await clerk.signOut({ redirectUrl: `${window.location.origin}/logout` })
   }, [clerk])
 
@@ -81,6 +90,12 @@ function ClerkBridge({ children }: { children: ReactNode }) {
       picture: clerkUser.imageUrl,
     }
   }, [clerkUser])
+
+  // Reading as the account now signed in drops a draft that belongs to another.
+  const clerkUserId = clerkUser?.id
+  useEffect(() => {
+    if (clerkUserId) loadJoinDraft(clerkUserId)
+  }, [clerkUserId])
 
   const value = useMemo<OrgAuth>(
     () => ({
@@ -108,6 +123,12 @@ export function OrgAuthProvider({ children }: { children: ReactNode }) {
     () => true,
     () => false,
   )
+
+  useEffect(() => {
+    sweepExpiredJoinDraft()
+    const timer = setInterval(sweepExpiredJoinDraft, DRAFT_SWEEP_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [])
 
   if (!hydrated) {
     return (

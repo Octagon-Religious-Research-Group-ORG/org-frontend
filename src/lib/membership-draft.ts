@@ -24,6 +24,28 @@ const DRAFT_KEY = 'org-members-join-draft'
 /** A draft older than a day is dropped rather than shown again. */
 export const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
+/** How often an open tab checks for a draft past its age. */
+export const DRAFT_SWEEP_INTERVAL_MS = 60 * 60 * 1000
+
+interface StoredDraft {
+  owner?: string
+  savedAt: number
+  draft: JoinDraft
+}
+
+/** A draft that can no longer be shown: malformed, or outside its age. */
+function isUsable(saved: Partial<StoredDraft>): saved is StoredDraft {
+  const age = Date.now() - (saved.savedAt ?? Number.NaN)
+  return (
+    age >= 0 && age <= DRAFT_MAX_AGE_MS && Array.isArray(saved.draft?.beliefs)
+  )
+}
+
+function readStored(): Partial<StoredDraft> | undefined {
+  const raw = sessionStorage.getItem(DRAFT_KEY)
+  return raw ? (JSON.parse(raw) as Partial<StoredDraft>) : undefined
+}
+
 export function saveJoinDraft(owner: string | undefined, draft: JoinDraft) {
   try {
     sessionStorage.setItem(
@@ -40,23 +62,27 @@ export function loadJoinDraft(
   owner: string | undefined,
 ): JoinDraft | undefined {
   try {
-    const raw = sessionStorage.getItem(DRAFT_KEY)
-    if (!raw) return undefined
-    const saved = JSON.parse(raw) as {
-      owner?: string
-      savedAt: number
-      draft: JoinDraft
-    }
-    if (
-      saved.owner !== owner ||
-      Date.now() - saved.savedAt > DRAFT_MAX_AGE_MS
-    ) {
-      clearJoinDraft()
-      return undefined
-    }
-    return saved.draft
-  } catch {
+    const saved = readStored()
+    if (!saved) return undefined
+    if (saved.owner === owner && isUsable(saved)) return saved.draft
+    clearJoinDraft()
     return undefined
+  } catch {
+    clearJoinDraft()
+    return undefined
+  }
+}
+
+/**
+ * Drops a draft past its age even if nothing reads it: a tab can sit open for
+ * days after a session lapses, and the expiry must not depend on the form.
+ */
+export function sweepExpiredJoinDraft() {
+  try {
+    const saved = readStored()
+    if (saved && !isUsable(saved)) clearJoinDraft()
+  } catch {
+    clearJoinDraft()
   }
 }
 

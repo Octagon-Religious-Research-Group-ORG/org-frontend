@@ -11,6 +11,7 @@ import {
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OrgAuthProvider, useOrgAuth } from './auth'
+import { DRAFT_MAX_AGE_MS, DRAFT_SWEEP_INTERVAL_MS } from './membership-draft'
 
 const PUBLISHABLE_KEY = 'pk_test_stub'
 
@@ -157,6 +158,76 @@ describe('OrgAuthProvider', () => {
 
     expect(mocks.historyPush).toHaveBeenCalledWith('/pushed')
     expect(mocks.historyReplace).toHaveBeenCalledWith('/replaced')
+  })
+
+  describe('the join draft', () => {
+    const KEY = 'org-members-join-draft'
+    const person = (id: string) => ({
+      id,
+      fullName: null,
+      imageUrl: 'x',
+    })
+    const seed = (owner: string, savedAt = Date.now()) =>
+      sessionStorage.setItem(
+        KEY,
+        JSON.stringify({ owner, savedAt, draft: { beliefs: [] } }),
+      )
+    const tree = () => (
+      <OrgAuthProvider>
+        <AuthProbe />
+      </OrgAuthProvider>
+    )
+
+    beforeEach(() => sessionStorage.clear())
+    afterEach(() => vi.useRealTimers())
+
+    it('is cleared by signing out', async () => {
+      mocks.clerkState.isSignedIn = true
+      mocks.clerkState.user = person('user_a')
+      seed('user_a')
+      render(tree())
+      expect(sessionStorage.getItem(KEY)).not.toBeNull()
+      fireEvent.click(await screen.findByText('Sign out'))
+      expect(sessionStorage.getItem(KEY)).toBeNull()
+    })
+
+    it('is cleared when a different account signs in, on any page', async () => {
+      mocks.clerkState.isSignedIn = true
+      mocks.clerkState.user = person('user_a')
+      seed('user_a')
+      const view = render(tree())
+      await screen.findByText('Sign out')
+      expect(sessionStorage.getItem(KEY)).not.toBeNull()
+      mocks.clerkState.user = person('user_b')
+      view.rerender(tree())
+      expect(sessionStorage.getItem(KEY)).toBeNull()
+    })
+
+    it('survives a session lapse for the same account', async () => {
+      mocks.clerkState.isSignedIn = true
+      mocks.clerkState.user = person('user_a')
+      seed('user_a')
+      const view = render(tree())
+      await screen.findByText('Sign out')
+      mocks.clerkState.isSignedIn = false
+      mocks.clerkState.user = undefined
+      view.rerender(tree())
+      expect(sessionStorage.getItem(KEY)).not.toBeNull()
+    })
+
+    it('is swept on load and hourly once past its age, whoever is signed in', () => {
+      vi.useFakeTimers()
+      seed('user_a', Date.now() - DRAFT_MAX_AGE_MS - 1)
+      render(tree())
+      expect(sessionStorage.getItem(KEY)).toBeNull()
+
+      seed('user_a')
+      vi.advanceTimersByTime(DRAFT_SWEEP_INTERVAL_MS)
+      expect(sessionStorage.getItem(KEY)).not.toBeNull()
+      vi.setSystemTime(Date.now() + DRAFT_MAX_AGE_MS + 1)
+      vi.advanceTimersByTime(DRAFT_SWEEP_INTERVAL_MS)
+      expect(sessionStorage.getItem(KEY)).toBeNull()
+    })
   })
 
   it('returns from sign-out through the dedicated logout route', () => {
