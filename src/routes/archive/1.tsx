@@ -1,8 +1,10 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import type { SECTIONS } from '#/lib/sections';
+import type { SECTIONS } from '#/lib/sections'
 import { GRID_ORDER } from '#/lib/sections'
 
-export const Route = createFileRoute('/archive/1')({ component: EditorialBureau })
+export const Route = createFileRoute('/archive/1')({
+  component: EditorialBureau,
+})
 
 const ISSUE_DATE = '07 NOVEMBER 2025'
 
@@ -14,15 +16,21 @@ function EditorialBureau() {
         <header className="v1-masthead">
           <span className="v1-mast-rule" />
           <div className="v1-mast-row">
-            <span className="v1-mast-meta">VOL. I &nbsp;&middot;&nbsp; ISSUE I</span>
+            <span className="v1-mast-meta">
+              VOL. I &nbsp;&middot;&nbsp; ISSUE I
+            </span>
             <span className="v1-mast-title">
               The Octagon Religious Research Group
             </span>
-            <span className="v1-mast-meta">EST. MMXXV &nbsp;&middot;&nbsp; {ISSUE_DATE}</span>
+            <span className="v1-mast-meta">
+              EST. MMXXV &nbsp;&middot;&nbsp; {ISSUE_DATE}
+            </span>
           </div>
           <span className="v1-mast-rule" />
           <div className="v1-mast-sub">
-            <span>A bibliographic index of inquiry, communion, and consequence.</span>
+            <span>
+              A bibliographic index of inquiry, communion, and consequence.
+            </span>
             <span className="v1-mast-folio">FOLIO &nbsp;ORG/IX</span>
           </div>
         </header>
@@ -43,7 +51,11 @@ function EditorialBureau() {
                   style={{ animationDelay: `${delay}ms` }}
                 >
                   <div className="v1-center-mark">
-                    <svg viewBox="0 0 100 100" className="v1-octagon" aria-hidden>
+                    <svg
+                      viewBox="0 0 100 100"
+                      className="v1-octagon"
+                      aria-hidden
+                    >
                       <polygon
                         points="29.3,2 70.7,2 98,29.3 98,70.7 70.7,98 29.3,98 2,70.7 2,29.3"
                         fill="none"
@@ -84,7 +96,8 @@ function EditorialBureau() {
                 <div className="v1-cell-bottom">
                   <span className="v1-tagline">{s.tagline}</span>
                   <span className="v1-filed">
-                    FILED &nbsp;UNDER &nbsp;&mdash;&nbsp; {s.filed.toUpperCase()}
+                    FILED &nbsp;UNDER &nbsp;&mdash;&nbsp;{' '}
+                    {s.filed.toUpperCase()}
                   </span>
                 </div>
                 <span className="v1-arrow">&rarr;</span>
@@ -96,7 +109,8 @@ function EditorialBureau() {
         <footer className="v1-foot">
           <span>&copy; MMXXV ORG &middot; All inquiries archived.</span>
           <span className="v1-foot-mid">
-            <span className="v1-dot" /> THE GRID &middot; NINE PANELS &middot; ONE INSTITUTION
+            <span className="v1-dot" /> THE GRID &middot; NINE PANELS &middot;
+            ONE INSTITUTION
           </span>
           <span>SET IN HELVETICA</span>
         </footer>

@@ -1,8 +1,10 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import type { SECTIONS } from '#/lib/sections';
+import type { SECTIONS } from '#/lib/sections'
 import { GRID_ORDER } from '#/lib/sections'
 
-export const Route = createFileRoute('/archive/3')({ component: ChromaticMaximalist })
+export const Route = createFileRoute('/archive/3')({
+  component: ChromaticMaximalist,
+})
 
 const PALETTES: Record<string, [string, string, string, string]> = {
   about: ['#ff3a8c', '#ff7a18', '#ffdd00', '#7af6ff'],
@@ -26,9 +28,10 @@ function ChromaticMaximalist() {
           <div className="v3-marquee-track">
             {Array.from({ length: 4 }).map((_, k) => (
               <span key={k} className="v3-marquee-group">
-                <span className="v3-mq-pulse" /> OCTAGON RELIGIOUS RESEARCH GROUP &nbsp;//&nbsp;
-                EIGHT FACES OF INQUIRY &nbsp;//&nbsp; ONE LIGHT REFRACTED NINE WAYS
-                &nbsp;//&nbsp; TRANSMITTING ON ALL FREQUENCIES &nbsp;//&nbsp;
+                <span className="v3-mq-pulse" /> OCTAGON RELIGIOUS RESEARCH
+                GROUP &nbsp;//&nbsp; EIGHT FACES OF INQUIRY &nbsp;//&nbsp; ONE
+                LIGHT REFRACTED NINE WAYS &nbsp;//&nbsp; TRANSMITTING ON ALL
+                FREQUENCIES &nbsp;//&nbsp;
               </span>
             ))}
           </div>

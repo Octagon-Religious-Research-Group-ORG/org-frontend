@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Check, Clipboard, ExternalLink, PackageCheck } from 'lucide-react'
-import {
-  apiRequest,
-  humanStatus,
-  money,
-} from '#/lib/api'
+import { apiRequest, humanStatus, money } from '#/lib/api'
 import type { DonationConfig, Order } from '#/lib/api'
 import { useOrgAuth } from '#/lib/auth'
 import { MemberGate } from '#/components/shop/MemberGate'

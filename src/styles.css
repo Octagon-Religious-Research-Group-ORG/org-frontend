@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --font-helvetica: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
@@ -53,13 +53,20 @@ body {
 }
 
 @keyframes v2-draw {
-  to { stroke-dashoffset: 0; }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 @keyframes v2-pop {
-  to { opacity: 1; transform: scale(1); }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes v2-rotate {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Search "Perforated Index" — minimal additions for blotter ink + match emphasis */
@@ -82,4 +89,3 @@ mark {
   border-color: #d4a24a;
   outline: none;
 }
-

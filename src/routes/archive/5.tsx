@@ -1,8 +1,10 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import type { SECTIONS } from '#/lib/sections';
+import type { SECTIONS } from '#/lib/sections'
 import { GRID_ORDER } from '#/lib/sections'
 
-export const Route = createFileRoute('/archive/5')({ component: BureauTerminal })
+export const Route = createFileRoute('/archive/5')({
+  component: BureauTerminal,
+})
 
 const STATUS: Record<string, string> = {
   about: 'OPEN',
@@ -32,7 +34,9 @@ function BureauTerminal() {
               <span className="v5-path">~/octagon</span>
               <span className="v5-sep">$</span>
               <span className="v5-cmd">
-                <span className="v5-typed">orgnet --boot --node=octagon --grid=3x3</span>
+                <span className="v5-typed">
+                  orgnet --boot --node=octagon --grid=3x3
+                </span>
                 <span className="v5-caret">█</span>
               </span>
             </div>
@@ -42,7 +46,9 @@ function BureauTerminal() {
               <div>[ OK ] aligning bearings to true north ………………… 0.000°</div>
               <div>[ OK ] phosphor warm: 64°C — flicker nominal</div>
               <div>[ OK ] timestamp synced &nbsp;{ts}</div>
-              <div className="v5-boot-final">[ READY ] Octagon Religious Research Group · NODE 0001</div>
+              <div className="v5-boot-final">
+                [ READY ] Octagon Religious Research Group · NODE 0001
+              </div>
             </div>
           </header>
 
@@ -65,13 +71,15 @@ function BureauTerminal() {
                         <span>[ ROOT ]─┐</span>
                       </div>
                       <div className="v5-center-art" aria-hidden>
-{`     █████   ██████   █████
+                        {`     █████   ██████   █████
     ██   ██  ██   ██  ██
     ██   ██  ██████   ██  ██
     ██   ██  ██   ██  ██   ██
      █████   ██   ██   █████ `}
                       </div>
-                      <div className="v5-center-cap">RETURN TO PRINCIPAL // /</div>
+                      <div className="v5-center-cap">
+                        RETURN TO PRINCIPAL // /
+                      </div>
                       <div className="v5-cell-foot">
                         <span>└─</span>
                         <span>─┘</span>
@@ -97,7 +105,9 @@ function BureauTerminal() {
                       <span>[ {status} ]─┐</span>
                     </div>
                     <div className="v5-cell-body">
-                      <div className="v5-file">FILE://ORG/{s.id.toUpperCase()}.dat</div>
+                      <div className="v5-file">
+                        FILE://ORG/{s.id.toUpperCase()}.dat
+                      </div>
                       <h2 className="v5-title">
                         {s.label}
                         <span className="v5-caret v5-caret-inline">_</span>
@@ -108,7 +118,9 @@ function BureauTerminal() {
                         <span>{s.accession}</span>
                       </div>
                     </div>
-                    <div className="v5-access">[ access requires authorization ]</div>
+                    <div className="v5-access">
+                      [ access requires authorization ]
+                    </div>
                     <div className="v5-cell-foot">
                       <span>└─</span>
                       <span>─┘</span>
@@ -122,7 +134,8 @@ function BureauTerminal() {
           <footer className="v5-foot">
             <span>$ uptime: 008d 14h 22m</span>
             <span className="v5-foot-c">
-              <span className="v5-blink">▓</span> connection: secure / phosphor channel
+              <span className="v5-blink">▓</span> connection: secure / phosphor
+              channel
             </span>
             <span>set -- helvetica · neue · 12pt</span>
           </footer>

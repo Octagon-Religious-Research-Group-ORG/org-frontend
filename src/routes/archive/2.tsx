@@ -1,9 +1,11 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import type { SECTIONS } from '#/lib/sections';
+import type { SECTIONS } from '#/lib/sections'
 import { GRID_ORDER } from '#/lib/sections'
 import { svgCoord } from '#/lib/svg'
 
-export const Route = createFileRoute('/archive/2')({ component: SacredGeometry })
+export const Route = createFileRoute('/archive/2')({
+  component: SacredGeometry,
+})
 
 function octagonPoints(cx: number, cy: number, r: number) {
   const pts: Array<string> = []
@@ -93,7 +95,9 @@ function SacredGeometry() {
             const row = Math.floor(i / 3)
             const col = i % 3
             const order = [0, 1, 2, 5, 8, 7, 6, 3].indexOf(i)
-            const delay = isCenter ? 2200 : 1600 + (order >= 0 ? order : 0) * 110
+            const delay = isCenter
+              ? 2200
+              : 1600 + (order >= 0 ? order : 0) * 110
 
             if (isCenter) {
               return (
@@ -104,7 +108,11 @@ function SacredGeometry() {
                   style={{ animationDelay: `${delay}ms` }}
                 >
                   <div className="v2-center-inner">
-                    <svg viewBox="-50 -50 100 100" className="v2-wheel" aria-hidden>
+                    <svg
+                      viewBox="-50 -50 100 100"
+                      className="v2-wheel"
+                      aria-hidden
+                    >
                       <defs>
                         <linearGradient id="v2grad" x1="0" y1="0" x2="1" y2="1">
                           <stop offset="0" stopColor="#f6efd9" />

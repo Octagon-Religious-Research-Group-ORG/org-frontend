@@ -10,8 +10,7 @@ export const Route = createFileRoute('/join')({
       { title: 'Join the ORG — Membership' },
       {
         name: 'description',
-        content:
-          'Create an ORG member identity or sign in securely.',
+        content: 'Create an ORG member identity or sign in securely.',
       },
     ],
   }),
@@ -49,8 +48,9 @@ function JoinPage() {
                 </h1>
                 <p className="mt-6 max-w-md text-sm leading-7">
                   A dedicated identity service handles the account and password.
-                  ORG stores only the profile, contact, shipping, cart, and order
-                  information needed for membership and requested offerings.
+                  ORG stores only the profile, contact, shipping, cart, and
+                  order information needed for membership and requested
+                  offerings.
                 </p>
               </div>
             </div>
@@ -70,8 +70,9 @@ function JoinPage() {
                   Enter the member area.
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-[#b8ad8d]">
-                  New members create an account first, then add their ORG profile
-                  details. Existing members return through the same secure login.
+                  New members create an account first, then add their ORG
+                  profile details. Existing members return through the same
+                  secure login.
                 </p>
                 <div className="mt-7 grid gap-3">
                   <button

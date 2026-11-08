@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import type { SECTIONS } from '#/lib/sections';
+import type { SECTIONS } from '#/lib/sections'
 import { GRID_ORDER } from '#/lib/sections'
 import { svgCoord } from '#/lib/svg'
 import type { JSX } from 'react'
@@ -120,7 +120,12 @@ function TarotAtelier() {
         <div className="v4-grain" aria-hidden />
         <div className="v4-sigil" aria-hidden>
           <svg viewBox="-100 -100 200 200">
-            <g fill="none" stroke="currentColor" strokeWidth={0.4} opacity={0.6}>
+            <g
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={0.4}
+              opacity={0.6}
+            >
               <polygon points="29.3,-80 -29.3,-80 -80,-29.3 -80,29.3 -29.3,80 29.3,80 80,29.3 80,-29.3" />
               <polygon points="29.3,-60 -29.3,-60 -60,-29.3 -60,29.3 -29.3,60 29.3,60 60,29.3 60,-29.3" />
               <polygon points="29.3,-40 -29.3,-40 -40,-29.3 -40,29.3 -29.3,40 29.3,40 40,29.3 40,-29.3" />
@@ -146,9 +151,13 @@ function TarotAtelier() {
             <span>ANNO MMXXV</span>
           </div>
           <div className="v4-mast-c">
-            <div className="v4-mast-tiny">A NINEFOLD DECK FOR THE STUDENT OF</div>
+            <div className="v4-mast-tiny">
+              A NINEFOLD DECK FOR THE STUDENT OF
+            </div>
             <div className="v4-mast-name">The Octagon</div>
-            <div className="v4-mast-tiny">RELIGIOUS&nbsp;·&nbsp;RESEARCH&nbsp;·&nbsp;GROUP</div>
+            <div className="v4-mast-tiny">
+              RELIGIOUS&nbsp;·&nbsp;RESEARCH&nbsp;·&nbsp;GROUP
+            </div>
           </div>
           <div className="v4-mast-side v4-mast-r">
             <span>NINE ARCANA</span>
@@ -160,7 +169,8 @@ function TarotAtelier() {
           {GRID_ORDER.map((entry, i) => {
             const row = Math.floor(i / 3)
             const col = i % 3
-            const tilt = ((row + col) % 2 === 0 ? -1 : 1) * (0.6 + (i % 3) * 0.25)
+            const tilt =
+              ((row + col) % 2 === 0 ? -1 : 1) * (0.6 + (i % 3) * 0.25)
             const delay = i * 90 + 200
             const isCenter = entry.id === 'home'
 
@@ -170,11 +180,19 @@ function TarotAtelier() {
                   key={entry.id}
                   to="/"
                   className="v4-card v4-card-center"
-                  style={{ animationDelay: `${delay}ms`, '--tilt': `${tilt}deg` } as React.CSSProperties}
+                  style={
+                    {
+                      animationDelay: `${delay}ms`,
+                      '--tilt': `${tilt}deg`,
+                    } as React.CSSProperties
+                  }
                 >
                   <div className="v4-card-inner">
                     <div className="v4-corners">
-                      <span>✦</span><span>✦</span><span>✦</span><span>✦</span>
+                      <span>✦</span>
+                      <span>✦</span>
+                      <span>✦</span>
+                      <span>✦</span>
                     </div>
                     <span className="v4-roman">IX</span>
                     <div className="v4-glyph-frame v4-glyph-frame-lg">
@@ -192,18 +210,28 @@ function TarotAtelier() {
                 key={s.id}
                 to={s.href}
                 className="v4-card"
-                style={{ animationDelay: `${delay}ms`, '--tilt': `${tilt}deg` } as React.CSSProperties}
+                style={
+                  {
+                    animationDelay: `${delay}ms`,
+                    '--tilt': `${tilt}deg`,
+                  } as React.CSSProperties
+                }
               >
                 <div className="v4-card-inner">
                   <div className="v4-corners">
-                    <span>✦</span><span>✦</span><span>✦</span><span>✦</span>
+                    <span>✦</span>
+                    <span>✦</span>
+                    <span>✦</span>
+                    <span>✦</span>
                   </div>
                   <span className="v4-roman">{s.roman}</span>
                   <div className="v4-glyph-frame">
                     <Glyph id={s.id} />
                   </div>
                   <h2 className="v4-title">{s.label.toUpperCase()}</h2>
-                  <span className="v4-caption">— {s.tagline.toLowerCase()} —</span>
+                  <span className="v4-caption">
+                    — {s.tagline.toLowerCase()} —
+                  </span>
                 </div>
               </Link>
             )

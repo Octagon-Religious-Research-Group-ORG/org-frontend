@@ -148,7 +148,12 @@ export function SiteNav() {
         <div className="mx-auto hidden max-w-[1180px] px-[clamp(14px,3vw,32px)] py-4 md:block relative">
           <nav aria-label="Primary" className="relative grid grid-cols-9 gap-0">
             {/* Blotter-sheet perforations, same as the home page sheet. */}
-            <BlotterPerforations cols={9} rows={1} tabsPerCell={3} seamWidth={2} />
+            <BlotterPerforations
+              cols={9}
+              rows={1}
+              tabsPerCell={3}
+              seamWidth={2}
+            />
             {GRID_ORDER.map((item) => (
               <NavSquare
                 key={item.id}
@@ -195,7 +200,10 @@ export function SiteNav() {
 
       {open ? (
         <div className="fixed inset-0 z-40 bg-[rgba(11,13,18,0.94)] px-4 pb-8 pt-24 backdrop-blur-md md:hidden">
-          <nav aria-label="Primary mobile" className="relative mx-auto max-w-[420px] grid grid-cols-3 gap-0">
+          <nav
+            aria-label="Primary mobile"
+            className="relative mx-auto max-w-[420px] grid grid-cols-3 gap-0"
+          >
             {/* Blotter-sheet perforations for the mobile 3x3 menu. */}
             <BlotterPerforations cols={3} rows={3} tabsPerCell={3} />
             {GRID_ORDER.map((item) => (

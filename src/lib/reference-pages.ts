@@ -730,7 +730,7 @@ export const REFERENCE_PAGES = [
       'D. You can still post your beliefs in such a way that if you were to ever need a digital record, we could provide timestamped proof for when you made your beliefs known to ORG.',
       'E. You will also be able to connect with other members and/or churches who share similar beliefs ONLY if the other member is public AND if you give permission by sending a “connection request” to the other member (and they accept it).',
       '1. I am open to suggestions for a better idea than “connection request”.',
-      'F. Currently, only ORG\'s admins (Tripp and Renan) have access to the private accounts’ beliefs, but we are searching for a way to encrypt all private accounts so that none of us can see them (unless the member chooses to share them with specific members).',
+      "F. Currently, only ORG's admins (Tripp and Renan) have access to the private accounts’ beliefs, but we are searching for a way to encrypt all private accounts so that none of us can see them (unless the member chooses to share them with specific members).",
       '1. This may require AI to approve the sincerity/existence of their beliefs, as well as to incorporate their ability to vote and still share their beliefs anonymously (but publicly).',
       'III. Your membership name',
       'A. Choose Public or Private and what you want your membership name to be. Examples:',

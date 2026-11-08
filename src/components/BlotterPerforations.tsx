@@ -26,7 +26,11 @@ const layer: CSSProperties = {
   pointerEvents: 'none',
 }
 
-function dashMask(direction: 'to bottom' | 'to right', on: number, off: number): CSSProperties {
+function dashMask(
+  direction: 'to bottom' | 'to right',
+  on: number,
+  off: number,
+): CSSProperties {
   const mask = `repeating-linear-gradient(${direction}, #000 0 ${on}px, transparent ${on}px ${on + off}px)`
   return { maskImage: mask, WebkitMaskImage: mask }
 }
@@ -53,8 +57,14 @@ export function BlotterPerforations({
   const fineV = `linear-gradient(to right, ${perfColor} 0 1px, transparent 1px)`
   const fineH = `linear-gradient(to bottom, ${perfColor} 0 1px, transparent 1px)`
   const seam = `linear-gradient(${seamColor}, ${seamColor})`
-  const xs = Array.from({ length: cols + 1 }, (_, k) => `${((k / cols) * 100).toFixed(3)}%`)
-  const ys = Array.from({ length: rows + 1 }, (_, k) => `${((k / rows) * 100).toFixed(3)}%`)
+  const xs = Array.from(
+    { length: cols + 1 },
+    (_, k) => `${((k / cols) * 100).toFixed(3)}%`,
+  )
+  const ys = Array.from(
+    { length: rows + 1 },
+    (_, k) => `${((k / rows) * 100).toFixed(3)}%`,
+  )
 
   return (
     <>

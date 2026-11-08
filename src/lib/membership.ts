@@ -50,7 +50,9 @@ export function getCurrentUser(): Member | null {
 
 export function login(email: string, _password: string): Member | null {
   const members = loadMembers()
-  const member = members.find((m) => m.email.toLowerCase() === email.toLowerCase())
+  const member = members.find(
+    (m) => m.email.toLowerCase() === email.toLowerCase(),
+  )
   if (member) {
     saveCurrentUser(member)
     return member
@@ -75,7 +77,9 @@ export function createMember(data: {
   // Prevent duplicate emails for demo
   if (members.some((m) => m.email.toLowerCase() === data.email.toLowerCase())) {
     // If already exists, just log them in
-    const existing = members.find((m) => m.email.toLowerCase() === data.email.toLowerCase())!
+    const existing = members.find(
+      (m) => m.email.toLowerCase() === data.email.toLowerCase(),
+    )!
     saveCurrentUser(existing)
     return existing
   }
@@ -112,7 +116,11 @@ export function submitBelief(beliefText: string): boolean {
   return true
 }
 
-export function getMyBeliefs(): Array<{ id: string; text: string; date: string }> {
+export function getMyBeliefs(): Array<{
+  id: string
+  text: string
+  date: string
+}> {
   const user = getCurrentUser()
   if (!user) return []
   const key = `org-beliefs-${user.id}`

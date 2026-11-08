@@ -12,7 +12,10 @@ import infrastructureImg from '#/assets/infrastructure.webp'
 import legalImg from '#/assets/legal.webp'
 import researchImg from '#/assets/research.webp'
 import { svgCoord } from '#/lib/svg'
-import { BlotterPerforations, TabPerforations } from '#/components/BlotterPerforations'
+import {
+  BlotterPerforations,
+  TabPerforations,
+} from '#/components/BlotterPerforations'
 import { UserPlus, Search } from 'lucide-react'
 
 export const Route = createFileRoute('/')({ component: SacredGeometry })
@@ -156,45 +159,45 @@ function SacredGeometry() {
                   style={{ animationDelay: `${delay}ms` }}
                 >
                   <div className="flex flex-col">
-                  <div
-                    className={`${perforatedSquare} relative group-hover:border-[3px] group-hover:border-solid group-hover:border-[#d4a24a]`}
-                  >
                     <div
-                      aria-hidden
-                      className="absolute inset-0 bg-cover bg-center animate-[v2-rotate_28s_linear_infinite]"
-                      style={{ backgroundImage: `url(${homeRainbowImg})` }}
-                    />
-
-                    {/* Join button (person +) - upper left of ORG tab, same as nav tabs */}
-                    <Link
-                      to="/join"
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label="Join the ORG or access member portal"
-                      title="Join or sign in as a member"
-                      className="absolute top-1 left-1 z-[30] grid h-8 w-8 place-items-center border border-[rgba(236,226,196,0.4)] bg-[rgba(11,13,18,0.85)] text-[#d4a24a] backdrop-blur transition-colors hover:border-[#d4a24a] hover:text-[#f0e6d0]"
+                      className={`${perforatedSquare} relative group-hover:border-[3px] group-hover:border-solid group-hover:border-[#d4a24a]`}
                     >
-                      <UserPlus size={20} />
-                    </Link>
+                      <div
+                        aria-hidden
+                        className="absolute inset-0 bg-cover bg-center animate-[v2-rotate_28s_linear_infinite]"
+                        style={{ backgroundImage: `url(${homeRainbowImg})` }}
+                      />
 
-                    {/* Search button (magnifying glass) - upper right of ORG tab, same as nav tabs */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openSearch();
-                      }}
-                      aria-label="Search the archive"
-                      title="Search the ORG archive (⌘K)"
-                      className="absolute top-1 right-1 z-[30] grid h-8 w-8 place-items-center border border-[rgba(236,226,196,0.4)] bg-[rgba(11,13,18,0.85)] text-[#d4a24a] backdrop-blur transition-colors hover:border-[#d4a24a] hover:text-[#f0e6d0]"
-                    >
-                      <Search size={20} />
-                    </button>
+                      {/* Join button (person +) - upper left of ORG tab, same as nav tabs */}
+                      <Link
+                        to="/join"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="Join the ORG or access member portal"
+                        title="Join or sign in as a member"
+                        className="absolute top-1 left-1 z-[30] grid h-8 w-8 place-items-center border border-[rgba(236,226,196,0.4)] bg-[rgba(11,13,18,0.85)] text-[#d4a24a] backdrop-blur transition-colors hover:border-[#d4a24a] hover:text-[#f0e6d0]"
+                      >
+                        <UserPlus size={20} />
+                      </Link>
 
-                    <TabPerforations />
-                  </div>
-                  <span aria-hidden className={tileLabel}>
-                    {LABELS.home}
-                  </span>
+                      {/* Search button (magnifying glass) - upper right of ORG tab, same as nav tabs */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openSearch()
+                        }}
+                        aria-label="Search the archive"
+                        title="Search the ORG archive (⌘K)"
+                        className="absolute top-1 right-1 z-[30] grid h-8 w-8 place-items-center border border-[rgba(236,226,196,0.4)] bg-[rgba(11,13,18,0.85)] text-[#d4a24a] backdrop-blur transition-colors hover:border-[#d4a24a] hover:text-[#f0e6d0]"
+                      >
+                        <Search size={20} />
+                      </button>
+
+                      <TabPerforations />
+                    </div>
+                    <span aria-hidden className={tileLabel}>
+                      {LABELS.home}
+                    </span>
                   </div>
                 </div>
               )
@@ -208,15 +211,15 @@ function SacredGeometry() {
                 <div
                   className={`${perforatedSquare} relative group-hover:border-[3px] group-hover:border-solid group-hover:border-[#d4a24a]`}
                 >
-                <span
-                  aria-hidden
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{
-                    backgroundImage: img
-                      ? `url(${img})`
-                      : 'linear-gradient(140deg, rgba(28,30,38,0.92), rgba(15,17,22,0.92))',
-                  }}
-                />
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: img
+                        ? `url(${img})`
+                        : 'linear-gradient(140deg, rgba(28,30,38,0.92), rgba(15,17,22,0.92))',
+                    }}
+                  />
                   <TabPerforations />
                 </div>
                 <span aria-hidden className={tileLabel}>
