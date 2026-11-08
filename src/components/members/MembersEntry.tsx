@@ -313,7 +313,7 @@ export function MembersEntry({
         </p>
       )}
       {slowNotice}
-      <p className="mt-6 max-w-2xl text-[11px] leading-6 text-[#7f775f]">
+      <p className="mt-6 max-w-2xl text-[11px] leading-6 text-[#9f9676]">
         Anonymous members join under a nickname and still need an email address
         and a bio with at least one belief. Guests can read but not comment or
         vote; ORG records the IP address of each guest visit.

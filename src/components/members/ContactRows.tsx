@@ -3,7 +3,7 @@ import { CONTACT_METHODS } from '#/lib/membership-api'
 import type { ContactEntry, ContactMethod } from '#/lib/membership-api'
 
 export const field =
-  'w-full border border-[rgba(236,226,196,0.22)] bg-[#0f1219] px-3 py-2 text-sm text-[#f6efd9] placeholder:text-[#6f6852] focus:border-[#78aea2] focus:outline-none'
+  'w-full border border-[rgba(236,226,196,0.22)] bg-[#0f1219] px-3 py-2 text-sm text-[#f6efd9] placeholder:text-[#8f8769] focus:border-[#78aea2] focus:outline-none'
 
 /** Editable list of contact rows (method + handle). */
 export function ContactRows({
