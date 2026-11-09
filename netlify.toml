@@ -7,6 +7,14 @@
   port = 8888
 # Vite fingerprints everything under /assets/ (e.g. about-DFilPrf1.webp), so a changed
 # file always gets a new URL — safe to cache for a year and skip revalidation.
+# Frame protection for files Netlify serves directly. Netlify does not apply
+# these rules to server-rendered pages, so src/start.ts sets the same two
+# headers on those responses.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Content-Security-Policy = "frame-ancestors 'none'"
 [[headers]]
   for = "/assets/*"
   [headers.values]
