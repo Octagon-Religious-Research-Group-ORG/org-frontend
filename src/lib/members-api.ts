@@ -39,11 +39,16 @@ export interface FullProfile {
   isOwner: boolean
   hasPicture: boolean
   picturePublic: boolean
+  pictureVersion?: string
   contacts: Array<ContactEntry>
   bio: Array<ParagraphView>
   extras: Array<ExtraSection>
   tabs: Array<BeliefTab>
-  manage?: { visibility: ProfileVisibility; reviewStatus: string }
+  manage?: {
+    visibility: ProfileVisibility
+    reviewStatus: string
+    source?: 'migrated' | 'native'
+  }
 }
 
 export type MemberProfile = NameOnlyProfile | FullProfile
@@ -78,8 +83,10 @@ export function isMemberSlug(slug: string) {
   return slug.length >= 2 && slug.length <= 80 && SLUG.test(slug.toLowerCase())
 }
 
-export function pictureUrl(slug: string) {
-  return `${API_BASE_URL}/members/profiles/${encodeURIComponent(slug)}/picture`
+/** @param version - changes when the picture does, so a browser asks again */
+export function pictureUrl(slug: string, version?: string) {
+  const url = `${API_BASE_URL}/members/profiles/${encodeURIComponent(slug)}/picture`
+  return version ? `${url}?v=${encodeURIComponent(version)}` : url
 }
 
 export function fetchMemberDirectory(token?: string) {

@@ -54,6 +54,7 @@ export function ProfileView({
             displayName={profile.displayName}
             hasPicture={profile.hasPicture}
             picturePublic={profile.picturePublic}
+            version={profile.pictureVersion}
           />
         </div>
         <div className="min-w-0">
@@ -67,7 +68,10 @@ export function ProfileView({
         </div>
       </div>
 
-      {profile.isOwner && <GetStartedChecklist />}
+      {/* New members only: an imported member is not new here. */}
+      {profile.isOwner && profile.manage?.source === 'native' && (
+        <GetStartedChecklist />
+      )}
       {profile.isOwner && profile.manage && (
         <OwnerTools
           visibility={profile.manage.visibility}

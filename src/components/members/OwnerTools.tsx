@@ -131,6 +131,10 @@ export function OwnerTools({
           Ideally there is one belief per tab, so each can have its own comments
           and votes. Separate paragraphs with a blank line.
         </p>
+        <p className="mt-2 text-xs leading-5 text-[#9f9676]">
+          Your bio is free text, and beliefs can be in any order. An outline
+          list is suggested, but not required.
+        </p>
         <label className={`${label} mt-3`}>
           Title
           <input

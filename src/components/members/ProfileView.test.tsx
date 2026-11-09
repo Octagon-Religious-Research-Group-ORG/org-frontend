@@ -105,15 +105,51 @@ describe('ProfileView', () => {
     expect(screen.getByText('Their own')).toBeTruthy()
   })
 
-  it('gives the owner their tools and checklist', () => {
+  it('gives a new member their tools and checklist', () => {
     view(
       full({
         isOwner: true,
-        manage: { visibility: 'members', reviewStatus: 'approved' },
+        manage: {
+          visibility: 'members',
+          reviewStatus: 'approved',
+          source: 'native',
+        },
       }),
     )
     expect(screen.getByText('owner tools: members')).toBeTruthy()
     expect(screen.getByText('get started')).toBeTruthy()
+  })
+
+  it.each([['migrated'], [undefined]] as const)(
+    'shows an owner whose page is %s the tools but no checklist',
+    (source) => {
+      view(
+        full({
+          isOwner: true,
+          manage: { visibility: 'members', reviewStatus: 'approved', source },
+        }),
+      )
+      expect(screen.getByText('owner tools: members')).toBeTruthy()
+      expect(screen.queryByText('get started')).toBeNull()
+    },
+  )
+
+  it('does not give a checklist to an admin viewing a native page', () => {
+    view(
+      full({
+        manage: {
+          visibility: 'members',
+          reviewStatus: 'approved',
+          source: 'native',
+        },
+      }),
+    )
+    expect(screen.queryByText('get started')).toBeNull()
+  })
+
+  it('passes the picture version on, so a replacement shows at once', () => {
+    view(full({ hasPicture: true, picturePublic: true, pictureVersion: 'f2' }))
+    expect(screen.getByRole<HTMLImageElement>('img').src).toMatch(/\?v=f2$/)
   })
 
   it('shows no tools to anyone but the owner', () => {

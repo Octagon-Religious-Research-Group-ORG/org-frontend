@@ -23,6 +23,12 @@ function NotFoundMessage() {
   )
 }
 
+interface MemberPageProps {
+  slug: string
+  initial?: MemberProfile
+  missing?: boolean
+}
+
 /**
  * A member's page at its own address. The server render shows only what a
  * logged-out visitor may see; a signed-in visitor then asks again with their
@@ -31,15 +37,11 @@ function NotFoundMessage() {
  * @param missing - the server answered "no such page" to a logged-out request;
  *   for a signed-in visitor this may still be their own hidden page
  */
-export function MemberPage({
-  slug,
-  initial,
-  missing = false,
-}: {
-  slug: string
-  initial?: MemberProfile
-  missing?: boolean
-}) {
+export function MemberPage(props: MemberPageProps) {
+  return <LoadedMemberPage key={props.slug} {...props} />
+}
+
+function LoadedMemberPage({ slug, initial, missing = false }: MemberPageProps) {
   const auth = useOrgAuth()
   const [profile, setProfile] = useState(initial)
   const [gone, setGone] = useState(false)

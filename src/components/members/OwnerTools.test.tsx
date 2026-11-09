@@ -73,6 +73,11 @@ describe('OwnerTools', () => {
   it('carries the one-belief-per-tab hint', () => {
     setup()
     expect(screen.getByText(/Ideally there is one belief per tab/)).toBeTruthy()
+    expect(
+      screen.getByText(
+        /beliefs can be in any order.*outline\s+list is suggested/s,
+      ),
+    ).toBeTruthy()
   })
 
   it('adds a tab and clears the form', async () => {

@@ -52,6 +52,7 @@ describe('isMemberSlug', () => {
 describe('reading', () => {
   it('builds a picture address the path cannot escape', () => {
     expect(pictureUrl('a/b')).toMatch(/members\/profiles\/a%2Fb\/picture$/)
+    expect(pictureUrl('a', 'v 1')).toMatch(/\/a\/picture\?v=v%201$/)
   })
 
   it('reads the directory and chats, with a token only when given one', async () => {

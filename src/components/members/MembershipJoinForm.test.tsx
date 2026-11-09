@@ -491,7 +491,8 @@ describe('MembershipJoinForm', () => {
       expect(mocks.fetchMembershipTerms).toHaveBeenCalledTimes(2)
       expect(value('Bio')).toBe('First.\n\nSecond.')
       expect(screen.getByRole('alert').textContent).toMatch(/terms changed/)
-      expect(screen.getByText(/read them again/)).toBeTruthy()
+      // Set by an effect after the new terms render, so it can land a tick later.
+      expect(await screen.findByText(/read them again/)).toBeTruthy()
       expect(submitButton().disabled).toBe(true)
 
       agree()

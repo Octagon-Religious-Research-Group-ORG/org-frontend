@@ -145,6 +145,35 @@ describe('MemberPage', () => {
     await screen.findByText('Two/full')
   })
 
+  it('shows the new page, not the old one, when the address changes', async () => {
+    mocks.auth.isAuthenticated = true
+    mocks.fetchMemberProfile
+      .mockResolvedValueOnce(profile('Old'))
+      .mockResolvedValueOnce(profile('New'))
+    const view = render(
+      <MemberPage slug="a1" initial={profile('Old rendered')} />,
+    )
+    await screen.findByText('Old/full')
+    view.rerender(<MemberPage slug="b1" initial={profile('New rendered')} />)
+    expect(screen.queryByText('Old/full')).toBeNull()
+    await screen.findByText('New/full')
+    expect(mocks.fetchMemberProfile).toHaveBeenLastCalledWith('b1', {
+      token: 'tok',
+    })
+  })
+
+  it('forgets a not-found answer when the address changes', async () => {
+    mocks.auth.isAuthenticated = true
+    mocks.fetchMemberProfile
+      .mockRejectedValueOnce(notFound)
+      .mockResolvedValueOnce(profile('Found'))
+    const view = render(<MemberPage slug="a1" missing />)
+    await screen.findByRole('heading', { name: 'Page not found' })
+    view.rerender(<MemberPage slug="b1" />)
+    await screen.findByText('Found/full')
+    expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull()
+  })
+
   it('ignores answers after it went away', async () => {
     let resolve: (value: unknown) => void = () => {}
     let reject: (value: unknown) => void = () => {}

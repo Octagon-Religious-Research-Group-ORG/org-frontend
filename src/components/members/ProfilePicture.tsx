@@ -12,11 +12,14 @@ export function ProfilePicture({
   displayName,
   hasPicture,
   picturePublic,
+  version,
 }: {
   slug: string
   displayName: string
   hasPicture: boolean
   picturePublic: boolean
+  /** Changes when the picture does; a new one replaces the old on screen. */
+  version?: string
 }) {
   const auth = useOrgAuth()
   const [objectUrl, setObjectUrl] = useState<string>()
@@ -42,12 +45,12 @@ export function ProfilePicture({
       closed.abort()
       if (created) URL.revokeObjectURL(created)
     }
-  }, [restricted, auth, slug])
+  }, [restricted, auth, slug, version])
 
   const source = !hasPicture
     ? undefined
     : picturePublic
-      ? pictureUrl(slug)
+      ? pictureUrl(slug, version)
       : objectUrl
 
   return (

@@ -18,13 +18,18 @@ vi.mock('#/lib/members-api', async (original) => ({
 
 const revoke = vi.fn()
 
-function renderPicture(hasPicture: boolean, picturePublic: boolean) {
+function renderPicture(
+  hasPicture: boolean,
+  picturePublic: boolean,
+  version?: string,
+) {
   return render(
     <ProfilePicture
       slug="quiet-fern"
       displayName="Quiet Fern"
       hasPicture={hasPicture}
       picturePublic={picturePublic}
+      version={version}
     />,
   )
 }
@@ -52,6 +57,40 @@ describe('ProfilePicture', () => {
     expect(img.src).toMatch(/\/members\/profiles\/quiet-fern\/picture$/)
     expect(img.alt).toBe('Picture chosen by Quiet Fern')
     expect(mocks.fetchPictureObjectUrl).not.toHaveBeenCalled()
+  })
+
+  it('asks for a replaced public picture under a new version', () => {
+    const view = renderPicture(true, true, 'v1')
+    const first = screen.getByRole<HTMLImageElement>('img').src
+    expect(first).toMatch(/\/picture\?v=v1$/)
+    view.rerender(
+      <ProfilePicture
+        slug="quiet-fern"
+        displayName="Quiet Fern"
+        hasPicture
+        picturePublic
+        version="v2"
+      />,
+    )
+    expect(screen.getByRole<HTMLImageElement>('img').src).toMatch(/\?v=v2$/)
+  })
+
+  it('fetches a replaced restricted picture again', async () => {
+    const view = renderPicture(true, false, 'v1')
+    await screen.findByRole('img')
+    expect(mocks.fetchPictureObjectUrl).toHaveBeenCalledTimes(1)
+    view.rerender(
+      <ProfilePicture
+        slug="quiet-fern"
+        displayName="Quiet Fern"
+        hasPicture
+        picturePublic={false}
+        version="v2"
+      />,
+    )
+    await waitFor(() =>
+      expect(mocks.fetchPictureObjectUrl).toHaveBeenCalledTimes(2),
+    )
   })
 
   it('fetches a restricted picture with the token', async () => {
