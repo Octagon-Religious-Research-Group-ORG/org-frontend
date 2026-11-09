@@ -1,4 +1,8 @@
-import { createMiddleware, createStart } from '@tanstack/react-start'
+import {
+  createCsrfMiddleware,
+  createMiddleware,
+  createStart,
+} from '@tanstack/react-start'
 
 /**
  * Stops other sites framing this one (clickjacking). It lives here as well as
@@ -21,6 +25,14 @@ const frameProtection = createMiddleware().server(async ({ next }) => {
   return result
 })
 
+/**
+ * Declaring any request middleware replaces TanStack's default, which is the
+ * cross-site request protection for server functions, so it is restored here.
+ */
+const csrfProtection = createCsrfMiddleware({
+  filter: (ctx) => ctx.handlerType === 'serverFn',
+})
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [frameProtection],
+  requestMiddleware: [csrfProtection, frameProtection],
 }))

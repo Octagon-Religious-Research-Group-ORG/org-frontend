@@ -88,6 +88,13 @@ test.describe('public website', () => {
   })
 })
 
+test('server functions keep their cross-site request protection', async ({
+  request,
+}) => {
+  const response = await request.get('/_serverFn/nope')
+  expect(response.status()).toBe(403)
+})
+
 test('other sites cannot frame a server-rendered page', async ({ request }) => {
   const response = await request.get('/about')
   expect(response.headers()['x-frame-options']).toBe('DENY')
