@@ -90,6 +90,9 @@ const TOO_MANY_TRIES =
 /** The server's code for the per-account daily ration of address checks. */
 export const ADDRESS_CHECK_DAILY_LIMIT = 'ADDRESS_CHECK_DAILY_LIMIT'
 
+/** The server's code for the per-account daily ration of page changes. */
+export const MEMBER_WRITE_DAILY_LIMIT = 'MEMBER_WRITE_DAILY_LIMIT'
+
 const DAILY_CHECKS_USED =
   "You've used today's address checks, so we can't check this one ahead of time. You can still create your page: if the address is taken, we'll tell you when you submit, and you can pick another. Checks come back within 24 hours."
 
@@ -98,21 +101,24 @@ const DAILY_CHECKS_USED =
  * in words a member can act on instead of "Failed to fetch" or a status code.
  * A refusal the server words itself (for example stale terms) passes through.
  */
-async function memberRequest<T>(
+export async function memberRequest<T>(
   path: string,
   options: Parameters<typeof apiRequest>[1] = {},
 ): Promise<T> {
   try {
     return await apiRequest<T>(path, {
-      ...options,
       timeoutMs: MEMBERSHIP_TIMEOUT_MS,
+      ...options,
     })
   } catch (err) {
     if (!(err instanceof ApiError)) throw new ApiError(SERVER_UNREACHABLE, 0)
     if (err.status === 429) {
-      throw err.code === ADDRESS_CHECK_DAILY_LIMIT
-        ? new ApiError(DAILY_CHECKS_USED, 429, err.code)
-        : new ApiError(TOO_MANY_TRIES, 429)
+      if (err.code === ADDRESS_CHECK_DAILY_LIMIT) {
+        throw new ApiError(DAILY_CHECKS_USED, 429, err.code)
+      }
+      // The server's own words: this ration lasts a day, not a minute.
+      if (err.code === MEMBER_WRITE_DAILY_LIMIT) throw err
+      throw new ApiError(TOO_MANY_TRIES, 429)
     }
     if (err.status >= 500) throw new ApiError(SERVER_TROUBLE, err.status)
     throw err

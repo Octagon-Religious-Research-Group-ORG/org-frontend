@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ReferencePage } from '#/components/ReferencePage'
+import { CommunityPanels } from '#/components/members/CommunityPanels'
 import { MembersEntry } from '#/components/members/MembersEntry'
 import { loadPublishedPage } from '#/lib/content-api'
 
@@ -23,10 +24,14 @@ function CommunityRoute() {
   return (
     <ReferencePage
       page={{ ...content, title: 'Members Community' }}
-      // Not an access control: the server sends this content to everyone and
-      // the gate only hides it in the browser. Chunk 7 must not rely on it to
-      // protect anything; restricted content has to stay off this response.
-      wrapContent={(body) => <MembersEntry>{body}</MembersEntry>}
+      // Not an access control: this content goes to everyone and the gate only
+      // hides it. The directory inside asks the server, which decides.
+      wrapContent={(body) => (
+        <MembersEntry>
+          {body}
+          <CommunityPanels />
+        </MembersEntry>
+      )}
     />
   )
 }

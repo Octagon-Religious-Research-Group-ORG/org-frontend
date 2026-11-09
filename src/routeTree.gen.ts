@@ -9,95 +9,41 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResearchRouteImport } from './routes/research'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as OfferingsRouteImport } from './routes/offerings'
-import { Route as MembershipRouteImport } from './routes/membership'
-import { Route as LogoutRouteImport } from './routes/logout'
-import { Route as LegalRouteImport } from './routes/legal'
-import { Route as JoinRouteImport } from './routes/join'
-import { Route as InfrastructureRouteImport } from './routes/infrastructure'
-import { Route as GiftsContributionsRouteImport } from './routes/gifts-contributions'
-import { Route as FutureIdeasRouteImport } from './routes/future-ideas'
-import { Route as CommunityRouteImport } from './routes/community'
-import { Route as CallbackRouteImport } from './routes/callback'
-import { Route as BeliefsRouteImport } from './routes/beliefs'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
-import { Route as OfferingsCheckoutRouteImport } from './routes/offerings.checkout'
-import { Route as MembershipJoinRouteImport } from './routes/membership_.join'
-import { Route as Archive5RouteImport } from './routes/archive/5'
-import { Route as Archive4RouteImport } from './routes/archive/4'
-import { Route as Archive3RouteImport } from './routes/archive/3'
-import { Route as Archive2RouteImport } from './routes/archive/2'
-import { Route as Archive1RouteImport } from './routes/archive/1'
-import { Route as AdminWebsiteRouteImport } from './routes/admin.website'
+import { Route as SlugRouteImport } from './routes/$slug'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as BeliefsRouteImport } from './routes/beliefs'
+import { Route as CallbackRouteImport } from './routes/callback'
+import { Route as CommunityRouteImport } from './routes/community'
+import { Route as FutureIdeasRouteImport } from './routes/future-ideas'
+import { Route as GiftsContributionsRouteImport } from './routes/gifts-contributions'
+import { Route as InfrastructureRouteImport } from './routes/infrastructure'
+import { Route as JoinRouteImport } from './routes/join'
+import { Route as LegalRouteImport } from './routes/legal'
+import { Route as LogoutRouteImport } from './routes/logout'
+import { Route as MembershipRouteImport } from './routes/membership'
+import { Route as OfferingsRouteImport } from './routes/offerings'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ResearchRouteImport } from './routes/research'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as AdminWebsiteRouteImport } from './routes/admin.website'
+import { Route as Archive1RouteImport } from './routes/archive/1'
+import { Route as Archive2RouteImport } from './routes/archive/2'
+import { Route as Archive3RouteImport } from './routes/archive/3'
+import { Route as Archive4RouteImport } from './routes/archive/4'
+import { Route as Archive5RouteImport } from './routes/archive/5'
+import { Route as MembershipJoinRouteImport } from './routes/membership_.join'
+import { Route as OfferingsCheckoutRouteImport } from './routes/offerings.checkout'
+import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
 
-const ResearchRoute = ResearchRouteImport.update({
-  id: '/research',
-  path: '/research',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OfferingsRoute = OfferingsRouteImport.update({
-  id: '/offerings',
-  path: '/offerings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MembershipRoute = MembershipRouteImport.update({
-  id: '/membership',
-  path: '/membership',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogoutRoute = LogoutRouteImport.update({
-  id: '/logout',
-  path: '/logout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LegalRoute = LegalRouteImport.update({
-  id: '/legal',
-  path: '/legal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JoinRoute = JoinRouteImport.update({
-  id: '/join',
-  path: '/join',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InfrastructureRoute = InfrastructureRouteImport.update({
-  id: '/infrastructure',
-  path: '/infrastructure',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GiftsContributionsRoute = GiftsContributionsRouteImport.update({
-  id: '/gifts-contributions',
-  path: '/gifts-contributions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FutureIdeasRoute = FutureIdeasRouteImport.update({
-  id: '/future-ideas',
-  path: '/future-ideas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommunityRoute = CommunityRouteImport.update({
-  id: '/community',
-  path: '/community',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CallbackRoute = CallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BeliefsRoute = BeliefsRouteImport.update({
-  id: '/beliefs',
-  path: '/beliefs',
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -105,54 +51,69 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BeliefsRoute = BeliefsRouteImport.update({
+  id: '/beliefs',
+  path: '/beliefs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
-  id: '/orders/$orderId',
-  path: '/orders/$orderId',
+const CallbackRoute = CallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OfferingsCheckoutRoute = OfferingsCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => OfferingsRoute,
-} as any)
-const MembershipJoinRoute = MembershipJoinRouteImport.update({
-  id: '/membership_/join',
-  path: '/membership/join',
+const CommunityRoute = CommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Archive5Route = Archive5RouteImport.update({
-  id: '/archive/5',
-  path: '/archive/5',
+const FutureIdeasRoute = FutureIdeasRouteImport.update({
+  id: '/future-ideas',
+  path: '/future-ideas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Archive4Route = Archive4RouteImport.update({
-  id: '/archive/4',
-  path: '/archive/4',
+const GiftsContributionsRoute = GiftsContributionsRouteImport.update({
+  id: '/gifts-contributions',
+  path: '/gifts-contributions',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Archive3Route = Archive3RouteImport.update({
-  id: '/archive/3',
-  path: '/archive/3',
+const InfrastructureRoute = InfrastructureRouteImport.update({
+  id: '/infrastructure',
+  path: '/infrastructure',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Archive2Route = Archive2RouteImport.update({
-  id: '/archive/2',
-  path: '/archive/2',
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Archive1Route = Archive1RouteImport.update({
-  id: '/archive/1',
-  path: '/archive/1',
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminWebsiteRoute = AdminWebsiteRouteImport.update({
-  id: '/admin/website',
-  path: '/admin/website',
+const LogoutRoute = LogoutRouteImport.update({
+  id: '/logout',
+  path: '/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembershipRoute = MembershipRouteImport.update({
+  id: '/membership',
+  path: '/membership',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfferingsRoute = OfferingsRouteImport.update({
+  id: '/offerings',
+  path: '/offerings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResearchRoute = ResearchRouteImport.update({
+  id: '/research',
+  path: '/research',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
@@ -160,9 +121,55 @@ const AdminOrdersRoute = AdminOrdersRouteImport.update({
   path: '/admin/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminWebsiteRoute = AdminWebsiteRouteImport.update({
+  id: '/admin/website',
+  path: '/admin/website',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Archive1Route = Archive1RouteImport.update({
+  id: '/archive/1',
+  path: '/archive/1',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Archive2Route = Archive2RouteImport.update({
+  id: '/archive/2',
+  path: '/archive/2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Archive3Route = Archive3RouteImport.update({
+  id: '/archive/3',
+  path: '/archive/3',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Archive4Route = Archive4RouteImport.update({
+  id: '/archive/4',
+  path: '/archive/4',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Archive5Route = Archive5RouteImport.update({
+  id: '/archive/5',
+  path: '/archive/5',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembershipJoinRoute = MembershipJoinRouteImport.update({
+  id: '/membership_/join',
+  path: '/membership/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfferingsCheckoutRoute = OfferingsCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => OfferingsRoute,
+} as any)
+const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
+  id: '/orders/$orderId',
+  path: '/orders/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/beliefs': typeof BeliefsRoute
   '/callback': typeof CallbackRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/beliefs': typeof BeliefsRoute
   '/callback': typeof CallbackRoute
@@ -218,6 +226,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/beliefs': typeof BeliefsRoute
   '/callback': typeof CallbackRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$slug'
     | '/about'
     | '/beliefs'
     | '/callback'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$slug'
     | '/about'
     | '/beliefs'
     | '/callback'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/$slug'
     | '/about'
     | '/beliefs'
     | '/callback'
@@ -329,6 +341,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SlugRoute: typeof SlugRoute
   AboutRoute: typeof AboutRoute
   BeliefsRoute: typeof BeliefsRoute
   CallbackRoute: typeof CallbackRoute
@@ -356,95 +369,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/research': {
-      id: '/research'
-      path: '/research'
-      fullPath: '/research'
-      preLoaderRoute: typeof ResearchRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/offerings': {
-      id: '/offerings'
-      path: '/offerings'
-      fullPath: '/offerings'
-      preLoaderRoute: typeof OfferingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/membership': {
-      id: '/membership'
-      path: '/membership'
-      fullPath: '/membership'
-      preLoaderRoute: typeof MembershipRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logout': {
-      id: '/logout'
-      path: '/logout'
-      fullPath: '/logout'
-      preLoaderRoute: typeof LogoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/legal': {
-      id: '/legal'
-      path: '/legal'
-      fullPath: '/legal'
-      preLoaderRoute: typeof LegalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/join': {
-      id: '/join'
-      path: '/join'
-      fullPath: '/join'
-      preLoaderRoute: typeof JoinRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/infrastructure': {
-      id: '/infrastructure'
-      path: '/infrastructure'
-      fullPath: '/infrastructure'
-      preLoaderRoute: typeof InfrastructureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gifts-contributions': {
-      id: '/gifts-contributions'
-      path: '/gifts-contributions'
-      fullPath: '/gifts-contributions'
-      preLoaderRoute: typeof GiftsContributionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/future-ideas': {
-      id: '/future-ideas'
-      path: '/future-ideas'
-      fullPath: '/future-ideas'
-      preLoaderRoute: typeof FutureIdeasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/community': {
-      id: '/community'
-      path: '/community'
-      fullPath: '/community'
-      preLoaderRoute: typeof CommunityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/callback': {
-      id: '/callback'
-      path: '/callback'
-      fullPath: '/callback'
-      preLoaderRoute: typeof CallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/beliefs': {
-      id: '/beliefs'
-      path: '/beliefs'
-      fullPath: '/beliefs'
-      preLoaderRoute: typeof BeliefsRouteImport
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -454,67 +390,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/beliefs': {
+      id: '/beliefs'
+      path: '/beliefs'
+      fullPath: '/beliefs'
+      preLoaderRoute: typeof BeliefsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/orders/$orderId': {
-      id: '/orders/$orderId'
-      path: '/orders/$orderId'
-      fullPath: '/orders/$orderId'
-      preLoaderRoute: typeof OrdersOrderIdRouteImport
+    '/callback': {
+      id: '/callback'
+      path: '/callback'
+      fullPath: '/callback'
+      preLoaderRoute: typeof CallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/offerings/checkout': {
-      id: '/offerings/checkout'
-      path: '/checkout'
-      fullPath: '/offerings/checkout'
-      preLoaderRoute: typeof OfferingsCheckoutRouteImport
-      parentRoute: typeof OfferingsRoute
-    }
-    '/membership_/join': {
-      id: '/membership_/join'
-      path: '/membership/join'
-      fullPath: '/membership/join'
-      preLoaderRoute: typeof MembershipJoinRouteImport
+    '/community': {
+      id: '/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof CommunityRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/archive/5': {
-      id: '/archive/5'
-      path: '/archive/5'
-      fullPath: '/archive/5'
-      preLoaderRoute: typeof Archive5RouteImport
+    '/future-ideas': {
+      id: '/future-ideas'
+      path: '/future-ideas'
+      fullPath: '/future-ideas'
+      preLoaderRoute: typeof FutureIdeasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/archive/4': {
-      id: '/archive/4'
-      path: '/archive/4'
-      fullPath: '/archive/4'
-      preLoaderRoute: typeof Archive4RouteImport
+    '/gifts-contributions': {
+      id: '/gifts-contributions'
+      path: '/gifts-contributions'
+      fullPath: '/gifts-contributions'
+      preLoaderRoute: typeof GiftsContributionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/archive/3': {
-      id: '/archive/3'
-      path: '/archive/3'
-      fullPath: '/archive/3'
-      preLoaderRoute: typeof Archive3RouteImport
+    '/infrastructure': {
+      id: '/infrastructure'
+      path: '/infrastructure'
+      fullPath: '/infrastructure'
+      preLoaderRoute: typeof InfrastructureRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/archive/2': {
-      id: '/archive/2'
-      path: '/archive/2'
-      fullPath: '/archive/2'
-      preLoaderRoute: typeof Archive2RouteImport
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/archive/1': {
-      id: '/archive/1'
-      path: '/archive/1'
-      fullPath: '/archive/1'
-      preLoaderRoute: typeof Archive1RouteImport
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logout': {
+      id: '/logout'
+      path: '/logout'
+      fullPath: '/logout'
+      preLoaderRoute: typeof LogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/membership': {
+      id: '/membership'
+      path: '/membership'
+      fullPath: '/membership'
+      preLoaderRoute: typeof MembershipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offerings': {
+      id: '/offerings'
+      path: '/offerings'
+      fullPath: '/offerings'
+      preLoaderRoute: typeof OfferingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research': {
+      id: '/research'
+      path: '/research'
+      fullPath: '/research'
+      preLoaderRoute: typeof ResearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/admin/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/website': {
@@ -524,11 +495,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminWebsiteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/orders': {
-      id: '/admin/orders'
-      path: '/admin/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AdminOrdersRouteImport
+    '/archive/1': {
+      id: '/archive/1'
+      path: '/archive/1'
+      fullPath: '/archive/1'
+      preLoaderRoute: typeof Archive1RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive/2': {
+      id: '/archive/2'
+      path: '/archive/2'
+      fullPath: '/archive/2'
+      preLoaderRoute: typeof Archive2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive/3': {
+      id: '/archive/3'
+      path: '/archive/3'
+      fullPath: '/archive/3'
+      preLoaderRoute: typeof Archive3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive/4': {
+      id: '/archive/4'
+      path: '/archive/4'
+      fullPath: '/archive/4'
+      preLoaderRoute: typeof Archive4RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive/5': {
+      id: '/archive/5'
+      path: '/archive/5'
+      fullPath: '/archive/5'
+      preLoaderRoute: typeof Archive5RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/membership_/join': {
+      id: '/membership_/join'
+      path: '/membership/join'
+      fullPath: '/membership/join'
+      preLoaderRoute: typeof MembershipJoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offerings/checkout': {
+      id: '/offerings/checkout'
+      path: '/checkout'
+      fullPath: '/offerings/checkout'
+      preLoaderRoute: typeof OfferingsCheckoutRouteImport
+      parentRoute: typeof OfferingsRoute
+    }
+    '/orders/$orderId': {
+      id: '/orders/$orderId'
+      path: '/orders/$orderId'
+      fullPath: '/orders/$orderId'
+      preLoaderRoute: typeof OrdersOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -548,6 +568,7 @@ const OfferingsRouteWithChildren = OfferingsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SlugRoute: SlugRoute,
   AboutRoute: AboutRoute,
   BeliefsRoute: BeliefsRoute,
   CallbackRoute: CallbackRoute,
@@ -577,10 +598,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

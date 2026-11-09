@@ -13,12 +13,19 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
   },
-  webServer: {
-    command: 'npm run build && npm run preview:test',
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'node e2e/fake-members-api.mjs',
+      url: 'http://127.0.0.1:3001/api/v1/members/chats',
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: 'npm run build && npm run preview:test',
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
   projects: [
     {
       name: 'chromium',

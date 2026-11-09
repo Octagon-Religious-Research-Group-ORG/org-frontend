@@ -2,7 +2,21 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const FILES = ['MembersEntry.tsx', 'MembershipJoinForm.tsx', 'ContactRows.tsx']
+const FILES = [
+  'MembersEntry.tsx',
+  'MembershipJoinForm.tsx',
+  'ContactRows.tsx',
+  'BeliefTabs.tsx',
+  'ChatsPanel.tsx',
+  'GetStartedChecklist.tsx',
+  'MemberPage.tsx',
+  'MemberText.tsx',
+  'MembersDirectory.tsx',
+  'OwnerTools.tsx',
+  'Paragraphs.tsx',
+  'ProfileView.tsx',
+  'ReferenceLinks.tsx',
+]
 /** The lighter of the two dark surfaces these components sit on. */
 const SURFACE = '#0f1219'
 /** Dark text on the filled light buttons, not on the dark surface. */
@@ -31,5 +45,14 @@ describe('text colours in the members components', () => {
     for (const colour of new Set(colours)) {
       expect([colour, contrast(colour, SURFACE) >= 4.5]).toEqual([colour, true])
     }
+  })
+
+  it('reach 4.5:1 for dark text on the filled teal buttons', () => {
+    expect(contrast(ON_LIGHT_BUTTON, '#78aea2')).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('reach 4.5:1 for body text on the darkest panel and field colours', () => {
+    expect(contrast('#ece2c4', '#0b0d12')).toBeGreaterThanOrEqual(4.5)
+    expect(contrast('#d8ceb0', '#0b0d12')).toBeGreaterThanOrEqual(4.5)
   })
 })

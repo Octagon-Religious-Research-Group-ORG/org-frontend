@@ -69,6 +69,20 @@ body {
   }
 }
 
+/* Members Community: the octagon cut-out of the chosen design */
+.octagon {
+  clip-path: polygon(
+    29% 0,
+    71% 0,
+    100% 29%,
+    100% 71%,
+    71% 100%,
+    29% 100%,
+    0 71%,
+    0 29%
+  );
+}
+
 /* Search "Perforated Index" — minimal additions for blotter ink + match emphasis */
 mark {
   background-color: #d4a24a;

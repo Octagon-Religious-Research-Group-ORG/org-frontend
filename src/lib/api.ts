@@ -132,7 +132,7 @@ export interface DonationConfig {
   verification: 'manual'
 }
 
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1'
 
 export class ApiError extends Error {
@@ -162,7 +162,10 @@ export async function apiRequest<T>(
     ...init,
     ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
     headers: {
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      // A file upload sets its own type, with the boundary it needs.
+      ...(init.body && !(init.body instanceof FormData)
+        ? { 'Content-Type': 'application/json' }
+        : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(guestToken ? { 'X-Cart-Token': guestToken } : {}),
       ...headers,

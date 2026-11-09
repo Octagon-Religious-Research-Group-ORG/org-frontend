@@ -17,6 +17,14 @@ describe('shop API formatting', () => {
 })
 
 describe('apiRequest', () => {
+  it('lets a file upload set its own content type', async () => {
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    await apiRequest('/x', { method: 'PUT', body: new FormData() })
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(init.headers).not.toHaveProperty('Content-Type')
+  })
+
   it('passes on the code a refusal carries', async () => {
     vi.stubGlobal(
       'fetch',
