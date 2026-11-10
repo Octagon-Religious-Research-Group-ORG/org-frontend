@@ -43,7 +43,8 @@ export function BioEditor({
       fail(BIO_TOO_LONG)
       return
     }
-    const saved = await run((token) => editBio(token, text, baseSeq))
+    // The cleaned text, as for a belief: what the server stores.
+    const saved = await run((token) => editBio(token, stored, baseSeq))
     if (saved) onDone(saved.changed)
   }
 

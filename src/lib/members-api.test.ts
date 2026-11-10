@@ -219,5 +219,8 @@ describe('normaliseMemberText (the server cleaning, on the client)', () => {
     ['a lone surrogate', 'a\ud800b', 'a\ufffdb'],
   ])('%s', (_name, raw, stored) => {
     expect(normaliseMemberText(raw)).toBe(stored)
+    // Cleaning what is already clean changes nothing: the editors send the
+    // cleaned text, and the server cleans it again.
+    expect(normaliseMemberText(stored)).toBe(stored)
   })
 })

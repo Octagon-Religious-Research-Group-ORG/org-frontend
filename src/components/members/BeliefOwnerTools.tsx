@@ -82,7 +82,9 @@ export function BeliefOwnerTools({
     let textSaved = false
     if (textChanged) {
       const written = await run(
-        (token) => editBeliefText(token, tab.tabId, text, revision.text),
+        // The cleaned text: what the server stores, and far shorter than the
+        // raw cap its request check applies before cleaning.
+        (token) => editBeliefText(token, tab.tabId, stored, revision.text),
         (reason) => `Nothing was saved. ${reason}`,
       )
       if (!written) return

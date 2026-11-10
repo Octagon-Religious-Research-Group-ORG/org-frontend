@@ -240,6 +240,52 @@ describe('editing a belief', () => {
       expect(mocks.editBeliefText).not.toHaveBeenCalled()
     })
 
+    it('neither sends nor refuses a long one that differs only in spaces and blank lines', async () => {
+      const half = 'z'.repeat(15_000)
+      render(
+        <BeliefOwnerTools
+          tab={{
+            ...tab,
+            paragraphs: [
+              { blockId: 'b1', kind: 'paragraph', label: '', text: half },
+              { blockId: 'b2', kind: 'paragraph', label: '', text: half },
+            ],
+          }}
+          revision={{ text: 1, title: 0 }}
+          isFirst={false}
+          isLast={false}
+          isOnly={false}
+          onChanged={onChanged}
+        />,
+      )
+      fireEvent.change(openEditor().text, {
+        target: { value: `  ${half}  \n\n\n\n\n${half}\n\n  ` },
+      })
+      fireEvent.click(button('Save belief'))
+      expect((await screen.findByRole('status')).textContent).toMatch(
+        /Nothing changed/,
+      )
+      expect(screen.queryByRole('alert')).toBeNull()
+      expect(mocks.editBeliefText).not.toHaveBeenCalled()
+    })
+
+    it('sends the cleaned text, so a raw text over the request cap still saves', async () => {
+      // 70,000 typed characters, 60,010 of them spaces and blank lines the
+      // server would remove: the request carries the 9,990 that remain.
+      const typed = `${'a'.repeat(9_990)}${' \n\n'.repeat(20_000)}`
+      expect(typed.length).toBeGreaterThan(60_000)
+      setup()
+      fireEvent.change(openEditor().text, { target: { value: typed } })
+      fireEvent.click(button('Save belief'))
+      await screen.findByRole('status')
+      expect(mocks.editBeliefText).toHaveBeenCalledWith(
+        'tok',
+        'tab_1',
+        'a'.repeat(9_990),
+        5,
+      )
+    })
+
     it('saves an unchanged long one as no change, with no error', async () => {
       render(
         <BeliefOwnerTools

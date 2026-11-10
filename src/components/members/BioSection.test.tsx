@@ -203,6 +203,23 @@ describe('BioSection', () => {
     expect(mocks.editBio).not.toHaveBeenCalled()
   })
 
+  it('sends the cleaned bio, so a raw text over the request cap still saves', async () => {
+    const typed = `Mine.${'\n\n \t'.repeat(20_000)}`
+    expect(typed.length).toBeGreaterThan(60_000)
+    render(
+      <BioSection
+        slug="quiet-fern"
+        bio={bio}
+        owner={{ baseSeq: 3, onChanged }}
+      />,
+    )
+    fireEvent.click(button('Edit bio'))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: typed } })
+    fireEvent.click(button('Save bio'))
+    await waitFor(() => expect(mocks.editBio).toHaveBeenCalled())
+    expect(mocks.editBio).toHaveBeenCalledWith('tok', 'Mine.', 3)
+  })
+
   it('sends nothing when nothing was typed', async () => {
     render(
       <BioSection
