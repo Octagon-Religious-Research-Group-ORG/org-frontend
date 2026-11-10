@@ -25,6 +25,7 @@ import {
   saveJoinDraft,
 } from '#/lib/membership-draft'
 import { ContactRows, field } from './ContactRows'
+import { ImportedPageNote } from './ImportedPageNote'
 import { SLOW_SERVER_MESSAGE, useSlowNotice } from './use-slow-notice'
 
 const MAX_BELIEFS = 20
@@ -417,6 +418,7 @@ function JoinForm({ nickname }: { nickname: boolean }) {
           </Link>{' '}
           for the kinds of membership and what each is for.
         </p>
+        <ImportedPageNote />
       </header>
 
       <Section title="How you're known">

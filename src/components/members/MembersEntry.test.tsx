@@ -174,6 +174,19 @@ describe('MembersEntry', () => {
       const link = await screen.findByRole('link', { name: /Create my page/ })
       expect(link.getAttribute('href')).toBe('/membership/join')
       expect(mocks.fetchMyMembership).toHaveBeenCalledWith('tok')
+      expect(screen.getByRole('note').textContent).toMatch(
+        /old Pages profiles.*don't create a new one.*claim/,
+      )
+    })
+
+    it('does not show the imported-page note to a member awaiting approval', async () => {
+      mocks.fetchMyMembership.mockResolvedValue({
+        status: 'pending',
+        profile: { displayName: 'Quiet Fern' },
+      })
+      renderEntry()
+      await screen.findByText(/Thank you, Quiet Fern/)
+      expect(screen.queryByRole('note')).toBeNull()
     })
 
     describe.each([

@@ -10,6 +10,7 @@ import {
   setGuest,
 } from '#/lib/membership-api'
 import type { MembershipSummary } from '#/lib/membership-api'
+import { ImportedPageNote } from './ImportedPageNote'
 import { SLOW_SERVER_MESSAGE, useSlowNotice } from './use-slow-notice'
 
 export const JOIN_PATH = '/membership/join'
@@ -229,6 +230,7 @@ export function MembersEntry({
             Your account is ready. Add your bio and at least one belief to
             create your member page.
           </p>
+          <ImportedPageNote />
           <Link
             to={JOIN_PATH}
             className={`${button} mt-6 max-w-xs bg-[#78aea2] text-[#0b0d12]`}
