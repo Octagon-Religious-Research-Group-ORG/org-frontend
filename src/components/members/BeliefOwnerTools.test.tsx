@@ -217,6 +217,19 @@ describe('editing a belief', () => {
       expect(text.getAttribute('aria-describedby')).toBe('count-tab_1')
     })
 
+    it('counts and judges the cleaned text, as the server will store it', async () => {
+      // 20,010 typed characters, 10 of them control characters the server
+      // removes: 20,000 stored, which one save holds.
+      const typed = `${'y'.repeat(MAX_SAVED_TEXT)}${String.fromCharCode(7).repeat(10)}`
+      setup()
+      fireEvent.change(openEditor().text, { target: { value: typed } })
+      expect(screen.getByText('20,000 / 20,000 characters')).toBeTruthy()
+      fireEvent.click(button('Save belief'))
+      await screen.findByRole('status')
+      expect(mocks.editBeliefText).toHaveBeenCalled()
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
     it('explains the limit before sending a changed one', async () => {
       setup()
       fireEvent.change(openEditor().text, { target: { value: long } })

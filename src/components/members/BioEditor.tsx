@@ -5,6 +5,7 @@ import {
   MAX_SAVED_TEXT,
   editBio,
   editorText,
+  normaliseMemberText,
 } from '#/lib/members-api'
 import type { ParagraphView } from '#/lib/members-api'
 import { CharacterCount } from './CharacterCount'
@@ -33,11 +34,12 @@ export function BioEditor({
   const save = async (event: FormEvent) => {
     event.preventDefault()
     // Nothing typed: nothing sent, so a long imported bio never errors.
-    if (text === editorText(bio)) {
+    const stored = normaliseMemberText(text)
+    if (stored === normaliseMemberText(editorText(bio))) {
       onDone(false)
       return
     }
-    if (text.length > MAX_SAVED_TEXT) {
+    if (stored.length > MAX_SAVED_TEXT) {
       fail(BIO_TOO_LONG)
       return
     }

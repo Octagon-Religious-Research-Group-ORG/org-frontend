@@ -142,7 +142,7 @@ describe('BioSection', () => {
     expect(screen.queryByRole('textbox')).toBeNull()
   })
 
-  it('closes quietly when nothing changed', async () => {
+  it('closes quietly when the server finds the text the same', async () => {
     mocks.editBio.mockResolvedValue({ changed: false, seq: 3 })
     render(
       <BioSection
@@ -153,7 +153,7 @@ describe('BioSection', () => {
     )
     fireEvent.click(button('Edit bio'))
     fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'First.\n\n\nSecond.' },
+      target: { value: 'First!\n\nSecond.' },
     })
     fireEvent.click(button('Save bio'))
     await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull())
@@ -182,6 +182,25 @@ describe('BioSection', () => {
       /another window/,
     )
     expect(screen.getByRole('textbox')).toBeTruthy()
+  })
+
+  it('sends nothing when the text reads the same once cleaned, as the server would clean it', async () => {
+    render(
+      <BioSection
+        slug="quiet-fern"
+        bio={bio}
+        owner={{ baseSeq: 3, onChanged }}
+      />,
+    )
+    fireEvent.click(button('Edit bio'))
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: ' First.\u202e\n\n\n\nSecond.  ' },
+    })
+    // Counted after cleaning: the same 15 characters as the stored bio.
+    expect(screen.getByText('15 / 20,000 characters')).toBeTruthy()
+    fireEvent.click(button('Save bio'))
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull())
+    expect(mocks.editBio).not.toHaveBeenCalled()
   })
 
   it('sends nothing when nothing was typed', async () => {

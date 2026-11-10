@@ -78,6 +78,33 @@ export interface HistoryEntry {
   partHashes?: Array<string>
 }
 
+/** Lone UTF-16 surrogates, which the server stores as U+FFFD. */
+const LONE_SURROGATE = /\p{Cs}/gu
+const STRIPPED_CONTROLS =
+  // eslint-disable-next-line no-control-regex -- matching them is the point
+  /[\u0000-\u0008\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g
+const ODD_LINE_BREAKS = /[\v\f\u2028\u2029]/g
+const INVISIBLE = /[\p{C}\p{Z}\p{M}\p{Default_Ignorable_Code_Point}\u2800]/gu
+
+/**
+ * Member text as the server stores it (kept in step with the backend's
+ * `normaliseFieldText` and `member-text.ts`): lone surrogates become U+FFFD,
+ * control characters and bidirectional overrides are removed, paragraphs are
+ * split on blank lines, trimmed, emptied ones dropped, and joined by exactly
+ * one blank line. The editor counts and compares this, so its count and its
+ * "nothing changed" agree with the server's.
+ */
+export function normaliseMemberText(raw: string) {
+  return raw
+    .replace(LONE_SURROGATE, '\uFFFD')
+    .replace(STRIPPED_CONTROLS, '')
+    .replace(ODD_LINE_BREAKS, '\n')
+    .split(/\r?\n\s*\r?\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph.replace(INVISIBLE, '') !== '')
+    .join('\n\n')
+}
+
 /** Most characters one saved version holds (the server's limit). */
 export const MAX_SAVED_TEXT = 20_000
 

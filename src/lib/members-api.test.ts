@@ -12,6 +12,7 @@ import {
   editorText,
   fetchHistory,
   fetchMemberChats,
+  normaliseMemberText,
   fetchMemberDirectory,
   fetchMemberProfile,
   fetchPictureObjectUrl,
@@ -205,5 +206,18 @@ describe('editing and history', () => {
       /\/members\/profiles\/quiet-fern\/tabs\/tab%201\/history\?page=3&field=title$/,
     )
     expect(call(1).headers.Authorization).toBe('Bearer tok')
+  })
+})
+
+describe('normaliseMemberText (the server cleaning, on the client)', () => {
+  it.each([
+    ['blank-line runs and edge spaces', '  a\r\n\n\n\n b \n', 'a\n\nb'],
+    ['control characters', 'a\u0007b\u0000', 'ab'],
+    ['bidirectional overrides', 'a\u202eb\u2066c', 'abc'],
+    ['odd line breaks as line breaks', 'a\u000b\u000cb', 'a\n\nb'],
+    ['a paragraph with nothing to read', 'a\n\n\u200b \u2800\n\nb', 'a\n\nb'],
+    ['a lone surrogate', 'a\ud800b', 'a\ufffdb'],
+  ])('%s', (_name, raw, stored) => {
+    expect(normaliseMemberText(raw)).toBe(stored)
   })
 })

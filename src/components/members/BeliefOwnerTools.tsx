@@ -7,6 +7,7 @@ import {
   editBeliefTitle,
   editorText,
   moveBelief,
+  normaliseMemberText,
   removeBelief,
 } from '#/lib/members-api'
 import type { BeliefTab } from '#/lib/members-api'
@@ -70,8 +71,11 @@ export function BeliefOwnerTools({
   const save = async (event: FormEvent) => {
     event.preventDefault()
     setNotice(undefined)
-    const textChanged = text !== editorText(tab.paragraphs)
-    if (textChanged && text.length > MAX_SAVED_TEXT) {
+    // Compared and counted as the server will store it.
+    const stored = normaliseMemberText(text)
+    const textChanged =
+      stored !== normaliseMemberText(editorText(tab.paragraphs))
+    if (textChanged && stored.length > MAX_SAVED_TEXT) {
       fail(BELIEF_TOO_LONG)
       return
     }
