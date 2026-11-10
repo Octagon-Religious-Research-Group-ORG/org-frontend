@@ -6,13 +6,20 @@ import {
   SERVER_RENDER_TIMEOUT_MS,
   addBeliefTab,
   changeVisibility,
+  editBeliefText,
+  editBeliefTitle,
+  editBio,
+  editorText,
+  fetchHistory,
   fetchMemberChats,
   fetchMemberDirectory,
   fetchMemberProfile,
   fetchPictureObjectUrl,
   isMemberSlug,
   loadMemberPage,
+  moveBelief,
   pictureUrl,
+  removeBelief,
   uploadProfilePicture,
 } from './members-api'
 
@@ -142,5 +149,61 @@ describe('owner tools', () => {
     expect(call().init.body).toBeInstanceOf(FormData)
     expect(call().headers['Content-Type']).toBeUndefined()
     expect((call().init.body as FormData).get('picture')).toBe(picture)
+  })
+})
+
+describe('editing and history', () => {
+  it('starts an editor from the paragraphs, outline labels in front', () => {
+    expect(
+      editorText([
+        { blockId: 'a', kind: 'outline-item', label: 'I.', text: 'Sky.' },
+        { blockId: 'b', kind: 'paragraph', label: '', text: 'Sea.' },
+      ]),
+    ).toBe('I. Sky.\n\nSea.')
+  })
+
+  it('sends each edit with the version it started from', async () => {
+    await editBio('tok', 'Bio', 3)
+    expect(call(0).url).toMatch(/\/me\/member-page\/bio$/)
+    expect(call(0).init.method).toBe('PUT')
+    expect(call(0).init.body).toBe(JSON.stringify({ text: 'Bio', baseSeq: 3 }))
+    expect(call(0).headers.Authorization).toBe('Bearer tok')
+
+    await editBeliefText('tok', 'tab/1', 'Text', 4)
+    expect(call(1).url).toMatch(/\/me\/member-page\/tabs\/tab%2F1\/text$/)
+    expect(call(1).init.body).toBe(JSON.stringify({ text: 'Text', baseSeq: 4 }))
+
+    await editBeliefTitle('tok', 'tab_1', 'Title', 0)
+    expect(call(2).url).toMatch(/\/tabs\/tab_1\/title$/)
+    expect(call(2).init.body).toBe(
+      JSON.stringify({ title: 'Title', baseSeq: 0 }),
+    )
+  })
+
+  it('moves with PATCH and removes with DELETE', async () => {
+    await moveBelief('tok', 'tab_1', 'down')
+    expect(call(0).url).toMatch(/\/tabs\/tab_1\/position$/)
+    expect(call(0).init.method).toBe('PATCH')
+    expect(call(0).init.body).toBe(JSON.stringify({ direction: 'down' }))
+    await removeBelief('tok', 'tab_1')
+    expect(call(1).url).toMatch(/\/me\/member-page\/tabs\/tab_1$/)
+    expect(call(1).init.method).toBe('DELETE')
+  })
+
+  it('reads a bio or a belief history, a page at a time', async () => {
+    await fetchHistory('Quiet-Fern', { kind: 'bio' })
+    expect(call(0).url).toMatch(
+      /\/members\/profiles\/quiet-fern\/bio\/history\?page=1$/,
+    )
+    expect(call(0).headers.Authorization).toBeUndefined()
+    await fetchHistory(
+      'quiet-fern',
+      { kind: 'tab', tabId: 'tab 1', field: 'title' },
+      { page: 3, token: 'tok' },
+    )
+    expect(call(1).url).toMatch(
+      /\/members\/profiles\/quiet-fern\/tabs\/tab%201\/history\?page=3&field=title$/,
+    )
+    expect(call(1).headers.Authorization).toBe('Bearer tok')
   })
 })

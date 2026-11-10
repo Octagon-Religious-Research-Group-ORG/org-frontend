@@ -2,10 +2,12 @@ import { Link } from '@tanstack/react-router'
 import type { MemberProfile } from '#/lib/members-api'
 import { CONTACT_METHODS } from '#/lib/membership-api'
 import { BeliefTabs } from './BeliefTabs'
+import { BioSection } from './BioSection'
 import { GetStartedChecklist } from './GetStartedChecklist'
 import { OwnerTools } from './OwnerTools'
 import { Paragraphs } from './Paragraphs'
 import { ProfilePicture } from './ProfilePicture'
+import { RemovedBeliefs } from './RemovedBeliefs'
 
 function methodLabel(method: string) {
   return CONTACT_METHODS.find((entry) => entry.value === method)?.label
@@ -79,11 +81,15 @@ export function ProfileView({
         />
       )}
 
-      {profile.bio.length > 0 && (
-        <section aria-label="About" className="mt-10 max-w-3xl">
-          <Paragraphs paragraphs={profile.bio} />
-        </section>
-      )}
+      <BioSection
+        slug={profile.slug}
+        bio={profile.bio}
+        owner={
+          profile.isOwner && profile.revisions
+            ? { baseSeq: profile.revisions.bio, onChanged }
+            : undefined
+        }
+      />
 
       {profile.contacts.length > 0 && (
         <section aria-label="Contact" className="mt-8">
@@ -105,7 +111,19 @@ export function ProfileView({
         </section>
       )}
 
-      <BeliefTabs tabs={profile.tabs} />
+      <BeliefTabs
+        slug={profile.slug}
+        tabs={profile.tabs}
+        owner={
+          profile.isOwner && profile.revisions
+            ? { revisions: profile.revisions, onChanged }
+            : undefined
+        }
+      />
+
+      {profile.manage?.removedTabs && profile.manage.removedTabs.length > 0 && (
+        <RemovedBeliefs slug={profile.slug} tabs={profile.manage.removedTabs} />
+      )}
 
       {profile.extras.map((extra) => (
         <section key={extra.section} className="mt-12 max-w-3xl">

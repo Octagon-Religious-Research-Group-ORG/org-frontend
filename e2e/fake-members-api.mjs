@@ -52,6 +52,46 @@ const PROFILES = {
   },
 }
 
+// Histories as the server sends them: newest first, short hash, no author.
+const HISTORY = {
+  bio: {
+    page: 1,
+    hasMore: false,
+    entries: [
+      {
+        seq: 1,
+        savedAt: '2026-10-11T08:00:00.000Z',
+        text: 'A synthetic public biography.',
+        hash: '0123456789ab',
+        source: 'imported',
+        wholeText: true,
+      },
+    ],
+  },
+  'tabs/t1': {
+    page: 1,
+    hasMore: false,
+    entries: [
+      {
+        seq: 2,
+        savedAt: '2026-11-01T12:30:00.000Z',
+        text: 'First synthetic belief.',
+        hash: 'abcdef012345',
+        source: 'member',
+        wholeText: true,
+      },
+      {
+        seq: 1,
+        savedAt: '2026-10-11T08:00:00.000Z',
+        text: 'An older synthetic wording.',
+        hash: 'fedcba987654',
+        source: 'imported',
+        wholeText: true,
+      },
+    ],
+  },
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
@@ -72,6 +112,13 @@ createServer((request, response) => {
     return
   }
   const url = new URL(request.url, 'http://localhost')
+  const history = url.pathname.match(
+    /^\/api\/v1\/members\/profiles\/open-example\/(bio|tabs\/t1)\/history$/,
+  )
+  if (history) {
+    send(200, HISTORY[history[1]])
+    return
+  }
   const profile = url.pathname.match(/^\/api\/v1\/members\/profiles\/([^/]+)$/)
   if (profile) {
     const found = PROFILES[profile[1]]

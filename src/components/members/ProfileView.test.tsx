@@ -172,4 +172,67 @@ describe('ProfileView', () => {
     )
     expect(screen.getByText(/Waiting for an admin/)).toBeTruthy()
   })
+
+  it('gives the owner editing on their bio and beliefs, from the versions the page showed', () => {
+    view(
+      full({
+        isOwner: true,
+        revisions: { bio: 2, tabs: { t1: { text: 3, title: 0 } } },
+        manage: { visibility: 'public', reviewStatus: 'approved' },
+      }),
+    )
+    expect(screen.getByRole('button', { name: 'Edit bio' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Edit belief' })).toBeTruthy()
+  })
+
+  it('gives no editing to a reader, an admin, or an owner whose server sent no versions', () => {
+    for (const profile of [
+      full(),
+      full({
+        manage: { visibility: 'public', reviewStatus: 'approved' },
+        revisions: { bio: 2, tabs: {} },
+      }),
+      full({
+        isOwner: true,
+        manage: { visibility: 'public', reviewStatus: 'approved' },
+      }),
+    ]) {
+      view(profile)
+      expect(screen.queryByRole('button', { name: 'Edit bio' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Edit belief' })).toBeNull()
+      expect(screen.getByRole('button', { name: 'Bio history' })).toBeTruthy()
+      cleanup()
+    }
+  })
+
+  it('lists removed beliefs only when the server sends some', () => {
+    view(
+      full({
+        manage: {
+          visibility: 'public',
+          reviewStatus: 'approved',
+          removedTabs: [
+            {
+              tabId: 'tg',
+              title: 'Gone belief',
+              removedAt: '2026-11-02T09:15:00.000Z',
+            },
+          ],
+        },
+      }),
+    )
+    expect(screen.getByRole('region', { name: 'Removed beliefs' })).toBeTruthy()
+    expect(screen.getByText('Gone belief')).toBeTruthy()
+    cleanup()
+    view(
+      full({
+        manage: {
+          visibility: 'public',
+          reviewStatus: 'approved',
+          removedTabs: [],
+        },
+      }),
+    )
+    expect(screen.queryByRole('region', { name: 'Removed beliefs' })).toBeNull()
+  })
 })

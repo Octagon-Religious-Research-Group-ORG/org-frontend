@@ -67,6 +67,43 @@ test.describe('member pages, server rendered for a logged-out visitor', () => {
     expect(overflow).toBeLessThanOrEqual(0)
   })
 
+  test('a guest reads a belief’s history and the bio history, and gets no editing', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/open-example')
+    await expect(page.getByText('First synthetic belief.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Edit belief' })).toHaveCount(
+      0,
+    )
+    await expect(page.getByRole('button', { name: 'Edit bio' })).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'History', exact: true }).click()
+    const belief = page.getByRole('region', { name: /History of “First tab”/ })
+    await expect(belief.getByText('An older synthetic wording.')).toBeVisible()
+    await expect(
+      belief.getByText(
+        'Imported from Apple Pages; originally written before Oct 11, 2026.',
+      ),
+    ).toBeVisible()
+    await expect(belief.getByText('abcdef012345')).toBeVisible()
+    await expect(belief.getByText('Nov 1, 2026, 12:30 PM UTC')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Bio history' }).click()
+    const bio = page.getByRole('region', { name: 'History of the bio' })
+    await expect(bio.getByText('0123456789ab')).toBeVisible()
+
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(0)
+
+    await belief.getByRole('button', { name: 'Close history' }).click()
+    await expect(belief).toHaveCount(0)
+  })
+
   test('the community page lists members after a guest enters', async ({
     page,
   }) => {

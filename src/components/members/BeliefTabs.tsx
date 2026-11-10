@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { TabPerforations } from '#/components/BlotterPerforations'
-import type { BeliefTab } from '#/lib/members-api'
+import type { BeliefTab, Revisions } from '#/lib/members-api'
+import { BeliefOwnerTools } from './BeliefOwnerTools'
+import { buttonStyle } from './editor-styles'
+import { HistoryPanel } from './HistoryPanel'
 import { Paragraphs } from './Paragraphs'
 
 const REVIEW_NOTE = 'Imported, please review'
@@ -19,8 +22,21 @@ function groupTabs(tabs: Array<BeliefTab>) {
  * categories where a tab has one. Every belief's text is in the page from the
  * start, so a server render or a reader without scripts still has it.
  */
-export function BeliefTabs({ tabs }: { tabs: Array<BeliefTab> }) {
+export function BeliefTabs({
+  slug,
+  tabs,
+  owner,
+}: {
+  slug: string
+  tabs: Array<BeliefTab>
+  /** Only on the owner's own page: what each edit starts from. */
+  owner?: { revisions: Revisions; onChanged: () => void }
+}) {
   const [open, setOpen] = useState(tabs.at(0)?.tabId)
+  const [history, setHistory] = useState<{
+    tabId: string
+    field: 'text' | 'title'
+  }>()
 
   if (tabs.length === 0) return null
 
@@ -66,7 +82,7 @@ export function BeliefTabs({ tabs }: { tabs: Array<BeliefTab> }) {
           </div>
         </div>
       ))}
-      {tabs.map((tab) => (
+      {tabs.map((tab, index) => (
         <article
           key={tab.tabId}
           id={`panel-${tab.tabId}`}
@@ -82,6 +98,54 @@ export function BeliefTabs({ tabs }: { tabs: Array<BeliefTab> }) {
           <div className="mt-4">
             <Paragraphs paragraphs={tab.paragraphs} />
           </div>
+          <div className="flex flex-wrap gap-3">
+            {(['text', 'title'] as const).map((field) => (
+              <button
+                key={field}
+                type="button"
+                aria-expanded={
+                  history?.tabId === tab.tabId && history.field === field
+                }
+                onClick={() =>
+                  setHistory(
+                    history?.tabId === tab.tabId && history.field === field
+                      ? undefined
+                      : { tabId: tab.tabId, field },
+                  )
+                }
+                className={buttonStyle}
+              >
+                {field === 'text' ? 'History' : 'Title history'}
+              </button>
+            ))}
+          </div>
+          {history?.tabId === tab.tabId && (
+            <HistoryPanel
+              key={`${tab.tabId}-${history.field}`}
+              slug={slug}
+              tabId={tab.tabId}
+              field={history.field}
+              label={
+                history.field === 'title'
+                  ? `the title of “${tab.title}”`
+                  : `“${tab.title}”`
+              }
+              onClose={() => setHistory(undefined)}
+            />
+          )}
+          {owner && (
+            <BeliefOwnerTools
+              key={tab.tabId}
+              tab={tab}
+              revision={
+                owner.revisions.tabs[tab.tabId] ?? { text: 0, title: 0 }
+              }
+              isFirst={index === 0}
+              isLast={index === tabs.length - 1}
+              isOnly={tabs.length === 1}
+              onChanged={owner.onChanged}
+            />
+          )}
         </article>
       ))}
     </section>

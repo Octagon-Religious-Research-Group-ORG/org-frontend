@@ -44,11 +44,50 @@ export interface FullProfile {
   bio: Array<ParagraphView>
   extras: Array<ExtraSection>
   tabs: Array<BeliefTab>
+  /** Owner only: the newest version of each field, what an edit starts from. */
+  revisions?: Revisions
   manage?: {
     visibility: ProfileVisibility
     reviewStatus: string
     source?: 'migrated' | 'native'
+    /** Older servers did not send it. */
+    removedTabs?: Array<RemovedTab>
   }
+}
+
+export interface Revisions {
+  bio: number
+  tabs: Partial<Record<string, { text: number; title: number }>>
+}
+
+export interface RemovedTab {
+  tabId: string
+  title: string
+  removedAt: string
+}
+
+export interface HistoryEntry {
+  seq: number
+  savedAt: string
+  text: string
+  hash: string
+  source: 'member' | 'imported' | 'title-before-history'
+  wholeText: boolean
+}
+
+export interface HistoryPage {
+  entries: Array<HistoryEntry>
+  page: number
+  hasMore: boolean
+}
+
+/** Which history to read: the bio, or one belief's text or title. */
+export type HistoryTarget =
+  { kind: 'bio' } | { kind: 'tab'; tabId: string; field: 'text' | 'title' }
+
+export interface SaveResult {
+  changed: boolean
+  seq: number
 }
 
 export type MemberProfile = NameOnlyProfile | FullProfile
@@ -153,6 +192,93 @@ export function addBeliefTab(
     '/me/member-page/tabs',
     { method: 'POST', token, body: JSON.stringify(belief) },
   )
+}
+
+/**
+ * The text an editor starts from: paragraphs separated by a blank line, an
+ * imported outline label kept in front. The server compares the same way, so
+ * saving it unchanged writes no version.
+ */
+export function editorText(paragraphs: Array<ParagraphView>) {
+  return paragraphs
+    .map((paragraph) =>
+      paragraph.label ? `${paragraph.label} ${paragraph.text}` : paragraph.text,
+    )
+    .join('\n\n')
+}
+
+const tabPath = (tabId: string) =>
+  `/me/member-page/tabs/${encodeURIComponent(tabId)}`
+
+export function editBio(token: string, text: string, baseSeq: number) {
+  return memberRequest<SaveResult>('/me/member-page/bio', {
+    method: 'PUT',
+    token,
+    body: JSON.stringify({ text, baseSeq }),
+  })
+}
+
+export function editBeliefText(
+  token: string,
+  tabId: string,
+  text: string,
+  baseSeq: number,
+) {
+  return memberRequest<SaveResult>(`${tabPath(tabId)}/text`, {
+    method: 'PUT',
+    token,
+    body: JSON.stringify({ text, baseSeq }),
+  })
+}
+
+export function editBeliefTitle(
+  token: string,
+  tabId: string,
+  title: string,
+  baseSeq: number,
+) {
+  return memberRequest<SaveResult>(`${tabPath(tabId)}/title`, {
+    method: 'PUT',
+    token,
+    body: JSON.stringify({ title, baseSeq }),
+  })
+}
+
+export function moveBelief(
+  token: string,
+  tabId: string,
+  direction: 'up' | 'down',
+) {
+  return memberRequest<{ moved: boolean }>(`${tabPath(tabId)}/position`, {
+    method: 'PATCH',
+    token,
+    body: JSON.stringify({ direction }),
+  })
+}
+
+export function removeBelief(token: string, tabId: string) {
+  return memberRequest<{ removed: boolean }>(tabPath(tabId), {
+    method: 'DELETE',
+    token,
+  })
+}
+
+/** Readable by whoever can read that part of the page; a token when signed in. */
+export function fetchHistory(
+  slug: string,
+  target: HistoryTarget,
+  options: { page?: number; token?: string } = {},
+) {
+  const base = `/members/profiles/${encodeURIComponent(slug.toLowerCase())}`
+  const query = new URLSearchParams({ page: String(options.page ?? 1) })
+  let path = `${base}/bio/history`
+  if (target.kind === 'tab') {
+    query.set('field', target.field)
+    path = `${base}/tabs/${encodeURIComponent(target.tabId)}/history`
+  }
+  return memberRequest<HistoryPage>(`${path}?${query.toString()}`, {
+    token: options.token,
+  })
 }
 
 export function uploadProfilePicture(token: string, picture: File) {
