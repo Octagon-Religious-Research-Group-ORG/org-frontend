@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import {
+  BELIEF_TOO_LONG,
+  MAX_SAVED_TEXT,
   editBeliefText,
   editBeliefTitle,
   editorText,
@@ -15,6 +17,7 @@ import {
   labelStyle,
   primaryStyle,
 } from './editor-styles'
+import { CharacterCount } from './CharacterCount'
 import { useOwnerAction } from './use-owner-action'
 
 export const REMOVE_EXPLAINED =
@@ -49,7 +52,7 @@ export function BeliefOwnerTools({
   const [title, setTitle] = useState(tab.title)
   const [text, setText] = useState(() => editorText(tab.paragraphs))
   const [notice, setNotice] = useState<string>()
-  const { busy, problem, run } = useOwnerAction()
+  const { busy, problem, run, fail } = useOwnerAction()
 
   const startEditing = () => {
     setTitle(tab.title)
@@ -58,21 +61,46 @@ export function BeliefOwnerTools({
     setMode('editing')
   }
 
+  /**
+   * The text first, then the title, and only what was changed: an unchanged
+   * long imported belief is never sent. When the title fails after the text
+   * was saved, the form stays open with what was typed and says exactly which
+   * part was saved.
+   */
   const save = async (event: FormEvent) => {
     event.preventDefault()
-    const titled = await run((token) =>
-      editBeliefTitle(token, tab.tabId, title, revision.title),
-    )
-    if (!titled) return
-    const written = await run((token) =>
-      editBeliefText(token, tab.tabId, text, revision.text),
-    )
-    if (!written) {
-      if (titled.changed) onChanged()
+    setNotice(undefined)
+    const textChanged = text !== editorText(tab.paragraphs)
+    if (textChanged && text.length > MAX_SAVED_TEXT) {
+      fail(BELIEF_TOO_LONG)
       return
     }
+    let textSaved = false
+    if (textChanged) {
+      const written = await run(
+        (token) => editBeliefText(token, tab.tabId, text, revision.text),
+        (reason) => `Nothing was saved. ${reason}`,
+      )
+      if (!written) return
+      textSaved = written.changed
+    }
+    let titleSaved = false
+    if (title !== tab.title) {
+      const titled = await run(
+        (token) => editBeliefTitle(token, tab.tabId, title, revision.title),
+        (reason) =>
+          textSaved
+            ? `Your belief text was saved, but the title was not. ${reason}`
+            : `Nothing was saved. ${reason}`,
+      )
+      if (!titled) {
+        if (textSaved) onChanged()
+        return
+      }
+      titleSaved = titled.changed
+    }
     setMode('idle')
-    if (titled.changed || written.changed) {
+    if (textSaved || titleSaved) {
       setNotice('Saved. The earlier version is in the history.')
       onChanged()
     } else {
@@ -112,10 +140,12 @@ export function BeliefOwnerTools({
               required
               rows={8}
               value={text}
+              aria-describedby={`count-${tab.tabId}`}
               onChange={(event) => setText(event.target.value)}
               className={fieldStyle}
             />
           </label>
+          <CharacterCount id={`count-${tab.tabId}`} value={text} />
           <p className="mt-2 text-xs leading-5 text-[#9f9676]">
             Separate paragraphs with a blank line. Every save is kept in the
             history.

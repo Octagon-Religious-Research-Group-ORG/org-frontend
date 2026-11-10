@@ -189,17 +189,19 @@ describe('BeliefTabs history and owner tools', () => {
         isLast: false,
         isOnly: false,
       },
+      // Last of its category (Theology), though not last on the page.
       {
         tabId: 't2',
         revision: { text: 0, title: 0 },
         isFirst: false,
-        isLast: false,
+        isLast: true,
         isOnly: false,
       },
+      // Alone without a category: nowhere to move.
       {
         tabId: 't3',
         revision: { text: 0, title: 0 },
-        isFirst: false,
+        isFirst: true,
         isLast: true,
         isOnly: false,
       },
@@ -217,5 +219,60 @@ describe('BeliefTabs history and owner tools', () => {
     expect(screen.getByTestId('owner-tools').textContent).toContain(
       '"isOnly":true',
     )
+  })
+})
+
+describe('BeliefTabs after a change', () => {
+  it('opens the first belief when the open one has gone', () => {
+    const { container, rerender } = render(
+      <BeliefTabs slug="quiet-fern" tabs={tabs} />,
+    )
+    fireEvent.click(
+      screen
+        .getAllByRole('button')
+        .find((button) => button.textContent.includes('Third')) as HTMLElement,
+    )
+    rerender(<BeliefTabs slug="quiet-fern" tabs={tabs.slice(0, 2)} />)
+    expect(container.querySelector<HTMLElement>('#panel-t1')?.hidden).toBe(
+      false,
+    )
+  })
+
+  it('shows a title and text with HTML in them as plain characters', () => {
+    const hostile =
+      '<script>window.hacked = 1</script><img src=x onerror="window.hacked = 2"><b>bold</b>'
+    const { container } = render(
+      <BeliefTabs
+        slug="quiet-fern"
+        tabs={[
+          {
+            tabId: 'h',
+            title: hostile,
+            needsReview: false,
+            paragraphs: [paragraph('hb', hostile)],
+          },
+        ]}
+      />,
+    )
+    expect(screen.getAllByText(hostile).length).toBeGreaterThanOrEqual(3)
+    expect(container.querySelector('script, img, b')).toBeNull()
+  })
+  it('can move a belief in the middle of its category both ways', () => {
+    const three = [
+      { ...tabs[0], group: undefined },
+      { ...tabs[1], group: undefined },
+      { ...tabs[2], group: undefined },
+    ]
+    render(
+      <BeliefTabs
+        slug="quiet-fern"
+        tabs={three}
+        owner={{ revisions: { bio: 1, tabs: {} }, onChanged: vi.fn() }}
+      />,
+    )
+    const middle = JSON.parse(
+      screen.getAllByTestId('owner-tools')[1].textContent,
+    ) as Record<string, unknown>
+    expect(middle).toMatchObject({ isFirst: false, isLast: false })
   })
 })

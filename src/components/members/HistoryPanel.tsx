@@ -34,8 +34,8 @@ function entryNote(entry: HistoryEntry) {
   if (entry.source === 'title-before-history') {
     notes.push('The title before its first edit here.')
   }
-  if (!entry.wholeText) {
-    notes.push('One paragraph of the text from before its first edit here.')
+  if (entry.beforeFirstEdit) {
+    notes.push('The text before its first edit here.')
   }
   return notes.join(' ')
 }
@@ -131,9 +131,15 @@ export function HistoryPanel({
                 <time dateTime={entry.savedAt}>
                   {formatSavedAt(entry.savedAt)}
                 </time>
-                <span title="The start of this version's SHA-256 hash">
-                  {entry.hash}
-                </span>
+                {entry.partHashes && entry.partHashes.length > 1 ? (
+                  <span title="The start of each paragraph's SHA-256 hash, in order">
+                    {entry.partHashes.join(' · ')}
+                  </span>
+                ) : (
+                  <span title="The start of this version's SHA-256 hash">
+                    {entry.hash}
+                  </span>
+                )}
               </div>
               {entryNote(entry) && (
                 <p className="mt-1 text-xs text-[#f1d78a]">

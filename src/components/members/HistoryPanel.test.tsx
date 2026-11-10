@@ -33,7 +33,7 @@ const entry = (overrides: Partial<HistoryEntry> = {}): HistoryEntry => ({
   text: 'A synthetic belief, edited.',
   hash: 'abcdef012345',
   source: 'member',
-  wholeText: true,
+  beforeFirstEdit: false,
   ...overrides,
 })
 
@@ -115,8 +115,9 @@ describe('HistoryPanel', () => {
       entries: [
         entry({
           source: 'imported',
-          wholeText: false,
+          beforeFirstEdit: true,
           savedAt: '2026-10-11T08:00:00.000Z',
+          partHashes: ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'],
         }),
         entry({ source: 'title-before-history', seq: 1, hash: 'ffff' }),
       ],
@@ -126,12 +127,31 @@ describe('HistoryPanel', () => {
     render(<HistoryPanel slug="quiet-fern" label="x" onClose={onClose} />)
     expect(
       await screen.findByText(
-        'Imported from Apple Pages; originally written before Oct 11, 2026. One paragraph of the text from before its first edit here.',
+        'Imported from Apple Pages; originally written before Oct 11, 2026. The text before its first edit here.',
       ),
     ).toBeTruthy()
+    // Each paragraph's own fingerprint, in reading order.
+    expect(screen.getByText('aaaaaaaaaaaa · bbbbbbbbbbbb')).toBeTruthy()
     expect(
       screen.getByText('The title before its first edit here.'),
     ).toBeTruthy()
+  })
+
+  it('shows member text with HTML in it as the characters it is, never as markup', async () => {
+    const hostile =
+      '<script>window.hacked = 1</script><img src=x onerror="window.hacked = 2"><b>bold</b>'
+    mocks.fetchHistory.mockResolvedValue({
+      entries: [entry({ text: hostile })],
+      page: 1,
+      hasMore: false,
+    })
+    const { container } = render(
+      <HistoryPanel slug="quiet-fern" label="x" onClose={onClose} />,
+    )
+    await screen.findByText(hostile)
+    expect(container.querySelector('script')).toBeNull()
+    expect(container.querySelector('img')).toBeNull()
+    expect(container.querySelector('b')).toBeNull()
   })
 
   it('says when there is nothing yet', async () => {

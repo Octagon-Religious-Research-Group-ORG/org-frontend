@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as MembersApi from '#/lib/members-api'
+import { BELIEF_TOO_LONG, MAX_SAVED_TEXT } from '#/lib/members-api'
 import type { BeliefTab } from '#/lib/members-api'
 import { BeliefOwnerTools, REMOVE_EXPLAINED } from './BeliefOwnerTools'
 
@@ -85,7 +86,8 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('editing a belief', () => {
-  it('starts from the page text, labels kept, and saves on top of what the page showed', async () => {
+  it('starts from the page text, labels kept, and saves the text, then the title, on top of what the page showed', async () => {
+    mocks.editBeliefTitle.mockResolvedValue({ changed: true, seq: 3 })
     setup()
     const { title, text } = openEditor()
     expect(title.value).toBe('Synthetic title')
@@ -96,26 +98,53 @@ describe('editing a belief', () => {
     expect((await screen.findByRole('status')).textContent).toMatch(
       /earlier version is in the history/,
     )
-    expect(mocks.editBeliefTitle).toHaveBeenCalledWith(
-      'tok',
-      'tab_1',
-      'New title',
-      2,
-    )
     expect(mocks.editBeliefText).toHaveBeenCalledWith(
       'tok',
       'tab_1',
       'I. Sky.\n\nSea and sand.',
       5,
     )
+    expect(mocks.editBeliefTitle).toHaveBeenCalledWith(
+      'tok',
+      'tab_1',
+      'New title',
+      2,
+    )
+    expect(mocks.editBeliefText.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.editBeliefTitle.mock.invocationCallOrder[0],
+    )
     expect(onChanged).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('textbox')).toBeNull()
   })
 
-  it('says nothing was saved when nothing changed', async () => {
-    mocks.editBeliefText.mockResolvedValue({ changed: false, seq: 5 })
+  it('sends nothing when nothing was typed', async () => {
     setup()
     openEditor()
+    fireEvent.click(button('Save belief'))
+    expect((await screen.findByRole('status')).textContent).toMatch(
+      /Nothing changed/,
+    )
+    expect(mocks.editBeliefText).not.toHaveBeenCalled()
+    expect(mocks.editBeliefTitle).not.toHaveBeenCalled()
+    expect(onChanged).not.toHaveBeenCalled()
+  })
+
+  it('sends only the title when only the title changed', async () => {
+    mocks.editBeliefTitle.mockResolvedValue({ changed: true, seq: 3 })
+    setup()
+    fireEvent.change(openEditor().title, { target: { value: 'Renamed' } })
+    fireEvent.click(button('Save belief'))
+    await screen.findByRole('status')
+    expect(mocks.editBeliefText).not.toHaveBeenCalled()
+    expect(onChanged).toHaveBeenCalledTimes(1)
+  })
+
+  it('says nothing changed when the server found the text the same', async () => {
+    mocks.editBeliefText.mockResolvedValue({ changed: false, seq: 5 })
+    setup()
+    fireEvent.change(openEditor().text, {
+      target: { value: 'I. Sky.\n\n\n\nSea.' },
+    })
     fireEvent.click(button('Save belief'))
     expect((await screen.findByRole('status')).textContent).toMatch(
       /Nothing changed/,
@@ -123,33 +152,105 @@ describe('editing a belief', () => {
     expect(onChanged).not.toHaveBeenCalled()
   })
 
-  it('stops at a stale title and says to reload, saving no text', async () => {
+  it('stops at a stale text, saves no title, and keeps what was typed', async () => {
+    mocks.editBeliefText.mockRejectedValue(new Error(STALE))
+    setup()
+    const { title, text } = openEditor()
+    fireEvent.change(title, { target: { value: 'Typed title' } })
+    fireEvent.change(text, { target: { value: 'Typed text' } })
+    fireEvent.click(button('Save belief'))
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      `Nothing was saved. ${STALE}`,
+    )
+    expect(mocks.editBeliefTitle).not.toHaveBeenCalled()
+    expect(onChanged).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole<HTMLInputElement>('textbox', { name: 'Title' }).value,
+    ).toBe('Typed title')
+    expect(
+      screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Belief' })
+        .value,
+    ).toBe('Typed text')
+  })
+
+  it('says exactly which part was saved when the title fails after the text', async () => {
     mocks.editBeliefTitle.mockRejectedValue(new Error(STALE))
     setup()
-    openEditor()
+    const { title, text } = openEditor()
+    fireEvent.change(title, { target: { value: 'Typed title' } })
+    fireEvent.change(text, { target: { value: 'Typed text' } })
     fireEvent.click(button('Save belief'))
-    expect((await screen.findByRole('alert')).textContent).toBe(STALE)
-    expect(mocks.editBeliefText).not.toHaveBeenCalled()
-    expect(screen.getByRole('textbox', { name: 'Belief' })).toBeTruthy()
-  })
-
-  it('reloads when the title saved but the text was stale', async () => {
-    mocks.editBeliefTitle.mockResolvedValue({ changed: true, seq: 3 })
-    mocks.editBeliefText.mockRejectedValue(new Error(STALE))
-    setup()
-    openEditor()
-    fireEvent.click(button('Save belief'))
-    expect((await screen.findByRole('alert')).textContent).toBe(STALE)
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      `Your belief text was saved, but the title was not. ${STALE}`,
+    )
     expect(onChanged).toHaveBeenCalledTimes(1)
+    expect(
+      screen.getByRole<HTMLInputElement>('textbox', { name: 'Title' }).value,
+    ).toBe('Typed title')
   })
 
-  it('does not reload when neither part saved', async () => {
-    mocks.editBeliefText.mockRejectedValue(new Error(STALE))
+  it('says nothing was saved when the title fails and the text was the same', async () => {
+    mocks.editBeliefText.mockResolvedValue({ changed: false, seq: 5 })
+    mocks.editBeliefTitle.mockRejectedValue(new Error(STALE))
     setup()
-    openEditor()
+    const { title, text } = openEditor()
+    fireEvent.change(title, { target: { value: 'Typed title' } })
+    fireEvent.change(text, { target: { value: 'I. Sky.\n\n\nSea.' } })
     fireEvent.click(button('Save belief'))
-    await screen.findByRole('alert')
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      `Nothing was saved. ${STALE}`,
+    )
     expect(onChanged).not.toHaveBeenCalled()
+  })
+
+  describe('a belief longer than one save', () => {
+    const long = 'x'.repeat(MAX_SAVED_TEXT + 1)
+
+    it('counts characters as the member types', () => {
+      setup()
+      const { text } = openEditor()
+      expect(screen.getByText('13 / 20,000 characters')).toBeTruthy()
+      fireEvent.change(text, { target: { value: long } })
+      expect(
+        screen.getByText('20,001 / 20,000 characters (too long for one save)'),
+      ).toBeTruthy()
+      expect(text.getAttribute('aria-describedby')).toBe('count-tab_1')
+    })
+
+    it('explains the limit before sending a changed one', async () => {
+      setup()
+      fireEvent.change(openEditor().text, { target: { value: long } })
+      fireEvent.click(button('Save belief'))
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        BELIEF_TOO_LONG,
+      )
+      expect(mocks.editBeliefText).not.toHaveBeenCalled()
+    })
+
+    it('saves an unchanged long one as no change, with no error', async () => {
+      render(
+        <BeliefOwnerTools
+          tab={{
+            ...tab,
+            paragraphs: [
+              { blockId: 'b', kind: 'paragraph', label: '', text: long },
+            ],
+          }}
+          revision={{ text: 1, title: 0 }}
+          isFirst={false}
+          isLast={false}
+          isOnly={false}
+          onChanged={onChanged}
+        />,
+      )
+      openEditor()
+      fireEvent.click(button('Save belief'))
+      expect((await screen.findByRole('status')).textContent).toMatch(
+        /Nothing changed/,
+      )
+      expect(screen.queryByRole('alert')).toBeNull()
+      expect(mocks.editBeliefText).not.toHaveBeenCalled()
+    })
   })
 
   it('cancels, and a new edit starts from the page again', () => {
@@ -164,21 +265,21 @@ describe('editing a belief', () => {
   it('refuses to send anything when the sign-in cannot be confirmed', async () => {
     mocks.auth.getToken.mockResolvedValue(null)
     setup()
-    openEditor()
+    fireEvent.change(openEditor().text, { target: { value: 'Changed' } })
     fireEvent.click(button('Save belief'))
     expect((await screen.findByRole('alert')).textContent).toMatch(
       /couldn't confirm/,
     )
-    expect(mocks.editBeliefTitle).not.toHaveBeenCalled()
+    expect(mocks.editBeliefText).not.toHaveBeenCalled()
   })
 
   it('has a plain message for a failure that is not an error', async () => {
     mocks.editBeliefTitle.mockRejectedValue('odd')
     setup()
-    openEditor()
+    fireEvent.change(openEditor().title, { target: { value: 'Other' } })
     fireEvent.click(button('Save belief'))
     expect((await screen.findByRole('alert')).textContent).toBe(
-      'Something went wrong.',
+      'Nothing was saved. Something went wrong.',
     )
   })
 })

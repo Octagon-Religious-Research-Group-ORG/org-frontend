@@ -8,6 +8,19 @@ import { Paragraphs } from './Paragraphs'
 
 const REVIEW_NOTE = 'Imported, please review'
 
+/**
+ * Where a belief sits among the beliefs of its own category: moving swaps it
+ * with a neighbour in that category, as the server does.
+ */
+function placeInGroup(tabs: Array<BeliefTab>, index: number) {
+  const group = tabs[index].group ?? ''
+  const same = tabs.filter((tab) => (tab.group ?? '') === group)
+  const at = same.indexOf(tabs[index])
+  if (same.length === 1) return 'only'
+  if (at === 0) return 'first'
+  return at === same.length - 1 ? 'last' : 'middle'
+}
+
 function groupTabs(tabs: Array<BeliefTab>) {
   const groups = new Map<string, Array<BeliefTab>>()
   for (const tab of tabs) {
@@ -32,7 +45,12 @@ export function BeliefTabs({
   /** Only on the owner's own page: what each edit starts from. */
   owner?: { revisions: Revisions; onChanged: () => void }
 }) {
-  const [open, setOpen] = useState(tabs.at(0)?.tabId)
+  const [chosen, setOpen] = useState(tabs.at(0)?.tabId)
+  // A removed or reloaded-away belief falls back to the first one, so a
+  // panel is always open.
+  const open = tabs.some((tab) => tab.tabId === chosen)
+    ? chosen
+    : tabs.at(0)?.tabId
   const [history, setHistory] = useState<{
     tabId: string
     field: 'text' | 'title'
@@ -140,8 +158,8 @@ export function BeliefTabs({
               revision={
                 owner.revisions.tabs[tab.tabId] ?? { text: 0, title: 0 }
               }
-              isFirst={index === 0}
-              isLast={index === tabs.length - 1}
+              isFirst={['first', 'only'].includes(placeInGroup(tabs, index))}
+              isLast={['last', 'only'].includes(placeInGroup(tabs, index))}
               isOnly={tabs.length === 1}
               onChanged={owner.onChanged}
             />

@@ -46,6 +46,7 @@ const config = defineConfig({
         'src/components/members/BeliefOwnerTools.tsx',
         'src/components/members/BioEditor.tsx',
         'src/components/members/BioSection.tsx',
+        'src/components/members/CharacterCount.tsx',
         'src/components/members/HistoryPanel.tsx',
         'src/components/members/RemovedBeliefs.tsx',
         'src/components/members/editor-styles.ts',

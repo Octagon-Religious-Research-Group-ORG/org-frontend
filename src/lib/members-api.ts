@@ -72,8 +72,19 @@ export interface HistoryEntry {
   text: string
   hash: string
   source: 'member' | 'imported' | 'title-before-history'
-  wholeText: boolean
+  /** The text as kept before its first edit here, one record per paragraph. */
+  beforeFirstEdit: boolean
+  /** The start of each paragraph's hash, in reading order, for that entry. */
+  partHashes?: Array<string>
 }
+
+/** Most characters one saved version holds (the server's limit). */
+export const MAX_SAVED_TEXT = 20_000
+
+export const BELIEF_TOO_LONG =
+  'This belief is longer than one save can hold (20,000 characters). Please move part of it into a new belief tab.'
+export const BIO_TOO_LONG =
+  'Your bio is longer than one save can hold (20,000 characters). Please shorten it.'
 
 export interface HistoryPage {
   entries: Array<HistoryEntry>

@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as MembersApi from '#/lib/members-api'
+import { BIO_TOO_LONG, MAX_SAVED_TEXT } from '#/lib/members-api'
 import { BioSection } from './BioSection'
 import { RemovedBeliefs } from './RemovedBeliefs'
 
@@ -55,7 +56,39 @@ afterEach(cleanup)
 const button = (name: string) =>
   screen.getByRole<HTMLButtonElement>('button', { name })
 
+const hostile =
+  '<script>window.hacked = 1</script><img src=x onerror="window.hacked = 2"><b>bold</b>'
+
 describe('BioSection', () => {
+  it('shows a bio with HTML in it as plain characters', () => {
+    const { container } = render(
+      <BioSection
+        slug="quiet-fern"
+        bio={[{ blockId: 'h', kind: 'paragraph', label: '', text: hostile }]}
+      />,
+    )
+    expect(screen.getByText(hostile)).toBeTruthy()
+    expect(container.querySelector('script, img, b')).toBeNull()
+  })
+
+  it('counts characters, and explains the limit before sending a long bio', async () => {
+    render(
+      <BioSection
+        slug="quiet-fern"
+        bio={bio}
+        owner={{ baseSeq: 3, onChanged }}
+      />,
+    )
+    fireEvent.click(button('Edit bio'))
+    expect(screen.getByText('15 / 20,000 characters')).toBeTruthy()
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'y'.repeat(MAX_SAVED_TEXT + 1) },
+    })
+    fireEvent.click(button('Save bio'))
+    expect((await screen.findByRole('alert')).textContent).toBe(BIO_TOO_LONG)
+    expect(mocks.editBio).not.toHaveBeenCalled()
+  })
+
   it('shows nothing for a page with no bio to a reader', () => {
     const { container } = render(<BioSection slug="quiet-fern" bio={[]} />)
     expect(container.textContent).toBe('')
@@ -119,8 +152,12 @@ describe('BioSection', () => {
       />,
     )
     fireEvent.click(button('Edit bio'))
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'First.\n\n\nSecond.' },
+    })
     fireEvent.click(button('Save bio'))
     await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull())
+    expect(mocks.editBio).toHaveBeenCalled()
     expect(onChanged).not.toHaveBeenCalled()
     expect(screen.queryByRole('status')).toBeNull()
   })
@@ -137,11 +174,28 @@ describe('BioSection', () => {
       />,
     )
     fireEvent.click(button('Edit bio'))
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Other.' },
+    })
     fireEvent.click(button('Save bio'))
     expect((await screen.findByRole('alert')).textContent).toMatch(
       /another window/,
     )
     expect(screen.getByRole('textbox')).toBeTruthy()
+  })
+
+  it('sends nothing when nothing was typed', async () => {
+    render(
+      <BioSection
+        slug="quiet-fern"
+        bio={bio}
+        owner={{ baseSeq: 3, onChanged }}
+      />,
+    )
+    fireEvent.click(button('Edit bio'))
+    fireEvent.click(button('Save bio'))
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull())
+    expect(mocks.editBio).not.toHaveBeenCalled()
   })
 
   it('cancels without saving', () => {
