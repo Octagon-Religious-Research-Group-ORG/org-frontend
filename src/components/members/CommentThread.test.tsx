@@ -12,7 +12,7 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CommentView, ThreadPage } from '#/lib/comments-api'
 import { REMOVED_NOTE } from './CommentItem'
-import { CommentThread, MAX_REFRESH_PAGES, WRITE_HINT } from './CommentThread'
+import { CommentThread, WRITE_HINT } from './CommentThread'
 
 const mocks = vi.hoisted(() => ({
   auth: { isLoading: false, isAuthenticated: false, getToken: vi.fn() },
@@ -666,55 +666,6 @@ describe('CommentThread, review round', () => {
     expect(mocks.fetchThread.mock.calls[3][1]).toMatchObject({ after: 'cmt_1' })
   })
 
-  it('reads on to the end after a new comment, so it shows where it now is, and empties the box', async () => {
-    mocks.fetchThread
-      .mockResolvedValueOnce(
-        page({ viewerMayComment: true, comments: many(0, 1), nextAfter: 'a' }),
-      )
-      .mockResolvedValueOnce(
-        page({ viewerMayComment: true, comments: many(0, 1), nextAfter: 'a' }),
-      )
-      .mockResolvedValueOnce(
-        page({ viewerMayComment: true, comments: many(1, 1), nextAfter: 'b' }),
-      )
-      .mockResolvedValueOnce(
-        page({
-          viewerMayComment: true,
-          comments: [comment({ commentId: 'cmt_new', body: 'My new one.' })],
-        }),
-      )
-    renderThread({ tabId: 't' })
-    const box = await screen.findByLabelText<HTMLTextAreaElement>(
-      'Comment on this belief',
-    )
-    fireEvent.change(box, { target: { value: 'My new one.' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }))
-    expect(await screen.findByText('My new one.')).toBeTruthy()
-    expect(screen.getByText('Comment 0')).toBeTruthy()
-    expect(screen.getByText('Comment 1')).toBeTruthy()
-    expect(box.value).toBe('')
-    expect(mocks.postComment).toHaveBeenCalledTimes(1)
-    expect(
-      mocks.fetchThread.mock.calls.map(
-        (call) => (call[1] as { after?: string }).after,
-      ),
-    ).toEqual([undefined, undefined, 'a', 'b'])
-  })
-
-  it(`stops reading on after ${MAX_REFRESH_PAGES} pages`, async () => {
-    mocks.fetchThread.mockResolvedValue(
-      page({ viewerMayComment: true, nextAfter: 'more' }),
-    )
-    renderThread()
-    fireEvent.change(await screen.findByLabelText('Comment on this page'), {
-      target: { value: 'x' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }))
-    await waitFor(() =>
-      expect(mocks.fetchThread).toHaveBeenCalledTimes(1 + MAX_REFRESH_PAGES),
-    )
-  })
-
   it('ignores an older load that finishes after a newer one', async () => {
     let first: (value: unknown) => void = () => undefined
     mocks.fetchThread
@@ -770,7 +721,7 @@ describe('CommentThread, review round', () => {
     const names = replies.map((button) => button.getAttribute('aria-label'))
     expect(new Set(names).size).toBe(2)
     expect(names[0]).toBe(
-      'Reply to Synthetic Member, Nov 12, 2026, 9:00 AM UTC',
+      'Reply to comment 1, by Synthetic Member, Nov 12, 2026, 9:00 AM UTC',
     )
   })
 

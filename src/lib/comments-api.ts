@@ -15,7 +15,8 @@ export type CommentAuthor =
   | { kind: 'admin' }
 
 /** Why the comment form is not offered. */
-export type WriteBlock = 'sign-in' | 'needs-approved-page' | 'verify-email'
+export type WriteBlock =
+  'sign-in' | 'needs-approved-page' | 'verify-email' | 'cannot-check'
 
 export interface SuggestionView {
   /** Absent once its author removed it. */
@@ -49,7 +50,15 @@ export interface CommentView {
   /** What an edit is based on; only on the reader's own. */
   seq?: number
   suggestion?: SuggestionView
+  /** On a reply: the comment it answers. */
+  parentCommentId?: string
+  /** Top-level comments only. */
   replies?: Array<CommentView>
+}
+
+/** Every write answers with the comment as the writer now sees it. */
+export interface WriteAnswer {
+  comment?: CommentView
 }
 
 export interface ThreadPage {
@@ -115,11 +124,14 @@ export function postComment(
     parentCommentId?: string
   },
 ) {
-  return memberRequest<{ commentId: string; seq: number }>('/me/comments', {
-    method: 'POST',
-    token,
-    body: JSON.stringify(comment),
-  })
+  return memberRequest<WriteAnswer & { commentId: string; seq: number }>(
+    '/me/comments',
+    {
+      method: 'POST',
+      token,
+      body: JSON.stringify(comment),
+    },
+  )
 }
 
 export function editComment(
@@ -128,14 +140,14 @@ export function editComment(
   body: string,
   baseSeq: number,
 ) {
-  return memberRequest<{ changed: boolean; seq: number }>(
+  return memberRequest<WriteAnswer & { changed: boolean; seq: number }>(
     `/me/comments/${encodeURIComponent(commentId)}`,
     { method: 'PUT', token, body: JSON.stringify({ body, baseSeq }) },
   )
 }
 
 export function removeComment(token: string, commentId: string) {
-  return memberRequest<{ removed: boolean }>(
+  return memberRequest<WriteAnswer & { removed: boolean }>(
     `/me/comments/${encodeURIComponent(commentId)}`,
     { method: 'DELETE', token },
   )
@@ -151,7 +163,7 @@ export function suggestRewording(
     note?: string
   },
 ) {
-  return memberRequest<{ commentId: string }>('/me/suggestions', {
+  return memberRequest<WriteAnswer & { commentId: string }>('/me/suggestions', {
     method: 'POST',
     token,
     body: JSON.stringify(suggestion),
@@ -162,14 +174,14 @@ const decisionPath = (commentId: string, decision: 'accept' | 'decline') =>
   `/me/member-page/suggestions/${encodeURIComponent(commentId)}/${decision}`
 
 export function acceptSuggestion(token: string, commentId: string) {
-  return memberRequest<{ accepted: boolean; seq: number }>(
+  return memberRequest<WriteAnswer & { accepted: boolean; seq: number }>(
     decisionPath(commentId, 'accept'),
     { method: 'POST', token },
   )
 }
 
 export function declineSuggestion(token: string, commentId: string) {
-  return memberRequest<{ declined: boolean }>(
+  return memberRequest<WriteAnswer & { declined: boolean }>(
     decisionPath(commentId, 'decline'),
     { method: 'POST', token },
   )

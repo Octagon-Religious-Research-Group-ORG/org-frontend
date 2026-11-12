@@ -40,8 +40,11 @@ export interface ThreadActions {
   mayReply: boolean
   /** The belief's text now, to compare a suggestion with. */
   currentText?: string
-  /** Reload the thread after a change. */
-  onThreadChanged: () => void
+  /**
+   * A write's answer: the comment as it is now, put in place without
+   * reading the thread again (absent from an older server: read again).
+   */
+  onChanged: (comment?: CommentView) => void
   /** Reload the whole page: an accepted suggestion changed the belief. */
   onPageChanged: () => void
 }
@@ -53,60 +56,63 @@ export interface ThreadActions {
  */
 export function CommentItem({
   comment,
+  position,
   actions,
   isReply = false,
 }: {
   comment: CommentView
+  /**
+   * Where it is in the thread, e.g. "comment 3" or "reply 2 to comment 3":
+   * part of every button's name, so no two buttons share one even when two
+   * comments have the same author and minute (review round 2, item 5).
+   */
+  position: string
   actions: ThreadActions
   isReply?: boolean
 }) {
   const [mode, setMode] = useState<Mode>('idle')
-  // Unique names for the buttons of each comment (review item 8).
   const when = formatSavedAt(comment.postedAt)
-  const whose = `${authorLabel(comment.author)}, ${when}`
+  const whose = `${position}, by ${authorLabel(comment.author)}, ${when}`
   const { busy, problem, run } = useOwnerAction()
   const suggestion = comment.suggestion
 
-  const done = (changed: boolean) => {
-    if (!changed) return false
+  const done = (result: { comment?: CommentView } | undefined) => {
+    if (result === undefined) return false
     setMode('idle')
-    actions.onThreadChanged()
+    actions.onChanged(result.comment)
     return true
   }
 
   const reply = async (body: string) =>
     done(
-      (await run((token) =>
+      await run((token) =>
         postComment(token, {
           slug: actions.slug,
           parentCommentId: comment.commentId,
           body,
         }),
-      )) !== undefined,
+      ),
     )
 
   const edit = async (body: string) =>
     done(
-      (await run((token) =>
+      await run((token) =>
         editComment(token, comment.commentId, body, comment.seq ?? 1),
-      )) !== undefined,
+      ),
     )
 
   const remove = async () =>
-    done(
-      (await run((token) => removeComment(token, comment.commentId))) !==
-        undefined,
-    )
+    done(await run((token) => removeComment(token, comment.commentId)))
 
   const decide = async (decision: 'accept' | 'decline') => {
-    const result = await run<unknown>((token) =>
+    const result = await run<{ comment?: CommentView }>((token) =>
       decision === 'accept'
         ? acceptSuggestion(token, comment.commentId)
         : declineSuggestion(token, comment.commentId),
     )
     if (result === undefined) return
     if (decision === 'accept') actions.onPageChanged()
-    actions.onThreadChanged()
+    actions.onChanged(result.comment)
   }
 
   return (
@@ -200,7 +206,7 @@ export function CommentItem({
             <button
               type="button"
               disabled={busy}
-              aria-label={`Accept the suggestion by ${whose}`}
+              aria-label={`Accept the suggestion, ${whose}`}
               onClick={() => void decide('accept')}
               className={primaryStyle}
             >
@@ -210,7 +216,7 @@ export function CommentItem({
           <button
             type="button"
             disabled={busy}
-            aria-label={`Decline the suggestion by ${whose}`}
+            aria-label={`Decline the suggestion, ${whose}`}
             onClick={() => void decide('decline')}
             className={buttonStyle}
           >
@@ -236,7 +242,7 @@ export function CommentItem({
             <button
               type="button"
               aria-expanded={mode === 'history'}
-              aria-label={`Edit history of the comment by ${whose}`}
+              aria-label={`Edit history of ${whose}`}
               onClick={() => setMode(mode === 'history' ? 'idle' : 'history')}
               className={buttonStyle}
             >
@@ -246,7 +252,7 @@ export function CommentItem({
           {comment.mine && comment.kind === 'comment' && (
             <button
               type="button"
-              aria-label={`Edit your comment of ${when}`}
+              aria-label={`Edit your comment, ${whose}`}
               onClick={() => setMode('editing')}
               className={buttonStyle}
             >
@@ -260,8 +266,8 @@ export function CommentItem({
                 type="button"
                 aria-label={
                   comment.kind === 'suggestion'
-                    ? `Withdraw your suggestion of ${when}`
-                    : `Remove your comment of ${when}`
+                    ? `Withdraw your suggestion, ${whose}`
+                    : `Remove your comment, ${whose}`
                 }
                 onClick={() => setMode('confirm-remove')}
                 className={dangerStyle}
@@ -274,7 +280,7 @@ export function CommentItem({
       {mode === 'confirm-remove' && (
         <div
           role="group"
-          aria-label={`Confirm removal of your comment of ${when}`}
+          aria-label={`Confirm removal of ${whose}`}
           className="mt-3"
         >
           <p className="text-sm text-[#d8ceb0]">{REMOVE_COMMENT_EXPLAINED}</p>
@@ -321,10 +327,11 @@ export function CommentItem({
 
       {comment.replies && comment.replies.length > 0 && (
         <ol className="mt-3 flex flex-col gap-3">
-          {comment.replies.map((replyView) => (
+          {comment.replies.map((replyView, index) => (
             <CommentItem
               key={replyView.commentId}
               comment={replyView}
+              position={`reply ${index + 1} to ${position}`}
               actions={actions}
               isReply
             />
