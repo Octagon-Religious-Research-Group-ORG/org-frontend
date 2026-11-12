@@ -41,7 +41,24 @@ vi.mock('./BeliefOwnerTools', () => ({
   ),
 }))
 
+vi.mock('./CommentThread', () => ({
+  CommentThread: (props: {
+    tabId: string
+    belief: { text: string; textSeq: number }
+    onPageChanged: () => void
+  }) => (
+    <div data-testid="thread">
+      {JSON.stringify({ tabId: props.tabId, belief: props.belief })}
+      <button type="button" onClick={props.onPageChanged}>
+        page changed stub
+      </button>
+    </div>
+  ),
+}))
+
 afterEach(cleanup)
+
+const noop = () => undefined
 
 const paragraph = (blockId: string, text: string, label = '') => ({
   blockId,
@@ -75,12 +92,14 @@ const tabs: Array<BeliefTab> = [
 
 describe('BeliefTabs', () => {
   it('renders nothing without tabs', () => {
-    const { container } = render(<BeliefTabs slug="quiet-fern" tabs={[]} />)
+    const { container } = render(
+      <BeliefTabs onChanged={noop} slug="quiet-fern" tabs={[]} />,
+    )
     expect(container.textContent).toBe('')
   })
 
   it('has one button per belief, with the label below the art', () => {
-    render(<BeliefTabs slug="quiet-fern" tabs={tabs} />)
+    render(<BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs} />)
     const buttons = screen
       .getAllByRole('button')
       .filter((button) => button.hasAttribute('aria-controls'))
@@ -95,7 +114,9 @@ describe('BeliefTabs', () => {
   })
 
   it('puts every belief’s text in the page, showing only the open one', () => {
-    const { container } = render(<BeliefTabs slug="quiet-fern" tabs={tabs} />)
+    const { container } = render(
+      <BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs} />,
+    )
     expect(container.textContent).toContain('Second text')
     expect(container.querySelector<HTMLElement>('#panel-t1')?.hidden).toBe(
       false,
@@ -104,7 +125,9 @@ describe('BeliefTabs', () => {
   })
 
   it('opens a tab when it is pressed', () => {
-    const { container } = render(<BeliefTabs slug="quiet-fern" tabs={tabs} />)
+    const { container } = render(
+      <BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs} />,
+    )
     const third = screen
       .getAllByRole('button')
       .find((button) => button.textContent.includes('Third')) as HTMLElement
@@ -117,12 +140,12 @@ describe('BeliefTabs', () => {
   })
 
   it('groups tabs under their category', () => {
-    render(<BeliefTabs slug="quiet-fern" tabs={tabs} />)
+    render(<BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs} />)
     expect(screen.getByRole('heading', { name: 'Theology' })).toBeTruthy()
   })
 
   it('marks imported tabs for review, in the tab and in the panel', () => {
-    render(<BeliefTabs slug="quiet-fern" tabs={tabs} />)
+    render(<BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs} />)
     expect(screen.getAllByText('Imported, please review')).toHaveLength(2)
   })
 })
@@ -146,7 +169,7 @@ describe('Paragraphs', () => {
 
 describe('BeliefTabs history and owner tools', () => {
   it('offers the text and title history of a belief to any reader, and toggles it', () => {
-    render(<BeliefTabs slug="quiet-fern" tabs={tabs} />)
+    render(<BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs} />)
     fireEvent.click(screen.getByRole('button', { name: 'History' }))
     expect(screen.getByTestId('history').textContent).toContain(
       'history t1 text “First”',
@@ -163,13 +186,14 @@ describe('BeliefTabs history and owner tools', () => {
   })
 
   it('shows no owner tools to a reader', () => {
-    render(<BeliefTabs slug="quiet-fern" tabs={tabs} />)
+    render(<BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs} />)
     expect(screen.queryByTestId('owner-tools')).toBeNull()
   })
 
   it('gives the owner each belief’s versions and its place in the order', () => {
     render(
       <BeliefTabs
+        onChanged={noop}
         slug="quiet-fern"
         tabs={tabs}
         owner={{
@@ -211,6 +235,7 @@ describe('BeliefTabs history and owner tools', () => {
   it('tells the owner when a belief is the only one', () => {
     render(
       <BeliefTabs
+        onChanged={noop}
         slug="quiet-fern"
         tabs={[tabs[0]]}
         owner={{ revisions: { bio: 1, tabs: {} }, onChanged: vi.fn() }}
@@ -225,14 +250,16 @@ describe('BeliefTabs history and owner tools', () => {
 describe('BeliefTabs after a change', () => {
   it('opens the first belief when the open one has gone', () => {
     const { container, rerender } = render(
-      <BeliefTabs slug="quiet-fern" tabs={tabs} />,
+      <BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs} />,
     )
     fireEvent.click(
       screen
         .getAllByRole('button')
         .find((button) => button.textContent.includes('Third')) as HTMLElement,
     )
-    rerender(<BeliefTabs slug="quiet-fern" tabs={tabs.slice(0, 2)} />)
+    rerender(
+      <BeliefTabs onChanged={noop} slug="quiet-fern" tabs={tabs.slice(0, 2)} />,
+    )
     expect(container.querySelector<HTMLElement>('#panel-t1')?.hidden).toBe(
       false,
     )
@@ -243,6 +270,7 @@ describe('BeliefTabs after a change', () => {
       '<script>window.hacked = 1</script><img src=x onerror="window.hacked = 2"><b>bold</b>'
     const { container } = render(
       <BeliefTabs
+        onChanged={noop}
         slug="quiet-fern"
         tabs={[
           {
@@ -265,6 +293,7 @@ describe('BeliefTabs after a change', () => {
     ]
     render(
       <BeliefTabs
+        onChanged={noop}
         slug="quiet-fern"
         tabs={three}
         owner={{ revisions: { bio: 1, tabs: {} }, onChanged: vi.fn() }}
@@ -274,5 +303,39 @@ describe('BeliefTabs after a change', () => {
       screen.getAllByTestId('owner-tools')[1].textContent,
     ) as Record<string, unknown>
     expect(middle).toMatchObject({ isFirst: false, isLast: false })
+  })
+})
+
+describe('BeliefTabs comments (Chunk 9)', () => {
+  it('shows each belief’s comment count and loads only the open belief’s thread', () => {
+    const onChanged = vi.fn()
+    render(
+      <BeliefTabs
+        onChanged={onChanged}
+        slug="quiet-fern"
+        tabs={[
+          { ...tabs[0], commentCount: 1, textSeq: 4 },
+          { ...tabs[1], commentCount: 2_500 },
+          { ...tabs[2], commentCount: 0 },
+        ]}
+      />,
+    )
+    expect(screen.getByText('1 comment')).toBeTruthy()
+    expect(screen.getByText('2,500 comments')).toBeTruthy()
+    expect(screen.queryByText('0 comments')).toBeNull()
+    const threads = screen.getAllByTestId('thread')
+    expect(threads).toHaveLength(1)
+    expect(
+      JSON.parse(threads[0].textContent.replace('page changed stub', '')),
+    ).toEqual({
+      tabId: 't1',
+      belief: { text: 'First text', textSeq: 4 },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'page changed stub' }))
+    expect(onChanged).toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Third', { selector: 'div' }))
+    expect(screen.getByTestId('thread').textContent).toMatch(
+      /"text":"I\. Third text","textSeq":0/,
+    )
   })
 })

@@ -104,6 +104,55 @@ test.describe('member pages, server rendered for a logged-out visitor', () => {
     await expect(belief).toHaveCount(0)
   })
 
+  test('a guest reads a belief’s comments and the page thread, and cannot write', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/open-example')
+    await expect(page.getByText('4 comments')).toBeVisible()
+    const thread = page.getByRole('region', { name: 'Comments' })
+    await expect(
+      thread.getByText('An imported synthetic comment.'),
+    ).toBeVisible()
+    await expect(thread.getByText('Synthetic Pages Author')).toBeVisible()
+    await expect(
+      thread.getByText(/Pages showed May 6, 2020, which is not proof/),
+    ).toBeVisible()
+    await expect(thread.getByText('“synthetic belief”')).toBeVisible()
+    await expect(
+      thread.getByText('Comment removed by its author.'),
+    ).toBeVisible()
+    await expect(
+      thread.getByText(/Suggested rewording · Accepted by the page owner/),
+    ).toBeVisible()
+    await expect(thread.getByText('ORG admin')).toBeVisible()
+    await expect(thread.getByRole('textbox')).toHaveCount(0)
+    await expect(thread.getByRole('button', { name: 'Reply' })).toHaveCount(0)
+    await expect(
+      thread.getByRole('button', { name: 'Suggest a rewording' }),
+    ).toHaveCount(0)
+    await expect(
+      thread.getByText(/Members with an approved page/),
+    ).toBeVisible()
+
+    await thread.getByRole('button', { name: 'Edit history' }).click()
+    const history = thread.getByRole('region', {
+      name: 'Edit history of this comment',
+    })
+    await expect(history.getByText('A synthetic reply.')).toBeVisible()
+    await expect(history.getByText('2468ace01357')).toBeVisible()
+
+    const about = page.getByRole('region', { name: 'About this page' })
+    await expect(about.getByText('No comments yet.')).toBeVisible()
+
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(0)
+  })
+
   test('the community page lists members after a guest enters', async ({
     page,
   }) => {

@@ -20,6 +20,13 @@ vi.mock('./OwnerTools', () => ({
     <div>owner tools: {visibility}</div>
   ),
 }))
+vi.mock('./CommentThread', () => ({
+  CommentThread: (props: { title: string; tabId?: string }) => (
+    <div data-testid="thread">
+      {props.title} {props.tabId ?? 'page'}
+    </div>
+  ),
+}))
 vi.mock('./GetStartedChecklist', () => ({
   GetStartedChecklist: () => <div>get started</div>,
 }))
@@ -84,6 +91,16 @@ describe('ProfileView', () => {
     expect(screen.getByText('@fern')).toBeTruthy()
     expect(screen.getAllByText('A belief').length).toBeGreaterThan(0)
     expect(document.querySelector('.octagon')).not.toBeNull()
+  })
+
+  it('ends with the page’s own thread, "About this page"; a name-only page has none', () => {
+    render(<ProfileView profile={full()} onChanged={() => undefined} />)
+    expect(
+      screen.getAllByTestId('thread').map((thread) => thread.textContent),
+    ).toContain('About this page page')
+    cleanup()
+    render(<ProfileView profile={nameOnly} onChanged={() => undefined} />)
+    expect(screen.queryByTestId('thread')).toBeNull()
   })
 
   it('leaves out empty sections', () => {

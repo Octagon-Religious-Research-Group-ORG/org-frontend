@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useOrgAuth } from '#/lib/auth'
 import { fetchHistory } from '#/lib/members-api'
 import type { HistoryEntry, HistoryPage } from '#/lib/members-api'
+import type { CommentAuthor } from '#/lib/comments-api'
 import { MemberText } from './MemberText'
 
 const SESSION_UNCONFIRMED =
@@ -23,6 +24,19 @@ function formatDay(iso: string) {
   })
 }
 
+function suggesterName(author: CommentAuthor) {
+  switch (author.kind) {
+    case 'member':
+      return author.displayName
+    case 'imported':
+      return author.name
+    case 'admin':
+      return 'an ORG admin'
+    default:
+      return 'a former member'
+  }
+}
+
 /** What a version is, in words; an imported one never claims an older date. */
 function entryNote(entry: HistoryEntry) {
   const notes: Array<string> = []
@@ -36,6 +50,11 @@ function entryNote(entry: HistoryEntry) {
   }
   if (entry.beforeFirstEdit) {
     notes.push('The text before its first edit here.')
+  }
+  if (entry.fromSuggestion) {
+    notes.push(
+      `Accepted from a rewording suggested by ${suggesterName(entry.fromSuggestion.author)}.`,
+    )
   }
   return notes.join(' ')
 }

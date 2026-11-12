@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { TabPerforations } from '#/components/BlotterPerforations'
+import { editorText } from '#/lib/members-api'
 import type { BeliefTab, Revisions } from '#/lib/members-api'
 import { BeliefOwnerTools } from './BeliefOwnerTools'
+import { CommentThread } from './CommentThread'
 import { buttonStyle } from './editor-styles'
 import { HistoryPanel } from './HistoryPanel'
 import { Paragraphs } from './Paragraphs'
@@ -19,6 +21,12 @@ function placeInGroup(tabs: Array<BeliefTab>, index: number) {
   if (same.length === 1) return 'only'
   if (at === 0) return 'first'
   return at === same.length - 1 ? 'last' : 'middle'
+}
+
+/** "1 comment", "3 comments"; nothing for none or an older server. */
+export function commentCountLabel(count: number | undefined) {
+  if (!count) return undefined
+  return count === 1 ? '1 comment' : `${count.toLocaleString('en-US')} comments`
 }
 
 function groupTabs(tabs: Array<BeliefTab>) {
@@ -39,11 +47,14 @@ export function BeliefTabs({
   slug,
   tabs,
   owner,
+  onChanged,
 }: {
   slug: string
   tabs: Array<BeliefTab>
   /** Only on the owner's own page: what each edit starts from. */
   owner?: { revisions: Revisions; onChanged: () => void }
+  /** Reload the page, e.g. after a suggestion was accepted. */
+  onChanged: () => void
 }) {
   const [chosen, setOpen] = useState(tabs.at(0)?.tabId)
   // A removed or reloaded-away belief falls back to the first one, so a
@@ -93,6 +104,11 @@ export function BeliefTabs({
                 {tab.needsReview && (
                   <div className="mt-1 text-[11px] text-[#f1d78a]">
                     {REVIEW_NOTE}
+                  </div>
+                )}
+                {commentCountLabel(tab.commentCount) && (
+                  <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9f9676]">
+                    {commentCountLabel(tab.commentCount)}
                   </div>
                 )}
               </button>
@@ -162,6 +178,20 @@ export function BeliefTabs({
               isLast={['last', 'only'].includes(placeInGroup(tabs, index))}
               isOnly={tabs.length === 1}
               onChanged={owner.onChanged}
+            />
+          )}
+          {/* Only the open belief loads its thread. */}
+          {open === tab.tabId && (
+            <CommentThread
+              key={tab.tabId}
+              slug={slug}
+              title="Comments"
+              tabId={tab.tabId}
+              belief={{
+                text: editorText(tab.paragraphs),
+                textSeq: tab.textSeq ?? 0,
+              }}
+              onPageChanged={onChanged}
             />
           )}
         </article>

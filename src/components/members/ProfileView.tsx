@@ -3,6 +3,7 @@ import type { MemberProfile } from '#/lib/members-api'
 import { CONTACT_METHODS } from '#/lib/membership-api'
 import { BeliefTabs } from './BeliefTabs'
 import { BioSection } from './BioSection'
+import { CommentThread } from './CommentThread'
 import { GetStartedChecklist } from './GetStartedChecklist'
 import { OwnerTools } from './OwnerTools'
 import { Paragraphs } from './Paragraphs'
@@ -114,6 +115,7 @@ export function ProfileView({
       <BeliefTabs
         slug={profile.slug}
         tabs={profile.tabs}
+        onChanged={onChanged}
         owner={
           profile.isOwner && profile.revisions
             ? { revisions: profile.revisions, onChanged }
@@ -135,6 +137,14 @@ export function ProfileView({
           <Paragraphs paragraphs={extra.paragraphs} />
         </section>
       ))}
+
+      <div className="max-w-3xl">
+        <CommentThread
+          slug={profile.slug}
+          title="About this page"
+          onPageChanged={onChanged}
+        />
+      </div>
     </>
   )
 }

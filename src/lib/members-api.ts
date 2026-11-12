@@ -2,6 +2,7 @@ import { notFound } from '@tanstack/react-router'
 import { API_BASE_URL, ApiError } from './api'
 import { memberRequest } from './membership-api'
 import type { ContactEntry, ProfileVisibility } from './membership-api'
+import type { CommentAuthor } from './comments-api'
 
 export interface ParagraphView {
   blockId: string
@@ -16,6 +17,10 @@ export interface BeliefTab {
   group?: string
   needsReview: boolean
   paragraphs: Array<ParagraphView>
+  /** Comments a reader sees in this belief's thread (older servers: absent). */
+  commentCount?: number
+  /** The belief text's newest version: what a suggestion is written on. */
+  textSeq?: number
 }
 
 export interface ExtraSection {
@@ -44,6 +49,8 @@ export interface FullProfile {
   bio: Array<ParagraphView>
   extras: Array<ExtraSection>
   tabs: Array<BeliefTab>
+  /** Comments in the page's own thread, "About this page". */
+  pageCommentCount?: number
   /** Owner only: the newest version of each field, what an edit starts from. */
   revisions?: Revisions
   manage?: {
@@ -76,6 +83,8 @@ export interface HistoryEntry {
   beforeFirstEdit: boolean
   /** The start of each paragraph's hash, in reading order, for that entry. */
   partHashes?: Array<string>
+  /** The owner accepted a member's rewording suggestion: whose. */
+  fromSuggestion?: { commentId: string; author: CommentAuthor }
 }
 
 /** Lone UTF-16 surrogates, which the server stores as U+FFFD. */

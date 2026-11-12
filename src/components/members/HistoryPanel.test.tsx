@@ -137,6 +137,33 @@ describe('HistoryPanel', () => {
     ).toBeTruthy()
   })
 
+  it.each([
+    [
+      { kind: 'member' as const, displayName: 'Synthetic Member' },
+      'Synthetic Member',
+    ],
+    [{ kind: 'imported' as const, name: 'Pages Name' }, 'Pages Name'],
+    [{ kind: 'admin' as const }, 'an ORG admin'],
+    [{ kind: 'former-member' as const }, 'a former member'],
+  ])(
+    'names whose suggestion a version came from (%o)',
+    async (author, name) => {
+      mocks.fetchHistory.mockResolvedValueOnce({
+        entries: [entry({ fromSuggestion: { commentId: 'cmt_1', author } })],
+        page: 1,
+        hasMore: false,
+      })
+      render(
+        <HistoryPanel slug="quiet-fern" label="the bio" onClose={onClose} />,
+      )
+      expect(
+        await screen.findByText(
+          `Accepted from a rewording suggested by ${name}.`,
+        ),
+      ).toBeTruthy()
+    },
+  )
+
   it('shows member text with HTML in it as the characters it is, never as markup', async () => {
     const hostile =
       '<script>window.hacked = 1</script><img src=x onerror="window.hacked = 2"><b>bold</b>'

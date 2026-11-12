@@ -28,6 +28,8 @@ const PROFILES = {
         group: 'Synthetic group',
         needsReview: true,
         paragraphs: [paragraph('b2', 'First synthetic belief.')],
+        commentCount: 4,
+        textSeq: 2,
       },
       {
         tabId: 't2',
@@ -92,6 +94,94 @@ const HISTORY = {
   },
 }
 
+// Threads as the server sends them (Chunk 9): oldest first, replies nested.
+const THREADS = {
+  t1: {
+    viewerMayComment: false,
+    viewerMaySuggest: false,
+    comments: [
+      {
+        commentId: 'cmt_imp1',
+        kind: 'comment',
+        source: 'imported',
+        author: { kind: 'imported', name: 'Synthetic Pages Author' },
+        postedAt: '2026-10-11T08:00:00.000Z',
+        importedDate: '2020-05-06T00:00:00.000Z',
+        removed: false,
+        body: 'An imported synthetic comment.',
+        anchorText: 'synthetic belief',
+        edited: false,
+        mine: false,
+        replies: [
+          {
+            commentId: 'cmt_2',
+            kind: 'comment',
+            source: 'member',
+            author: {
+              kind: 'member',
+              displayName: 'Open Example',
+              slug: 'open-example',
+            },
+            postedAt: '2026-11-10T09:00:00.000Z',
+            removed: false,
+            body: 'A synthetic reply, edited once.',
+            edited: true,
+            editedAt: '2026-11-11T09:30:00.000Z',
+            mine: false,
+          },
+          {
+            commentId: 'cmt_3',
+            kind: 'comment',
+            source: 'member',
+            author: { kind: 'former-member' },
+            postedAt: '2026-11-10T10:00:00.000Z',
+            removed: true,
+            edited: false,
+            mine: false,
+          },
+        ],
+      },
+      {
+        commentId: 'cmt_4',
+        kind: 'suggestion',
+        source: 'member',
+        author: { kind: 'admin' },
+        postedAt: '2026-11-11T10:00:00.000Z',
+        removed: false,
+        body: '',
+        edited: false,
+        mine: false,
+        suggestion: {
+          proposedText: 'First synthetic belief.',
+          baseSeq: 1,
+          status: 'accepted',
+          decidedAt: '2026-11-11T11:00:00.000Z',
+        },
+      },
+    ],
+  },
+  page: { viewerMayComment: false, viewerMaySuggest: false, comments: [] },
+}
+
+const COMMENT_HISTORY = {
+  page: 1,
+  hasMore: false,
+  entries: [
+    {
+      seq: 2,
+      savedAt: '2026-11-11T09:30:00.000Z',
+      text: 'A synthetic reply, edited once.',
+      hash: '13579bdf0246',
+    },
+    {
+      seq: 1,
+      savedAt: '2026-11-10T09:00:00.000Z',
+      text: 'A synthetic reply.',
+      hash: '2468ace01357',
+    },
+  ],
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
@@ -117,6 +207,17 @@ createServer((request, response) => {
   )
   if (history) {
     send(200, HISTORY[history[1]])
+    return
+  }
+  if (
+    url.pathname ===
+    '/api/v1/members/profiles/open-example/comments/cmt_2/history'
+  ) {
+    send(200, COMMENT_HISTORY)
+    return
+  }
+  if (url.pathname === '/api/v1/members/profiles/open-example/comments') {
+    send(200, THREADS[url.searchParams.get('tab') ?? 'page'] ?? THREADS.page)
     return
   }
   const profile = url.pathname.match(/^\/api\/v1\/members\/profiles\/([^/]+)$/)
