@@ -144,7 +144,7 @@ describe('HistoryPanel', () => {
     ],
     [{ kind: 'imported' as const, name: 'Pages Name' }, 'Pages Name'],
     [{ kind: 'admin' as const }, 'an ORG admin'],
-    [{ kind: 'former-member' as const }, 'a former member'],
+    [{ kind: 'member' as const }, 'a member'],
   ])(
     'names whose suggestion a version came from (%o)',
     async (author, name) => {

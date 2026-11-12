@@ -12,7 +12,7 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CommentView, ThreadPage } from '#/lib/comments-api'
 import { REMOVED_NOTE } from './CommentItem'
-import { CommentThread, WRITE_HINT } from './CommentThread'
+import { CommentThread, MAX_REFRESH_PAGES, WRITE_HINT } from './CommentThread'
 
 const mocks = vi.hoisted(() => ({
   auth: { isLoading: false, isAuthenticated: false, getToken: vi.fn() },
@@ -150,7 +150,7 @@ describe('CommentThread, read only', () => {
     expect(screen.getByText('“the highlighted words”')).toBeTruthy()
     expect(screen.getByText('A synthetic reply.')).toBeTruthy()
     expect(screen.getAllByText(/Imported from Apple Pages/)).toHaveLength(2)
-    expect(screen.queryByRole('button', { name: 'Reply' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Reply to / })).toBeNull()
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.getByText(WRITE_HINT)).toBeTruthy()
   })
@@ -201,7 +201,7 @@ describe('CommentThread, read only', () => {
     expect(await screen.findByText(REMOVED_NOTE)).toBeTruthy()
     expect(screen.getByText('Still here.')).toBeTruthy()
     // Neither the removed one nor a reply offers "Reply".
-    expect(screen.queryByRole('button', { name: 'Reply' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Reply to / })).toBeNull()
   })
 
   it('says why it cannot load', async () => {
@@ -297,12 +297,12 @@ describe('CommentThread, writing', () => {
       }),
     )
     renderThread({ tabId: 't' })
-    const replies = await screen.findAllByRole('button', { name: 'Reply' })
+    const replies = await screen.findAllByRole('button', { name: /^Reply to / })
     expect(replies).toHaveLength(1)
     fireEvent.click(replies[0])
-    fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Reply to / }))
     expect(screen.queryByLabelText('Your reply')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Reply to / }))
     fireEvent.change(screen.getByLabelText('Your reply'), {
       target: { value: 'Answer.' },
     })
@@ -323,7 +323,7 @@ describe('CommentThread, writing', () => {
     mocks.fetchThread.mockResolvedValue(page({ viewerMayComment: true }))
     mocks.postComment.mockRejectedValueOnce(new Error('Removed meanwhile.'))
     renderThread()
-    fireEvent.click(await screen.findByRole('button', { name: 'Reply' }))
+    fireEvent.click(await screen.findByRole('button', { name: /^Reply to / }))
     fireEvent.change(screen.getByLabelText('Your reply'), {
       target: { value: 'Answer.' },
     })
@@ -340,11 +340,13 @@ describe('CommentThread, writing', () => {
       page({ comments: [comment({ mine: true, seq: 2 })] }),
     )
     renderThread()
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Edit your comment/ }),
+    )
     const box = screen.getByLabelText<HTMLTextAreaElement>('Edit your comment')
     expect(box.value).toBe('A synthetic comment.')
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Edit your comment/ }))
     fireEvent.change(screen.getByLabelText('Edit your comment'), {
       target: { value: 'Better words.' },
     })
@@ -357,12 +359,16 @@ describe('CommentThread, writing', () => {
         2,
       ),
     )
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }))
-    const confirm = screen.getByRole('group', { name: 'Confirm removal' })
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Remove your comment/ }),
+    )
+    const confirm = screen.getByRole('group', { name: /^Confirm removal/ })
     expect(confirm.textContent).toMatch(/five years/)
     fireEvent.click(within(confirm).getByRole('button', { name: 'Keep it' }))
-    expect(screen.queryByRole('group', { name: 'Confirm removal' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(screen.queryByRole('group', { name: /^Confirm removal/ })).toBeNull()
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Remove your comment/ }),
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Yes, remove it' }))
     await waitFor(() =>
       expect(mocks.removeComment).toHaveBeenCalledWith('tok', 'cmt_1'),
@@ -377,7 +383,9 @@ describe('CommentThread, writing', () => {
       new Error('Changed in another window.'),
     )
     renderThread()
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Edit your comment/ }),
+    )
     fireEvent.change(screen.getByLabelText('Edit your comment'), {
       target: { value: 'x' },
     })
@@ -401,11 +409,11 @@ describe('CommentThread, writing', () => {
     expect(
       await screen.findByText('edited Nov 12, 2026, 10:30 AM UTC'),
     ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Edit history' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Edit history/ }))
     expect(screen.getByTestId('comment-history').textContent).toMatch(/cmt_1/)
-    fireEvent.click(screen.getByRole('button', { name: 'Edit history' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Edit history/ }))
     expect(screen.queryByTestId('comment-history')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Edit history' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Edit history/ }))
     fireEvent.click(screen.getByRole('button', { name: 'close stub' }))
     expect(screen.queryByTestId('comment-history')).toBeNull()
   })
@@ -503,7 +511,9 @@ describe('CommentThread, suggestions', () => {
     expect(
       screen.queryByRole('button', { name: 'Suggest a rewording' }),
     ).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Accept' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Accept the suggestion/ }),
+    )
     await waitFor(() => expect(onPageChanged).toHaveBeenCalled())
     expect(mocks.acceptSuggestion).toHaveBeenCalledWith('tok', 'cmt_1')
     await waitFor(() => expect(mocks.fetchThread).toHaveBeenCalledTimes(2))
@@ -515,10 +525,14 @@ describe('CommentThread, suggestions', () => {
       new Error('The belief changed since this suggestion was written.'),
     )
     renderThread({ tabId: 'tab_1', belief: true })
-    fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Accept the suggestion/ }),
+    )
     expect((await screen.findByRole('alert')).textContent).toMatch(/changed/)
     expect(onPageChanged).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Decline the suggestion/ }),
+    )
     await waitFor(() =>
       expect(mocks.declineSuggestion).toHaveBeenCalledWith('tok', 'cmt_1'),
     )
@@ -531,8 +545,12 @@ describe('CommentThread, suggestions', () => {
     )
     renderThread({ tabId: 'tab_1', belief: true })
     expect(await screen.findByText(/can only be declined now/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Decline' })).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: /^Accept the suggestion/ }),
+    ).toBeNull()
+    expect(
+      screen.getByRole('button', { name: /^Decline the suggestion/ }),
+    ).toBeTruthy()
   })
 
   it('shows a decided suggestion with its outcome, and lets its author withdraw only a pending one', async () => {
@@ -558,8 +576,12 @@ describe('CommentThread, suggestions', () => {
         /Accepted by the page owner · Nov 12, 2026, 11:00 AM UTC/,
       ),
     ).toBeTruthy()
-    expect(screen.getAllByRole('button', { name: 'Withdraw' })).toHaveLength(1)
-    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+    expect(
+      screen.getAllByRole('button', { name: /^Withdraw your suggestion/ }),
+    ).toHaveLength(1)
+    expect(
+      screen.queryByRole('button', { name: /^Edit your comment/ }),
+    ).toBeNull()
     expect(screen.queryByText('The belief now.')).toBeNull()
   })
 
@@ -579,5 +601,205 @@ describe('CommentThread, suggestions', () => {
     expect(await screen.findByText(REMOVED_NOTE)).toBeTruthy()
     expect(screen.getAllByText('Proposed')).toHaveLength(1)
     expect(screen.queryByText('Now')).toBeNull()
+  })
+})
+
+describe('CommentThread, review round', () => {
+  beforeEach(() => {
+    mocks.auth.isAuthenticated = true
+  })
+
+  const many = (from: number, count: number) =>
+    Array.from({ length: count }, (_, i) =>
+      comment({ commentId: `cmt_${from + i}`, body: `Comment ${from + i}` }),
+    )
+
+  it('says why a reader may not write, in their own situation (item 9)', async () => {
+    for (const [block, words] of [
+      ['verify-email', /confirm your email address/],
+      ['needs-approved-page', /once your member page has been approved/],
+      ['sign-in', /Sign in, or finish joining/],
+    ] as const) {
+      mocks.fetchThread.mockResolvedValueOnce(page({ viewerWriteBlock: block }))
+      renderThread()
+      expect(await screen.findByText(words)).toBeTruthy()
+      expect(screen.queryByRole('textbox')).toBeNull()
+      cleanup()
+    }
+    // An older server says nothing: the general hint.
+    mocks.fetchThread.mockResolvedValueOnce(page())
+    renderThread()
+    expect(await screen.findByText(WRITE_HINT)).toBeTruthy()
+  })
+
+  it('keeps the loaded pages after an edit, reading them again in place (item 7)', async () => {
+    mocks.fetchThread
+      .mockResolvedValueOnce(page({ comments: many(0, 2), nextAfter: 'cmt_1' }))
+      .mockResolvedValueOnce(
+        page({
+          comments: [comment({ commentId: 'cmt_2', mine: true, seq: 1 })],
+          nextAfter: 'cmt_2',
+        }),
+      )
+      // The refresh: both pages again, the edited one changed.
+      .mockResolvedValueOnce(page({ comments: many(0, 2), nextAfter: 'cmt_1' }))
+      .mockResolvedValueOnce(
+        page({
+          comments: [comment({ commentId: 'cmt_2', body: 'Edited in place.' })],
+          nextAfter: 'cmt_2',
+        }),
+      )
+    renderThread({ tabId: 't' })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Load more comments' }),
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Edit your comment/ }),
+    )
+    fireEvent.change(screen.getByLabelText('Edit your comment'), {
+      target: { value: 'Edited in place.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Edited in place.')).toBeTruthy()
+    expect(screen.getByText('Comment 0')).toBeTruthy()
+    expect(mocks.fetchThread).toHaveBeenCalledTimes(4)
+    expect(mocks.fetchThread.mock.calls[3][1]).toMatchObject({ after: 'cmt_1' })
+  })
+
+  it('reads on to the end after a new comment, so it shows where it now is, and empties the box', async () => {
+    mocks.fetchThread
+      .mockResolvedValueOnce(
+        page({ viewerMayComment: true, comments: many(0, 1), nextAfter: 'a' }),
+      )
+      .mockResolvedValueOnce(
+        page({ viewerMayComment: true, comments: many(0, 1), nextAfter: 'a' }),
+      )
+      .mockResolvedValueOnce(
+        page({ viewerMayComment: true, comments: many(1, 1), nextAfter: 'b' }),
+      )
+      .mockResolvedValueOnce(
+        page({
+          viewerMayComment: true,
+          comments: [comment({ commentId: 'cmt_new', body: 'My new one.' })],
+        }),
+      )
+    renderThread({ tabId: 't' })
+    const box = await screen.findByLabelText<HTMLTextAreaElement>(
+      'Comment on this belief',
+    )
+    fireEvent.change(box, { target: { value: 'My new one.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }))
+    expect(await screen.findByText('My new one.')).toBeTruthy()
+    expect(screen.getByText('Comment 0')).toBeTruthy()
+    expect(screen.getByText('Comment 1')).toBeTruthy()
+    expect(box.value).toBe('')
+    expect(mocks.postComment).toHaveBeenCalledTimes(1)
+    expect(
+      mocks.fetchThread.mock.calls.map(
+        (call) => (call[1] as { after?: string }).after,
+      ),
+    ).toEqual([undefined, undefined, 'a', 'b'])
+  })
+
+  it(`stops reading on after ${MAX_REFRESH_PAGES} pages`, async () => {
+    mocks.fetchThread.mockResolvedValue(
+      page({ viewerMayComment: true, nextAfter: 'more' }),
+    )
+    renderThread()
+    fireEvent.change(await screen.findByLabelText('Comment on this page'), {
+      target: { value: 'x' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }))
+    await waitFor(() =>
+      expect(mocks.fetchThread).toHaveBeenCalledTimes(1 + MAX_REFRESH_PAGES),
+    )
+  })
+
+  it('ignores an older load that finishes after a newer one', async () => {
+    let first: (value: unknown) => void = () => undefined
+    mocks.fetchThread
+      .mockReturnValueOnce(new Promise((done) => (first = done)))
+      .mockResolvedValueOnce(page({ comments: many(9, 1) }))
+    const view = renderThread()
+    view.rerender(
+      <CommentThread
+        slug="quiet-fern"
+        title="Comments"
+        tabId="other"
+        onPageChanged={onPageChanged}
+      />,
+    )
+    expect(await screen.findByText('Comment 9')).toBeTruthy()
+    first(page({ comments: many(0, 1) }))
+    await Promise.resolve()
+    expect(screen.queryByText('Comment 0')).toBeNull()
+  })
+
+  it('ignores an older failure that arrives after a newer load', async () => {
+    let fail: (value: unknown) => void = () => undefined
+    mocks.fetchThread
+      .mockReturnValueOnce(new Promise((_, reject) => (fail = reject)))
+      .mockResolvedValueOnce(page({ comments: many(5, 1) }))
+    const view = renderThread()
+    view.rerender(
+      <CommentThread
+        slug="quiet-fern"
+        title="Comments"
+        tabId="other"
+        onPageChanged={onPageChanged}
+      />,
+    )
+    expect(await screen.findByText('Comment 5')).toBeTruthy()
+    fail(new Error('late failure'))
+    await Promise.resolve()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('gives every comment its own button names (item 8)', async () => {
+    mocks.fetchThread.mockResolvedValue(
+      page({
+        viewerMayComment: true,
+        comments: [
+          comment({ commentId: 'a', postedAt: '2026-11-12T09:00:00.000Z' }),
+          comment({ commentId: 'b', postedAt: '2026-11-12T10:00:00.000Z' }),
+        ],
+      }),
+    )
+    renderThread()
+    const replies = await screen.findAllByRole('button', { name: /^Reply to/ })
+    const names = replies.map((button) => button.getAttribute('aria-label'))
+    expect(new Set(names).size).toBe(2)
+    expect(names[0]).toBe(
+      'Reply to Synthetic Member, Nov 12, 2026, 9:00 AM UTC',
+    )
+  })
+
+  it('sends a note with a suggestion, and none when left empty', async () => {
+    mocks.fetchThread.mockResolvedValue(
+      page({ viewerMayComment: true, viewerMaySuggest: true, comments: [] }),
+    )
+    renderThread({ tabId: 'tab_1', belief: true })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Suggest a rewording' }),
+    )
+    fireEvent.change(
+      screen.getByLabelText('Your wording of the whole belief'),
+      {
+        target: { value: 'Clearer.' },
+      },
+    )
+    fireEvent.change(screen.getByLabelText('A note for the owner (optional)'), {
+      target: { value: ' Why it reads better. ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Send suggestion' }))
+    await waitFor(() =>
+      expect(mocks.suggestRewording).toHaveBeenCalledWith('tok', {
+        slug: 'quiet-fern',
+        tabId: 'tab_1',
+        text: 'Clearer.',
+        baseSeq: 3,
+        note: 'Why it reads better.',
+      }),
+    )
   })
 })

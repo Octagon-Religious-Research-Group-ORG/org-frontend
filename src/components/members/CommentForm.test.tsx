@@ -10,7 +10,9 @@ import {
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CommentAuthorName } from './CommentAuthorName'
+import { CharacterCount } from './CharacterCount'
 import { CommentForm } from './CommentForm'
+import { SuggestForm } from './SuggestForm'
 
 vi.mock('@tanstack/react-router', async (original) => ({
   ...(await original<object>()),
@@ -122,7 +124,8 @@ describe('CommentAuthorName', () => {
         />
         <CommentAuthorName author={{ kind: 'imported', name: 'Pages Name' }} />
         <CommentAuthorName author={{ kind: 'admin' }} />
-        <CommentAuthorName author={{ kind: 'former-member' }} />
+        <CommentAuthorName author={{ kind: 'member' }} />
+        <CommentAuthorName author={{ kind: 'member', slug: 'no-name' }} />
       </>,
     )
     expect(screen.getByText('Linked').closest('a')?.getAttribute('href')).toBe(
@@ -131,7 +134,68 @@ describe('CommentAuthorName', () => {
     expect(screen.getByText('Unlinked').closest('a')).toBeNull()
     expect(screen.getByText('Pages Name').closest('a')).toBeNull()
     expect(container.textContent).toContain('ORG admin')
-    expect(container.textContent).toContain('A former member')
+    // Not named by the server: not named here, and never linked.
+    expect(screen.getAllByText('A member')).toHaveLength(2)
     expect(container.querySelectorAll('a')).toHaveLength(1)
+  })
+})
+
+describe('SuggestForm', () => {
+  const renderForm = (onSubmit = vi.fn(() => Promise.resolve(true))) => {
+    const onCancel = vi.fn()
+    render(
+      <SuggestForm
+        initial="The belief now."
+        busy={false}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+      />,
+    )
+    return { onSubmit, onCancel }
+  }
+
+  it('checks the belief and the note against their own limits before sending', () => {
+    const { onSubmit, onCancel } = renderForm()
+    const text = screen.getByLabelText('Your wording of the whole belief')
+    const note = screen.getByLabelText('A note for the owner (optional)')
+    fireEvent.change(text, { target: { value: '\u200b' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send suggestion' }))
+    expect(screen.getByRole('alert').textContent).toMatch(/as you would word/)
+    fireEvent.change(text, { target: { value: 'a'.repeat(20_001) } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send suggestion' }))
+    expect(screen.getByRole('alert').textContent).toMatch(/belief is longer/)
+    fireEvent.change(text, { target: { value: 'Fine.' } })
+    fireEvent.change(note, { target: { value: 'b'.repeat(10_001) } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send suggestion' }))
+    expect(screen.getByRole('alert').textContent).toMatch(/note is longer/)
+    expect(onSubmit).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onCancel).toHaveBeenCalled()
+  })
+
+  it('sends both, cleaned', async () => {
+    const { onSubmit } = renderForm()
+    fireEvent.change(screen.getByLabelText('A note for the owner (optional)'), {
+      target: { value: '  Clearer \u0007 ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Send suggestion' }))
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith('The belief now.', 'Clearer'),
+    )
+  })
+})
+
+describe('CharacterCount', () => {
+  it('announces the count only near the limit and over it', () => {
+    const { container, rerender } = render(
+      <CharacterCount id="c" value="abc" max={10} />,
+    )
+    const live = () => container.querySelector('[aria-live="polite"]')
+    expect(live()?.textContent).toBe('')
+    expect(container.querySelector('#c')?.getAttribute('aria-live')).toBeNull()
+    rerender(<CharacterCount id="c" value="abcdefghi" max={10} />)
+    expect(live()?.textContent).toBe('Close to the limit: 9 / 10 characters.')
+    rerender(<CharacterCount id="c" value="abcdefghijk" max={10} />)
+    expect(live()?.textContent).toBe('Too long: 11 / 10 characters.')
   })
 })

@@ -135,7 +135,7 @@ test.describe('member pages, server rendered for a logged-out visitor', () => {
       thread.getByText(/Members with an approved page/),
     ).toBeVisible()
 
-    await thread.getByRole('button', { name: 'Edit history' }).click()
+    await thread.getByRole('button', { name: /^Edit history/ }).click()
     const history = thread.getByRole('region', {
       name: 'Edit history of this comment',
     })

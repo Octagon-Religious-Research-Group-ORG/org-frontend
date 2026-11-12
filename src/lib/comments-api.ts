@@ -5,12 +5,17 @@ export const MAX_COMMENT_LENGTH = 10_000
 
 /** Who wrote a comment, as this reader may see them. */
 export type CommentAuthor =
-  /** A site member; `slug` only when the reader may open their page. */
-  | { kind: 'member'; displayName: string; slug?: string }
+  /**
+   * A site member: named only when their page is approved and the reader
+   * may see it; `slug` only when the reader may open the whole page.
+   */
+  | { kind: 'member'; displayName?: string; slug?: string }
   /** A name typed into Apple Pages; it proves no identity. */
   | { kind: 'imported'; name: string }
   | { kind: 'admin' }
-  | { kind: 'former-member' }
+
+/** Why the comment form is not offered. */
+export type WriteBlock = 'sign-in' | 'needs-approved-page' | 'verify-email'
 
 export interface SuggestionView {
   /** Absent once its author removed it. */
@@ -51,6 +56,8 @@ export interface ThreadPage {
   comments: Array<CommentView>
   nextAfter?: string
   viewerMayComment: boolean
+  /** Why not, when the reader may not write. */
+  viewerWriteBlock?: WriteBlock
   viewerMaySuggest: boolean
 }
 

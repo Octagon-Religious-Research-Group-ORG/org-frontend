@@ -7,7 +7,7 @@ import {
   removeComment,
 } from '#/lib/comments-api'
 import type { CommentView } from '#/lib/comments-api'
-import { CommentAuthorName } from './CommentAuthorName'
+import { authorLabel, CommentAuthorName } from './CommentAuthorName'
 import { CommentForm } from './CommentForm'
 import { CommentHistory } from './CommentHistory'
 import { buttonStyle, dangerStyle, primaryStyle } from './editor-styles'
@@ -61,6 +61,9 @@ export function CommentItem({
   isReply?: boolean
 }) {
   const [mode, setMode] = useState<Mode>('idle')
+  // Unique names for the buttons of each comment (review item 8).
+  const when = formatSavedAt(comment.postedAt)
+  const whose = `${authorLabel(comment.author)}, ${when}`
   const { busy, problem, run } = useOwnerAction()
   const suggestion = comment.suggestion
 
@@ -197,6 +200,7 @@ export function CommentItem({
             <button
               type="button"
               disabled={busy}
+              aria-label={`Accept the suggestion by ${whose}`}
               onClick={() => void decide('accept')}
               className={primaryStyle}
             >
@@ -206,6 +210,7 @@ export function CommentItem({
           <button
             type="button"
             disabled={busy}
+            aria-label={`Decline the suggestion by ${whose}`}
             onClick={() => void decide('decline')}
             className={buttonStyle}
           >
@@ -220,6 +225,7 @@ export function CommentItem({
             <button
               type="button"
               aria-expanded={mode === 'replying'}
+              aria-label={`Reply to ${whose}`}
               onClick={() => setMode(mode === 'replying' ? 'idle' : 'replying')}
               className={buttonStyle}
             >
@@ -230,6 +236,7 @@ export function CommentItem({
             <button
               type="button"
               aria-expanded={mode === 'history'}
+              aria-label={`Edit history of the comment by ${whose}`}
               onClick={() => setMode(mode === 'history' ? 'idle' : 'history')}
               className={buttonStyle}
             >
@@ -239,6 +246,7 @@ export function CommentItem({
           {comment.mine && comment.kind === 'comment' && (
             <button
               type="button"
+              aria-label={`Edit your comment of ${when}`}
               onClick={() => setMode('editing')}
               className={buttonStyle}
             >
@@ -250,6 +258,11 @@ export function CommentItem({
               suggestion?.status === 'pending') && (
               <button
                 type="button"
+                aria-label={
+                  comment.kind === 'suggestion'
+                    ? `Withdraw your suggestion of ${when}`
+                    : `Remove your comment of ${when}`
+                }
                 onClick={() => setMode('confirm-remove')}
                 className={dangerStyle}
               >
@@ -259,7 +272,11 @@ export function CommentItem({
         </div>
       )}
       {mode === 'confirm-remove' && (
-        <div role="group" aria-label="Confirm removal" className="mt-3">
+        <div
+          role="group"
+          aria-label={`Confirm removal of your comment of ${when}`}
+          className="mt-3"
+        >
           <p className="text-sm text-[#d8ceb0]">{REMOVE_COMMENT_EXPLAINED}</p>
           <div className="flex flex-wrap gap-3">
             <button

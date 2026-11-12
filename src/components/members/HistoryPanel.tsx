@@ -25,16 +25,9 @@ function formatDay(iso: string) {
 }
 
 function suggesterName(author: CommentAuthor) {
-  switch (author.kind) {
-    case 'member':
-      return author.displayName
-    case 'imported':
-      return author.name
-    case 'admin':
-      return 'an ORG admin'
-    default:
-      return 'a former member'
-  }
+  if (author.kind === 'admin') return 'an ORG admin'
+  if (author.kind === 'imported') return author.name
+  return author.displayName ?? 'a member'
 }
 
 /** What a version is, in words; an imported one never claims an older date. */

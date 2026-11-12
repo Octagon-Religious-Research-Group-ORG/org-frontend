@@ -57,6 +57,7 @@ const config = defineConfig({
         'src/components/members/CommentHistory.tsx',
         'src/components/members/CommentItem.tsx',
         'src/components/members/CommentThread.tsx',
+        'src/components/members/SuggestForm.tsx',
         'src/components/shop/MemberProfileSync.tsx',
         'src/components/TestSiteBanner.tsx',
         'src/components/admin/content-editor/editor-utils.ts',

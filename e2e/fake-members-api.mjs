@@ -133,7 +133,7 @@ const THREADS = {
             commentId: 'cmt_3',
             kind: 'comment',
             source: 'member',
-            author: { kind: 'former-member' },
+            author: { kind: 'member' },
             postedAt: '2026-11-10T10:00:00.000Z',
             removed: true,
             edited: false,
