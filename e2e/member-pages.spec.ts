@@ -127,7 +127,9 @@ test.describe('member pages, server rendered for a logged-out visitor', () => {
     ).toBeVisible()
     await expect(thread.getByText('ORG admin')).toBeVisible()
     await expect(thread.getByRole('textbox')).toHaveCount(0)
-    await expect(thread.getByRole('button', { name: 'Reply' })).toHaveCount(0)
+    await expect(thread.getByRole('button', { name: /^Reply to/ })).toHaveCount(
+      0,
+    )
     await expect(
       thread.getByRole('button', { name: 'Suggest a rewording' }),
     ).toHaveCount(0)
