@@ -117,9 +117,12 @@ export function castOrgPageVote(
   })
 }
 
-/** Takes the reader's vote on an ORG page back, on any revision. */
+/**
+ * Takes the reader's vote on an ORG page back, on any revision, even when the
+ * page is no longer published; the page's votes come back only while it is.
+ */
 export function withdrawOrgPageVote(token: string, pageId: string) {
-  return memberRequest<{ withdrawn: true } & OrgPageVotes>(
+  return memberRequest<{ withdrawn: true } & Partial<OrgPageVotes>>(
     myOrgPageVote(pageId),
     { method: 'DELETE', token },
   )

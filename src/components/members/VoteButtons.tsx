@@ -135,7 +135,10 @@ export function VoteButtons({
         return withdrawVote(token, { slug, tabId })
       }
       const page = await withdrawOrgPageVote(token, orgPageId)
-      return { votes: page.votes, textSeq: page.revision }
+      // No votes back once the page is no longer published.
+      return page.votes
+        ? { votes: page.votes, textSeq: page.revision }
+        : { withdrawn: true as const }
     })
     if (answer === undefined) return
     if (answer.votes) {

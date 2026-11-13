@@ -420,6 +420,18 @@ describe('VoteButtons', () => {
       expect(mocks.withdrawVote).not.toHaveBeenCalled()
     })
 
+    it('clears the pressed vote when the page is no longer published (review LOW 4)', async () => {
+      mocks.withdrawOrgPageVote.mockResolvedValueOnce({ withdrawn: true })
+      renderOrg(votes({ myVote: 'agree' }))
+      fireEvent.click(button('Agree with “About Us”'))
+      await waitFor(() =>
+        expect(onVotes).toHaveBeenCalledWith({ textSeq: 2, votes: votes() }),
+      )
+      expect(
+        await screen.findByText(/counts above are from before/),
+      ).toBeTruthy()
+    })
+
     it('calls an earlier vote one on an earlier version of this page', () => {
       renderOrg(votes({ earlierWording: 1, myVoteOnEarlierWording: 'agree' }))
       expect(screen.getByText('(1 vote on an earlier version)')).toBeTruthy()

@@ -36,7 +36,10 @@ const mocks = vi.hoisted(() => ({
   postOrgPageComment: vi.fn(),
   fetchOrgPageCommentHistory: vi.fn(),
   fetchThread: vi.fn(),
+  reloadPage: vi.fn(),
 }))
+
+vi.mock('#/lib/reload-page', () => ({ reloadPage: mocks.reloadPage }))
 
 vi.mock('#/lib/auth', () => ({ useOrgAuth: () => mocks.auth }))
 vi.mock('#/lib/votes-api', async (original) => ({
@@ -109,6 +112,7 @@ function deferred<T>() {
 }
 
 beforeEach(() => {
+  mocks.reloadPage.mockReset()
   mocks.auth.isLoading = false
   mocks.auth.isAuthenticated = true
   mocks.auth.getToken.mockReset().mockResolvedValue('tok')
@@ -264,10 +268,46 @@ describe('OrgPageReactions', () => {
     })
   })
 
-  it('says so when the page was published again since it was opened', async () => {
-    mocks.fetchOrgPageVotes.mockResolvedValue(answer({}, 3))
+  it('says so when the page was published again since it was opened, and votes on nothing the reader has not seen (review MEDIUM 2)', async () => {
+    mocks.fetchOrgPageVotes.mockResolvedValue(
+      answer(
+        { agree: 1, earlierWording: 1, myVoteOnEarlierWording: 'agree' },
+        3,
+      ),
+    )
     renderReactions(2)
     expect(await screen.findByText(PAGE_UPDATED_NOTE)).toBeTruthy()
+    await screen.findByText('1 agree · 0 disagree')
+    for (const name of [
+      'Agree with “About Us”',
+      'Disagree with “About Us”',
+      'Agree and comment on “About Us”',
+      'Disagree and comment on “About Us”',
+    ]) {
+      expect(button(name).hasAttribute('disabled')).toBe(true)
+    }
+    expect(
+      screen.queryByRole('button', {
+        name: 'Confirm my vote on the new version',
+      }),
+    ).toBeNull()
+    fireEvent.click(button('Agree with “About Us”'))
+    expect(mocks.castOrgPageVote).not.toHaveBeenCalled()
+    fireEvent.click(button('Reload the page'))
+    expect(mocks.reloadPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops voting once a vote’s answer shows a newer revision', async () => {
+    mocks.castOrgPageVote.mockResolvedValueOnce(
+      answer({ agree: 2, myVote: 'agree' }, 3),
+    )
+    renderReactions(2)
+    await screen.findByText('1 agree · 0 disagree')
+    fireEvent.click(button('Agree with “About Us”'))
+    expect(await screen.findByText(PAGE_UPDATED_NOTE)).toBeTruthy()
+    expect(button('Disagree with “About Us”').hasAttribute('disabled')).toBe(
+      true,
+    )
   })
 
   it('shows nothing at all for a page the server does not know', async () => {

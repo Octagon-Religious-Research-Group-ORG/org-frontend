@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError } from '#/lib/api'
 import { useOrgAuth } from '#/lib/auth'
+import { reloadPage } from '#/lib/reload-page'
 import { fetchOrgPageVotes } from '#/lib/votes-api'
 import type { OrgPageVotes, VoteValue } from '#/lib/votes-api'
 import { CommentThread } from './CommentThread'
+import { buttonStyle } from './editor-styles'
 import { VoteButtons } from './VoteButtons'
 import type { CommentAccess } from './VoteButtons'
 
@@ -104,6 +106,24 @@ export function OrgPageReactions({
     // `load` reads the latest props itself; a new reader or page reloads.
   }, [auth, pageId])
 
+  // A newer revision than the one shown (review MEDIUM 2): a vote now would
+  // be on text the reader has not seen, so the buttons show the counts only
+  // and the reader is asked to reload. Taking a vote back needs no revision,
+  // but here it waits for the reload too, like every other button.
+  const stale = state !== undefined && state.revision !== revision
+  const shownVotes = useMemo(
+    () =>
+      state === undefined || !stale
+        ? state?.votes
+        : {
+            agree: state.votes.agree,
+            disagree: state.votes.disagree,
+            earlierWording: state.votes.earlierWording,
+            mayVote: false,
+          },
+    [state, stale],
+  )
+
   if (missing) return null
   const headingId = `reactions-${pageId}`
 
@@ -123,17 +143,20 @@ export function OrgPageReactions({
           {problem}
         </p>
       )}
-      {state && state.revision !== revision && (
-        <p role="status" className="mt-3 text-sm text-[#f1d78a]">
-          {PAGE_UPDATED_NOTE}
-        </p>
+      {stale && (
+        <div role="status" className="mt-3 text-sm text-[#f1d78a]">
+          <p>{PAGE_UPDATED_NOTE}</p>
+          <button type="button" onClick={reloadPage} className={buttonStyle}>
+            Reload the page
+          </button>
+        </div>
       )}
-      {state ? (
+      {shownVotes ? (
         <VoteButtons
           orgPageId={pageId}
           title={title}
           textSeq={revision}
-          votes={state.votes}
+          votes={shownVotes}
           comment={access}
           onVotes={(answer) => {
             setState({ pageId, revision: answer.textSeq, votes: answer.votes })
