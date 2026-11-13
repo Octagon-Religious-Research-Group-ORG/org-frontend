@@ -273,6 +273,8 @@ function InviteForm({ onSent }: { onSent: () => void }) {
             setReason('')
             onSent()
           },
+          // Not a success to announce, but the list may have changed.
+          onSent,
         )
       }}
     >

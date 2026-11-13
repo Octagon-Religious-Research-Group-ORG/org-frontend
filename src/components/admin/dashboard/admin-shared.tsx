@@ -58,6 +58,8 @@ export function useAdminAction() {
   async function run(
     write: (token: string) => Promise<unknown>,
     after: () => void,
+    /** Re-reads the screen without claiming success; defaults to `after`. */
+    refresh: () => void = after,
   ) {
     setBusy(true)
     setError(undefined)
@@ -66,8 +68,14 @@ export function useAdminAction() {
       after()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'That did not work.')
-      // The screen is out of date (someone else acted first): show the news.
-      if (err instanceof ApiError && err.status === 409) after()
+      // The screen is out of date (someone else acted first), or the change
+      // happened but its audit record did not (a 500): show the news.
+      if (
+        err instanceof ApiError &&
+        (err.status === 409 || err.status === 500)
+      ) {
+        refresh()
+      }
     } finally {
       setBusy(false)
     }

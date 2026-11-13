@@ -330,6 +330,23 @@ describe('RolesSection', () => {
     expect(mocks.fetchAdmins).toHaveBeenCalledTimes(1)
   })
 
+  it('re-reads the invitations when one was sent but not fully recorded (round 6)', async () => {
+    const user = userEvent.setup()
+    const message =
+      'The invitation was sent, but the audit record is incomplete.'
+    mocks.inviteByEmail.mockRejectedValueOnce(new ApiError(message, 500))
+    render(<RolesSection />)
+    await user.type(
+      await screen.findByLabelText('Email address'),
+      'gap@example.test',
+    )
+    await user.click(screen.getByRole('button', { name: 'Send invitation' }))
+    expect((await screen.findByRole('alert')).textContent).toBe(message)
+    await waitFor(() => expect(mocks.fetchInvitations).toHaveBeenCalledTimes(2))
+    // Not announced as a clean success.
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   it('says why an invitation was refused', async () => {
     const user = userEvent.setup()
     mocks.inviteByEmail.mockRejectedValue(
