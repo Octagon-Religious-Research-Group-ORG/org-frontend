@@ -210,11 +210,6 @@ function ClaimCard({
           {claim.reason && ` · Reason: ${claim.reason}`}
         </p>
       )}
-      {claim.approving && (
-        <p role="status" className="mt-2 text-sm text-[#f1d78a]">
-          Another admin is approving this request right now.
-        </p>
-      )}
       {error && (
         <p role="alert" className="mt-2 text-sm text-[#f1a07a]">
           {error}

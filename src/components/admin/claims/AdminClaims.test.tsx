@@ -45,7 +45,6 @@ vi.mock('@tanstack/react-router', async (original) => ({
 const claim = (overrides: Record<string, unknown> = {}) => ({
   claimId: 'c1',
   status: 'pending',
-  approving: false,
   message: 'Synthetic: I wrote it.',
   requestedAt: '2026-11-13T10:00:00Z',
   decidedBySite: false,
@@ -171,15 +170,7 @@ describe('AdminClaims', () => {
     expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull()
   })
 
-  it('says when another admin is approving, and when there is nothing', async () => {
-    mocks.fetchAdminClaims.mockResolvedValueOnce({
-      claims: [claim({ approving: true })],
-    })
-    render(<AdminClaims />)
-    expect(
-      await screen.findByText(/approving this request right now/),
-    ).toBeTruthy()
-    cleanup()
+  it('says when there is nothing', async () => {
     mocks.fetchAdminClaims.mockResolvedValueOnce({ claims: [] })
     render(<AdminClaims />)
     expect(await screen.findByText('No requests here.')).toBeTruthy()

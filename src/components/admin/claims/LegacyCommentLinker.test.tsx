@@ -4,7 +4,11 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as ClaimsApi from '#/lib/claims-api'
-import { LegacyCommentLinker, NAME_IS_A_HINT } from './LegacyCommentLinker'
+import {
+  LegacyCommentLinker,
+  LINKING_OFF_NOTES,
+  NAME_IS_A_HINT,
+} from './LegacyCommentLinker'
 
 // Synthetic data only.
 const mocks = vi.hoisted(() => ({
@@ -25,7 +29,11 @@ vi.mock('#/lib/claims-api', async (original) => ({
 }))
 
 const LIST = {
-  owner: { slug: 'imported-page', displayName: 'Synthetic Owner' },
+  owner: {
+    slug: 'imported-page',
+    displayName: 'Synthetic Owner',
+    anonymous: false,
+  },
   hasMore: false,
   comments: [
     {
@@ -202,6 +210,49 @@ describe('LegacyCommentLinker', () => {
     renderLinker()
     expect((await screen.findByRole('alert')).textContent).toMatch(/expired/)
   })
+
+  it.each(['anonymous', 'page-gone'] as const)(
+    'explains why linking is off (%s) and offers only taking links back',
+    async (linkingOff) => {
+      const user = userEvent.setup()
+      mocks.fetchLegacyComments.mockResolvedValueOnce({
+        ...(linkingOff === 'anonymous'
+          ? { owner: { ...LIST.owner, anonymous: true } }
+          : {}),
+        linkingOff,
+        hasMore: false,
+        comments: [LIST.comments[0]],
+      })
+      renderLinker()
+      expect((await screen.findByRole('note')).textContent).toBe(
+        LINKING_OFF_NOTES[linkingOff],
+      )
+      expect(
+        screen.queryByRole('button', { name: 'Link the ticked comments' }),
+      ).toBeNull()
+      expect(
+        screen.getByText(
+          linkingOff === 'anonymous'
+            ? 'Linked to Synthetic Owner'
+            : 'Linked to this member',
+        ),
+      ).toBeTruthy()
+      mocks.linkLegacyComments.mockResolvedValueOnce({
+        unlinked: ['c_linked'],
+        skipped: [],
+      })
+      await user.click(screen.getByRole('checkbox', { name: /Already linked/ }))
+      await user.click(
+        screen.getByRole('button', { name: 'Take back the ticked links' }),
+      )
+      expect(mocks.linkLegacyComments).toHaveBeenCalledWith(
+        'tok',
+        'c1',
+        ['c_linked'],
+        true,
+      )
+    },
+  )
 
   it('ignores an answer that arrives after it was closed', async () => {
     let resolve: (value: unknown) => void = () => undefined

@@ -11,6 +11,14 @@ import { buttonStyle, primaryStyle } from '#/components/members/editor-styles'
 export const NAME_IS_A_HINT =
   'A matching name is only a hint: an Apple Pages name proves nothing. Read each comment and link only the ones you know this member wrote. The comment keeps its text, its Pages name and its date.'
 
+/** Why linking is off, in the admin's words. */
+export const LINKING_OFF_NOTES = {
+  anonymous:
+    "This member's page uses a nickname, so linking is off: a linked comment would show its Pages name, perhaps their real name, beside the nickname. Existing links can still be taken back.",
+  'page-gone':
+    "This member's page no longer exists, so no new links can be made. Existing links can still be taken back.",
+} as const
+
 /**
  * Linking imported comments to the member whose claim was approved (plan Q5,
  * Chunk 11). A separate step from the approval: the admin ticks each
@@ -99,6 +107,11 @@ export function LegacyCommentLinker({ claimId }: { claimId: string }) {
       className="mt-4 border-t border-[rgba(236,226,196,0.16)] pt-4"
     >
       <p className="text-xs leading-6 text-[#b8ad8d]">{NAME_IS_A_HINT}</p>
+      {list?.linkingOff && (
+        <p role="note" className="mt-2 text-sm text-[#f1d78a]">
+          {LINKING_OFF_NOTES[list.linkingOff]}
+        </p>
+      )}
       {error && (
         <p role="alert" className="mt-2 text-sm text-[#f1a07a]">
           {error}
@@ -136,7 +149,7 @@ export function LegacyCommentLinker({ claimId }: { claimId: string }) {
                   {comment.page && ` · on ${comment.page.displayName}`}
                   {comment.linked && (
                     <span className="ml-2 text-[#9dcf83]">
-                      Linked to {list.owner.displayName}
+                      Linked to {list.owner?.displayName ?? 'this member'}
                     </span>
                   )}
                   {!comment.linked && comment.nameMatches && (
@@ -158,14 +171,16 @@ export function LegacyCommentLinker({ claimId }: { claimId: string }) {
       )}
       {list && list.comments.length > 0 && (
         <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            className={primaryStyle}
-            disabled={busy || !pickedUnlinked}
-            onClick={() => void apply(list, false)}
-          >
-            Link the ticked comments
-          </button>
+          {!list.linkingOff && (
+            <button
+              type="button"
+              className={primaryStyle}
+              disabled={busy || !pickedUnlinked}
+              onClick={() => void apply(list, false)}
+            >
+              Link the ticked comments
+            </button>
+          )}
           <button
             type="button"
             className={buttonStyle}

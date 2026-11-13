@@ -41,8 +41,6 @@ export interface MyClaims {
 export interface AdminClaim {
   claimId: string
   status: ClaimStatus
-  /** An approval is being written right now. */
-  approving: boolean
   message: string
   requestedAt: string
   decidedAt?: string
@@ -68,7 +66,13 @@ export interface LegacyComment {
 }
 
 export interface LegacyCommentList {
-  owner: ClaimedPage
+  /** The claimed page; absent once it is gone. */
+  owner?: ClaimedPage & { anonymous: boolean }
+  /**
+   * Why new links are refused: the page uses a nickname (a link would show
+   * the Pages name beside it), or it is gone. Existing links can be undone.
+   */
+  linkingOff?: 'anonymous' | 'page-gone'
   comments: Array<LegacyComment>
   hasMore: boolean
 }
