@@ -12,6 +12,7 @@ import {
   postComment,
   postOrgPageComment,
   removeComment,
+  reportContent,
   suggestRewording,
 } from './comments-api'
 
@@ -117,5 +118,36 @@ describe('comments API', () => {
     await declineSuggestion('tok', 'cmt_2')
     expect(call(5).url).toMatch(/\/cmt_2\/decline$/)
     expect(call(5).headers.Authorization).toBe('Bearer tok')
+  })
+})
+
+describe('reporting (Chunk 13)', () => {
+  it('reports a comment or a page, with a note only when one is written', async () => {
+    await reportContent(
+      'tok',
+      { targetType: 'comment', commentId: 'cmt_1' },
+      'spam',
+      '   ',
+    )
+    expect(call(0).url).toMatch(/\/me\/reports$/)
+    expect(call(0).init.method).toBe('POST')
+    expect(call(0).headers.Authorization).toBe('Bearer tok')
+    expect(JSON.parse(call(0).init.body as string)).toEqual({
+      targetType: 'comment',
+      commentId: 'cmt_1',
+      reason: 'spam',
+    })
+    await reportContent(
+      'tok',
+      { targetType: 'member-page', slug: 'some-page' },
+      'other',
+      ' Synthetic note. ',
+    )
+    expect(JSON.parse(call(1).init.body as string)).toEqual({
+      targetType: 'member-page',
+      slug: 'some-page',
+      reason: 'other',
+      note: 'Synthetic note.',
+    })
   })
 })

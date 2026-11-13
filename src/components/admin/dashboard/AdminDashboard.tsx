@@ -2,15 +2,11 @@ import { useState } from 'react'
 import { fetchAdminSettings } from '#/lib/admin-api'
 import { AdminClaims } from '#/components/admin/claims/AdminClaims'
 import { buttonStyle, primaryStyle } from '#/components/members/editor-styles'
-import {
-  LoadState,
-  noteStyle,
-  sectionHeading,
-  useAdminLoad,
-} from './admin-shared'
+import { LoadState, useAdminLoad } from './admin-shared'
 import { InboxSection } from './InboxSection'
 import { LogSection } from './LogSection'
 import { MembersSection } from './MembersSection'
+import { ModerationSection } from './ModerationSection'
 import { RolesSection } from './RolesSection'
 import { SettingsSection } from './SettingsSection'
 
@@ -26,9 +22,6 @@ export const SECTIONS = [
 
 export type SectionId = (typeof SECTIONS)[number]['id']
 
-export const MODERATION_COMING =
-  'Reports on comments and pages, and hiding or restoring them, arrive in the next stage of the Members Area. Until then nothing waits here.'
-
 /**
  * The admin dashboard (Chunk 12). The first thing it does is ask the server
  * whether this account is an admin; anyone else sees one line and no admin
@@ -40,6 +33,8 @@ export function AdminDashboard({
   initialSection?: SectionId
 }) {
   const [section, setSection] = useState<SectionId>(initialSection)
+  // The Members section opened from a reported page (Chunk 13), searched.
+  const [memberQuery, setMemberQuery] = useState('')
   // The cheapest admin read, as the gate: a 403 here hides every section.
   const gate = useAdminLoad(fetchAdminSettings, 'gate')
 
@@ -66,7 +61,10 @@ export function AdminDashboard({
               role="tab"
               aria-selected={tab.id === section}
               className={tab.id === section ? primaryStyle : buttonStyle}
-              onClick={() => setSection(tab.id)}
+              onClick={() => {
+                setMemberQuery('')
+                setSection(tab.id)
+              }}
             >
               {tab.label}
             </button>
@@ -74,18 +72,28 @@ export function AdminDashboard({
         </nav>
         <div role="tabpanel" className="mt-10">
           {section === 'inbox' && (
-            <InboxSection onReviewPages={() => setSection('members')} />
+            <InboxSection
+              onReviewPages={() => setSection('members')}
+              onOpenModeration={() => setSection('moderation')}
+            />
           )}
-          {section === 'members' && <MembersSection />}
+          {section === 'members' && (
+            <MembersSection
+              key={memberQuery}
+              {...(memberQuery
+                ? { initialFilter: 'all' as const, initialQuery: memberQuery }
+                : {})}
+            />
+          )}
           {section === 'claims' && <AdminClaims embedded />}
           {section === 'roles' && <RolesSection />}
           {section === 'moderation' && (
-            <section aria-labelledby="moderation-heading">
-              <h2 id="moderation-heading" className={sectionHeading}>
-                Moderation queue
-              </h2>
-              <p className={noteStyle}>{MODERATION_COMING}</p>
-            </section>
+            <ModerationSection
+              onOpenMember={(slug) => {
+                setMemberQuery(slug)
+                setSection('members')
+              }}
+            />
           )}
           {section === 'log' && <LogSection />}
           {section === 'settings' && <SettingsSection />}

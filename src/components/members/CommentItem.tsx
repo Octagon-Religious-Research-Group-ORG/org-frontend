@@ -14,10 +14,24 @@ import { CommentHistory } from './CommentHistory'
 import { buttonStyle, dangerStyle, primaryStyle } from './editor-styles'
 import { formatSavedAt } from './HistoryPanel'
 import { MemberText } from './MemberText'
+import { ReportButton } from './ReportButton'
 import { useOwnerAction } from './use-owner-action'
 import { STANCE_LABEL } from './VoteButtons'
 
 export const REMOVED_NOTE = 'Comment removed by its author.'
+/** What every reader sees in place of a moderated comment (Chunk 13). */
+export const MODERATED_NOTES = {
+  hidden: 'Hidden by a moderator.',
+  removed: 'Removed by a moderator.',
+} as const
+/** What its author sees. */
+export const MODERATED_MINE =
+  'A moderator took this comment down. Only the admins can read it now, and it can no longer be edited.'
+/** Above the text an admin still reads. */
+export const MODERATED_ADMIN_LABELS = {
+  hidden: 'Hidden by a moderator · only admins see this text',
+  removed: 'Removed by a moderator · only admins see this text',
+} as const
 export const REMOVE_COMMENT_EXPLAINED =
   'It disappears from the thread for everyone, and replies keep their place. ORG keeps its text for at least five years.'
 
@@ -168,8 +182,22 @@ export function CommentItem({
         </blockquote>
       )}
 
+      {comment.moderated && !comment.removed && comment.body !== undefined && (
+        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#f1a07a]">
+          {MODERATED_ADMIN_LABELS[comment.moderated]}
+        </p>
+      )}
       {comment.removed ? (
         <p className="mt-2 text-sm italic text-[#9f9676]">{REMOVED_NOTE}</p>
+      ) : comment.moderated && comment.body === undefined ? (
+        <>
+          <p className="mt-2 text-sm italic text-[#9f9676]">
+            {MODERATED_NOTES[comment.moderated]}
+          </p>
+          {comment.mine && (
+            <p className="mt-1 text-xs text-[#f1d78a]">{MODERATED_MINE}</p>
+          )}
+        </>
       ) : mode === 'editing' ? (
         <CommentForm
           label="Edit your comment"
@@ -242,7 +270,7 @@ export function CommentItem({
 
       {!comment.removed && mode !== 'editing' && (
         <div className="flex flex-wrap gap-3">
-          {!isReply && actions.mayReply && (
+          {!isReply && actions.mayReply && !comment.moderated && (
             <button
               type="button"
               aria-expanded={mode === 'replying'}
@@ -253,7 +281,7 @@ export function CommentItem({
               Reply
             </button>
           )}
-          {comment.edited && (
+          {comment.edited && comment.body !== undefined && (
             <button
               type="button"
               aria-expanded={mode === 'history'}
@@ -264,7 +292,7 @@ export function CommentItem({
               Edit history
             </button>
           )}
-          {comment.mine && comment.kind === 'comment' && (
+          {comment.mine && comment.kind === 'comment' && !comment.moderated && (
             <button
               type="button"
               aria-label={`Edit your comment, ${whose}`}
@@ -290,6 +318,12 @@ export function CommentItem({
                 {comment.kind === 'suggestion' ? 'Withdraw' : 'Remove'}
               </button>
             )}
+          {actions.mayReply && !comment.mine && !comment.moderated && (
+            <ReportButton
+              target={{ targetType: 'comment', commentId: comment.commentId }}
+              label={`Report ${whose}`}
+            />
+          )}
         </div>
       )}
       {mode === 'confirm-remove' && (

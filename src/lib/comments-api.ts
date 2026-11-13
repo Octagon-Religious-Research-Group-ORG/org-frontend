@@ -49,6 +49,11 @@ export interface CommentView {
   /** The date Apple Pages showed: never proof of when it was written. */
   importedDate?: string
   removed: boolean
+  /**
+   * A moderator hid or removed it (Chunk 13). Readers get no `body`; an
+   * admin still does.
+   */
+  moderated?: 'hidden' | 'removed'
   body?: string
   /** The highlighted text an imported comment was attached to. */
   anchorText?: string
@@ -237,4 +242,46 @@ export function declineSuggestion(token: string, commentId: string) {
     decisionPath(commentId, 'decline'),
     { method: 'POST', token },
   )
+}
+
+/** The reasons a member picks from when reporting (Chunk 13). */
+export const REPORT_REASONS = [
+  { value: 'harassment', label: 'Harassment or bullying' },
+  { value: 'hate', label: 'Hate' },
+  { value: 'spam', label: 'Spam or advertising' },
+  { value: 'personal-information', label: 'Shares private information' },
+  { value: 'illegal', label: 'Something illegal' },
+  { value: 'off-topic', label: 'Off topic' },
+  { value: 'other', label: 'Something else' },
+] as const
+
+export type ReportReason = (typeof REPORT_REASONS)[number]['value']
+
+/** Most characters of a report's note (the server's limit). */
+export const MAX_REPORT_NOTE_LENGTH = 1_000
+
+export type ReportTarget =
+  | { targetType: 'comment'; commentId: string }
+  | { targetType: 'member-page'; slug: string }
+
+/**
+ * Reports a comment or a member page to the admins. The answer says only
+ * that it arrived; an empty note is sent as none.
+ */
+export function reportContent(
+  token: string,
+  target: ReportTarget,
+  reason: ReportReason,
+  note: string,
+) {
+  const trimmed = note.trim()
+  return memberRequest<{ reported: boolean }>('/me/reports', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({
+      ...target,
+      reason,
+      ...(trimmed ? { note: trimmed } : {}),
+    }),
+  })
 }

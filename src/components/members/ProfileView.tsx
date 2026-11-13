@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useOrgAuth } from '#/lib/auth'
 import type { MemberProfile } from '#/lib/members-api'
 import { CONTACT_METHODS } from '#/lib/membership-api'
 import { BeliefTabs } from './BeliefTabs'
@@ -10,6 +11,7 @@ import { OwnerTools } from './OwnerTools'
 import { Paragraphs } from './Paragraphs'
 import { ProfilePicture } from './ProfilePicture'
 import { RemovedBeliefs } from './RemovedBeliefs'
+import { ReportButton } from './ReportButton'
 
 function methodLabel(method: string) {
   return CONTACT_METHODS.find((entry) => entry.value === method)?.label
@@ -31,6 +33,19 @@ export function ProfileView({
   profile: MemberProfile
   onChanged: () => void
 }) {
+  const auth = useOrgAuth()
+  // Chunk 13: a signed-in reader may report someone else's page; the server
+  // decides whether this account may.
+  const report = auth.isAuthenticated && !profile.isOwner && (
+    <div className="mt-4">
+      <ReportButton
+        target={{ targetType: 'member-page', slug: profile.slug }}
+        label={`Report the page ${profile.displayName}`}
+        text="Report this page"
+      />
+    </div>
+  )
+
   if (profile.access === 'name-only') {
     return (
       <>
@@ -46,6 +61,7 @@ export function ProfileView({
           to join or sign in.
         </p>
         {profile.claimable && <ClaimPanel slug={profile.slug} />}
+        {report}
       </>
     )
   }
@@ -80,6 +96,7 @@ export function ProfileView({
       </div>
 
       {profile.claimable && <ClaimPanel slug={profile.slug} />}
+      {report}
 
       {/* New members only: an imported member is not new here. */}
       {profile.isOwner && profile.manage?.source === 'native' && (

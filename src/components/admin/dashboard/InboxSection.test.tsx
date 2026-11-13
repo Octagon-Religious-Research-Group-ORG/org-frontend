@@ -5,7 +5,12 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '#/lib/api'
 import type * as AdminApi from '#/lib/admin-api'
-import { InboxSection, KIND_LABELS, OWN_NOTICE } from './InboxSection'
+import {
+  InboxSection,
+  KIND_LABELS,
+  OWN_NOTICE,
+  reportSubject,
+} from './InboxSection'
 
 const mocks = vi.hoisted(() => ({
   auth: {
@@ -60,7 +65,7 @@ describe('InboxSection', () => {
   it('shows a waiting page and sends the admin to review it', async () => {
     const user = userEvent.setup()
     const review = vi.fn()
-    render(<InboxSection onReviewPages={review} />)
+    render(<InboxSection onReviewPages={review} onOpenModeration={vi.fn()} />)
     const card = await screen.findByRole('article', {
       name: KIND_LABELS['page-submitted'],
     })
@@ -74,7 +79,7 @@ describe('InboxSection', () => {
 
   it('marks a notice handled and reloads', async () => {
     const user = userEvent.setup()
-    render(<InboxSection onReviewPages={vi.fn()} />)
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={vi.fn()} />)
     await user.click(
       await screen.findByRole('button', { name: 'Mark handled' }),
     )
@@ -95,7 +100,7 @@ describe('InboxSection', () => {
       ],
       hasMore: false,
     })
-    render(<InboxSection onReviewPages={vi.fn()} />)
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={vi.fn()} />)
     expect(await screen.findByText('Synthetic note')).toBeTruthy()
     expect(screen.getByText('A member without a live page')).toBeTruthy()
     expect(
@@ -111,7 +116,7 @@ describe('InboxSection', () => {
       entries: [entry({ kind: 'eam-request', blocksNewRequest: true })],
       hasMore: false,
     })
-    render(<InboxSection onReviewPages={vi.fn()} />)
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={vi.fn()} />)
     expect(await screen.findByText(OWN_NOTICE)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Mark handled' })).toBeNull()
     expect(
@@ -121,7 +126,7 @@ describe('InboxSection', () => {
 
   it('lists handled notices, with when, and pages through them', async () => {
     const user = userEvent.setup()
-    render(<InboxSection onReviewPages={vi.fn()} />)
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={vi.fn()} />)
     await screen.findByRole('article')
     mocks.fetchInbox.mockResolvedValue({
       entries: [
@@ -170,7 +175,7 @@ describe('InboxSection', () => {
     mocks.markInboxHandled.mockRejectedValueOnce(
       new ApiError('That notice has already been handled.', 409),
     )
-    render(<InboxSection onReviewPages={vi.fn()} />)
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={vi.fn()} />)
     await user.click(
       await screen.findByRole('button', { name: 'Mark handled' }),
     )
@@ -188,9 +193,56 @@ describe('InboxSection', () => {
 
   it('shows "admins only" when the server refuses', async () => {
     mocks.fetchInbox.mockRejectedValue(new ApiError('Forbidden', 403))
-    render(<InboxSection onReviewPages={vi.fn()} />)
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={vi.fn()} />)
     expect((await screen.findByRole('alert')).textContent).toBe(
       'This page is for ORG admins.',
     )
+  })
+})
+
+describe('InboxSection: report notices (Chunk 13)', () => {
+  it('names what was reported and opens the moderation queue', async () => {
+    const user = userEvent.setup()
+    const open = vi.fn()
+    mocks.fetchInbox.mockResolvedValue({
+      entries: [
+        entry({
+          entryId: 'r1',
+          kind: 'report',
+          target: { type: 'comment', id: 'cmt_1' },
+          page: {
+            slug: 'quiet-fern',
+            displayName: 'Quiet Fern',
+            reviewStatus: 'approved',
+          },
+        }),
+        entry({
+          entryId: 'r2',
+          kind: 'report',
+          target: { type: 'member-page', id: 'p1' },
+          page: undefined,
+          status: 'handled',
+        }),
+      ],
+      hasMore: false,
+    })
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={open} />)
+    const cards = await screen.findAllByRole('article', {
+      name: KIND_LABELS.report,
+    })
+    expect(cards[0].textContent).toContain('A comment on Quiet Fern')
+    // Not a link to the page: the queue holds the detail.
+    expect(cards[0].querySelector('a')).toBeNull()
+    expect(cards[1].textContent).toContain('A member page')
+    expect(
+      screen.getAllByRole('button', { name: 'Open the moderation queue' }),
+    ).toHaveLength(1)
+    await user.click(
+      screen.getByRole('button', { name: 'Open the moderation queue' }),
+    )
+    expect(open).toHaveBeenCalled()
+    expect(
+      reportSubject(entry({ kind: 'report', page: undefined }) as never),
+    ).toBe('A comment')
   })
 })

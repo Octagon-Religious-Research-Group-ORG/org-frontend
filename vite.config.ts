@@ -82,6 +82,8 @@ const config = defineConfig({
         'src/components/admin/dashboard/SettingsSection.tsx',
         'src/components/members/EamRequestPanel.tsx',
         'src/components/shop/ProfileAdminLinks.tsx',
+        'src/components/members/ReportButton.tsx',
+        'src/components/admin/dashboard/ModerationSection.tsx',
       ],
       thresholds: {
         statements: 100,

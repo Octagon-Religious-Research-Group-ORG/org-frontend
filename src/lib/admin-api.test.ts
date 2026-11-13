@@ -4,16 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   adminTime,
   decideOnPage,
+  dismissReports,
   fetchAdminMembers,
   fetchAdmins,
   fetchAdminSettings,
   fetchInbox,
   fetchInvitations,
   fetchModerationLog,
+  fetchModerationQueue,
   fetchMyEamRequest,
   inviteByEmail,
   isVotingInvite,
   markInboxHandled,
+  moderateComment,
   promoteToAdmin,
   removeAdminRole,
   requestEam,
@@ -179,5 +182,28 @@ describe('admin API', () => {
 
   it('shows times in UTC', () => {
     expect(adminTime('2026-11-13T10:05:00Z')).toBe('Nov 13, 2026, 10:05 AM')
+  })
+})
+
+describe('moderation API (Chunk 13)', () => {
+  it('reads the queue and acts on a comment or a target, each with a reason', async () => {
+    await fetchModerationQueue('tok', 'resolved', 2)
+    expect(last()).toMatchObject({
+      path: '/admin/moderation/queue?status=resolved&page=2',
+      method: 'GET',
+      auth: 'Bearer tok',
+    })
+    await moderateComment('tok', 'cmt/1', 'hide', 'Synthetic')
+    expect(last()).toMatchObject({
+      path: '/admin/moderation/comments/cmt%2F1/hide',
+      method: 'POST',
+      body: { reason: 'Synthetic' },
+    })
+    await dismissReports('tok', 'member-page', 'p1', 'Synthetic')
+    expect(last()).toMatchObject({
+      path: '/admin/moderation/member-page/p1/dismiss',
+      method: 'POST',
+      body: { reason: 'Synthetic' },
+    })
   })
 })

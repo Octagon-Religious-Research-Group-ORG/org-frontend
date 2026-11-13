@@ -22,6 +22,7 @@ import {
 export const KIND_LABELS: Record<InboxEntry['kind'], string> = {
   'page-submitted': 'New page waiting for approval',
   'eam-request': 'EaM request',
+  report: 'Reported',
 }
 
 export const OWN_NOTICE =
@@ -31,7 +32,14 @@ export const OWN_NOTICE =
  * The admins' inbox (Chunk 12): a new page waiting, or a member asking for
  * EaM. "Notify the admins" happens here for now; emails come in Chunk 14.
  */
-export function InboxSection({ onReviewPages }: { onReviewPages: () => void }) {
+export function InboxSection({
+  onReviewPages,
+  onOpenModeration,
+}: {
+  onReviewPages: () => void
+  /** Opens the moderation queue, for a report notice (Chunk 13). */
+  onOpenModeration: () => void
+}) {
   const [status, setStatus] = useState<InboxStatus>('open')
   const [page, setPage] = useState(1)
   const inbox = useAdminLoad(
@@ -45,9 +53,9 @@ export function InboxSection({ onReviewPages }: { onReviewPages: () => void }) {
         Inbox
       </h2>
       <p className={noteStyle}>
-        New member pages and EaM requests land here. Mark a notice handled once
-        you have dealt with it; approving or rejecting a page handles its notice
-        for you.
+        New member pages, EaM requests and reports land here. Mark a notice
+        handled once you have dealt with it; approving or rejecting a page, or
+        acting on a report in the moderation queue, handles its notice for you.
       </p>
       <div role="tablist" aria-label="Notices" className="mt-4 flex gap-2">
         {(['open', 'handled'] as const).map((tab) => (
@@ -82,6 +90,7 @@ export function InboxSection({ onReviewPages }: { onReviewPages: () => void }) {
                 entry={entry}
                 onChanged={inbox.reload}
                 onReviewPages={onReviewPages}
+                onOpenModeration={onOpenModeration}
               />
             </li>
           ))}
@@ -96,19 +105,31 @@ export function InboxSection({ onReviewPages }: { onReviewPages: () => void }) {
   )
 }
 
+/** What a report notice is about, in words. */
+export function reportSubject(entry: InboxEntry) {
+  const what =
+    entry.target?.type === 'member-page' ? 'A member page' : 'A comment'
+  return entry.page ? `${what} on ${entry.page.displayName}` : what
+}
+
 function InboxCard({
   entry,
   onChanged,
   onReviewPages,
+  onOpenModeration,
 }: {
   entry: InboxEntry
   onChanged: () => void
   onReviewPages: () => void
+  onOpenModeration: () => void
 }) {
   const auth = useOrgAuth()
   const action = useAdminAction()
   const own = auth.user?.sub === entry.subjectUserId
-  const pageName = entry.page?.displayName ?? 'A member without a live page'
+  const pageName =
+    entry.kind === 'report'
+      ? reportSubject(entry)
+      : (entry.page?.displayName ?? 'A member without a live page')
 
   return (
     <article aria-label={KIND_LABELS[entry.kind]} className={cardStyle}>
@@ -116,7 +137,7 @@ function InboxCard({
         {KIND_LABELS[entry.kind]}
       </p>
       <h3 className="mt-2 text-lg text-[#f6efd9]">
-        {entry.page ? (
+        {entry.page && entry.kind !== 'report' ? (
           <Link
             to="/$slug"
             params={{ slug: entry.page.slug }}
@@ -155,6 +176,15 @@ function InboxCard({
               Review waiting pages
             </button>
           )}
+        {entry.kind === 'report' && entry.status === 'open' && (
+          <button
+            type="button"
+            className={primaryStyle}
+            onClick={onOpenModeration}
+          >
+            Open the moderation queue
+          </button>
+        )}
         {!own && entry.status === 'open' && (
           <button
             type="button"

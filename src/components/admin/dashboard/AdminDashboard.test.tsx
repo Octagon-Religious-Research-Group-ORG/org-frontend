@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '#/lib/api'
 import type * as AdminApi from '#/lib/admin-api'
-import { AdminDashboard, MODERATION_COMING, SECTIONS } from './AdminDashboard'
+import { AdminDashboard, SECTIONS } from './AdminDashboard'
 import { ADMINS_ONLY } from './admin-shared'
 
 const mocks = vi.hoisted(() => ({
@@ -25,14 +25,46 @@ vi.mock('#/lib/admin-api', async (original) => ({
 }))
 // Each section has its own tests; here they only say which one is shown.
 vi.mock('./InboxSection', () => ({
-  InboxSection: ({ onReviewPages }: { onReviewPages: () => void }) => (
-    <button type="button" onClick={onReviewPages}>
-      inbox stub
-    </button>
+  InboxSection: ({
+    onReviewPages,
+    onOpenModeration,
+  }: {
+    onReviewPages: () => void
+    onOpenModeration: () => void
+  }) => (
+    <>
+      <button type="button" onClick={onReviewPages}>
+        inbox stub
+      </button>
+      <button type="button" onClick={onOpenModeration}>
+        inbox report stub
+      </button>
+    </>
   ),
 }))
 vi.mock('./MembersSection', () => ({
-  MembersSection: () => <p>members stub</p>,
+  MembersSection: ({
+    initialFilter,
+    initialQuery,
+  }: {
+    initialFilter?: string
+    initialQuery?: string
+  }) => (
+    <p>
+      members stub {initialFilter ?? 'default'} {initialQuery ?? 'none'}
+    </p>
+  ),
+}))
+vi.mock('./ModerationSection', () => ({
+  ModerationSection: ({
+    onOpenMember,
+  }: {
+    onOpenMember: (slug: string) => void
+  }) => (
+    <button type="button" onClick={() => onOpenMember('some-page')}>
+      moderation stub
+    </button>
+  ),
 }))
 vi.mock('./RolesSection', () => ({ RolesSection: () => <p>roles stub</p> }))
 vi.mock('./LogSection', () => ({ LogSection: () => <p>log stub</p> }))
@@ -67,12 +99,12 @@ describe('AdminDashboard', () => {
     ).toBe('true')
 
     const expectations: Array<[string, string]> = [
-      ['Members', 'members stub'],
+      ['Members', 'members stub default none'],
       ['Claims', 'claims stub embedded'],
       ['Roles', 'roles stub'],
       ['Log', 'log stub'],
       ['Settings', 'settings stub'],
-      ['Moderation queue', MODERATION_COMING],
+      ['Moderation queue', 'moderation stub'],
     ]
     for (const [tab, text] of expectations) {
       await user.click(screen.getByRole('tab', { name: tab }))
@@ -84,7 +116,18 @@ describe('AdminDashboard', () => {
     const user = userEvent.setup()
     render(<AdminDashboard />)
     await user.click(await screen.findByText('inbox stub'))
-    expect(screen.getByText('members stub')).toBeTruthy()
+    expect(screen.getByText('members stub default none')).toBeTruthy()
+  })
+
+  it('takes a report notice to the queue, and a reported page to Members (Chunk 13)', async () => {
+    const user = userEvent.setup()
+    render(<AdminDashboard />)
+    await user.click(await screen.findByText('inbox report stub'))
+    await user.click(screen.getByText('moderation stub'))
+    expect(screen.getByText('members stub all some-page')).toBeTruthy()
+    // Choosing a section again starts it fresh.
+    await user.click(screen.getByRole('tab', { name: 'Members' }))
+    expect(screen.getByText('members stub default none')).toBeTruthy()
   })
 
   it('can open on another section', async () => {

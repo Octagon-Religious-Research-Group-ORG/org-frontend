@@ -1,5 +1,6 @@
 import { memberRequest } from './membership-api'
 import type { ProfileVisibility } from './membership-api'
+import type { CommentAuthor } from './comments-api'
 
 /** Most characters a reason holds (the server's limits). */
 export const MAX_REMOVAL_REASON_LENGTH = 500
@@ -63,7 +64,7 @@ export interface LogEntry {
   details?: Record<string, unknown>
 }
 
-export type InboxKind = 'page-submitted' | 'eam-request'
+export type InboxKind = 'page-submitted' | 'eam-request' | 'report'
 export type InboxStatus = 'open' | 'handled'
 
 export interface InboxEntry {
@@ -78,6 +79,8 @@ export interface InboxEntry {
   handledBy?: string
   /** An EaM request that still stops the member asking again. */
   blocksNewRequest?: boolean
+  /** What a `report` notice is about (Chunk 13). */
+  target?: { type: string; id: string }
 }
 
 export interface AdminSettings {
@@ -258,6 +261,111 @@ export function requestEam(token: string, note: string) {
     token,
     ...post(trimmed ? { note: trimmed } : {}),
   })
+}
+
+export type ReportTargetType = 'comment' | 'member-page'
+export type ReportStatus = 'open' | 'resolved'
+export type ReportResolution =
+  'hidden' | 'removed' | 'restored' | 'dismissed' | 'member-removed'
+
+/** Someone named as comments name them (see comments-api). */
+export type QueueAuthor = CommentAuthor
+
+/** One report, as only admins see it. */
+export interface QueueReport {
+  reason: string
+  note?: string
+  reporterUserId: string
+  reporter: QueueAuthor
+  reportedAt: string
+  resolution?: ReportResolution
+  resolvedBy?: string
+  resolvedAt?: string
+}
+
+export type CommentPlace =
+  | {
+      kind: 'member-page'
+      slug?: string
+      displayName?: string
+      belief?: { tabId: string; title: string; removed: boolean }
+    }
+  | { kind: 'org-page'; pageId: string }
+
+export interface ReportedComment {
+  commentId: string
+  moderation: 'hidden' | 'removed' | null
+  removedByAuthor: boolean
+  kind: 'comment' | 'suggestion'
+  source: 'imported' | 'member'
+  author: QueueAuthor
+  authorUserId?: string
+  importedName?: string
+  body: string
+  proposedText?: string
+  stance?: 'agree' | 'disagree'
+  postedAt: string
+  place: CommentPlace
+}
+
+export interface QueueEntry {
+  targetType: ReportTargetType
+  targetId: string
+  count: number
+  firstReportedAt: string
+  lastReportedAt: string
+  reports: Array<QueueReport>
+  /** The admin asking wrote it or owns it: another admin decides. */
+  ownContent: boolean
+  comment?: ReportedComment
+  page?: {
+    slug: string
+    displayName: string
+    reviewStatus: string
+    ownerUserId?: string
+  }
+  /** The comment or page no longer exists. */
+  missing?: boolean
+}
+
+export function fetchModerationQueue(
+  token: string,
+  status: ReportStatus,
+  page: number,
+) {
+  return memberRequest<{ entries: Array<QueueEntry> } & Paged>(
+    `/admin/moderation/queue?status=${status}&page=${page}`,
+    { token },
+  )
+}
+
+export type CommentModeration = 'hide' | 'remove' | 'restore'
+
+export function moderateComment(
+  token: string,
+  commentId: string,
+  action: CommentModeration,
+  reason: string,
+) {
+  return memberRequest<{
+    moderation: 'hidden' | 'removed' | null
+    reportsClosed: number
+  }>(`/admin/moderation/comments/${id(commentId)}/${action}`, {
+    token,
+    ...post({ reason }),
+  })
+}
+
+export function dismissReports(
+  token: string,
+  targetType: ReportTargetType,
+  targetId: string,
+  reason: string,
+) {
+  return memberRequest<{ dismissed: number }>(
+    `/admin/moderation/${targetType}/${id(targetId)}/dismiss`,
+    { token, ...post({ reason }) },
+  )
 }
 
 /** A moment as the admin screens show it, e.g. "Nov 13, 2026, 10:00 AM" (UTC). */

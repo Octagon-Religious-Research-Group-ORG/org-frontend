@@ -74,12 +74,15 @@ const DECISIONS: Record<
  */
 export function MembersSection({
   initialFilter = 'pending',
+  initialQuery = '',
 }: {
   initialFilter?: MemberFilter
+  /** A page to look for, e.g. one opened from a report (Chunk 13). */
+  initialQuery?: string
 }) {
   const [filter, setFilter] = useState<MemberFilter>(initialFilter)
-  const [typed, setTyped] = useState('')
-  const [query, setQuery] = useState('')
+  const [typed, setTyped] = useState(initialQuery)
+  const [query, setQuery] = useState(initialQuery)
   const [page, setPage] = useState(1)
   const list = useAdminLoad(
     (token) => fetchAdminMembers(token, filter, query, page),

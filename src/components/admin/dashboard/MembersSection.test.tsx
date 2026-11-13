@@ -345,3 +345,21 @@ describe('MembersSection', () => {
     )
   })
 })
+
+describe('MembersSection opened from a report (Chunk 13)', () => {
+  it('starts on all pages, searched for the reported one', async () => {
+    render(<MembersSection initialFilter="all" initialQuery="loud-page" />)
+    await waitFor(() =>
+      expect(mocks.fetchAdminMembers).toHaveBeenCalledWith(
+        'tok',
+        'all',
+        'loud-page',
+        1,
+      ),
+    )
+    expect(screen.getByLabelText('Name or page address')).toHaveProperty(
+      'value',
+      'loud-page',
+    )
+  })
+})

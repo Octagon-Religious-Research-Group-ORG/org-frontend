@@ -314,6 +314,20 @@ createServer((request, response) => {
           stance: 'agree',
           replies: [],
         },
+        // Chunk 13: hidden by a moderator, as a guest receives it: no text,
+        // no badge, only its place.
+        {
+          commentId: 'cmt_org2',
+          kind: 'comment',
+          source: 'member',
+          author: { kind: 'member', displayName: 'Open Example' },
+          postedAt: '2026-11-12T10:00:00.000Z',
+          removed: false,
+          moderated: 'hidden',
+          edited: false,
+          mine: false,
+          replies: [],
+        },
       ],
     })
     return

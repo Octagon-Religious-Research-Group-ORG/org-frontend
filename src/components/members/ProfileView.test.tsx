@@ -6,8 +6,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { FullProfile, MemberProfile } from '#/lib/members-api'
 import { ProfileView } from './ProfileView'
 
+const authState = vi.hoisted(() => ({ isAuthenticated: false }))
 vi.mock('#/lib/auth', () => ({
-  useOrgAuth: () => ({ isAuthenticated: false, getToken: vi.fn() }),
+  useOrgAuth: () => ({
+    isAuthenticated: authState.isAuthenticated,
+    getToken: vi.fn(),
+  }),
+}))
+vi.mock('./ReportButton', () => ({
+  ReportButton: ({ label }: { label: string }) => <p>report: {label}</p>,
 }))
 vi.mock('@tanstack/react-router', async (original) => ({
   ...(await original<object>()),
@@ -34,7 +41,10 @@ vi.mock('./GetStartedChecklist', () => ({
   GetStartedChecklist: () => <div>get started</div>,
 }))
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  authState.isAuthenticated = false
+})
 
 const nameOnly: MemberProfile = {
   access: 'name-only',
@@ -78,6 +88,21 @@ function view(profile: MemberProfile) {
 }
 
 describe('ProfileView', () => {
+  it('lets a signed-in reader report someone else’s page, not a guest or the owner (Chunk 13)', () => {
+    view(full())
+    expect(screen.queryByText(/^report:/)).toBeNull()
+    cleanup()
+    authState.isAuthenticated = true
+    view(full())
+    expect(screen.getByText('report: Report the page Quiet Fern')).toBeTruthy()
+    cleanup()
+    view(nameOnly)
+    expect(screen.getByText('report: Report the page Quiet Fern')).toBeTruthy()
+    cleanup()
+    view(full({ isOwner: true }))
+    expect(screen.queryByText(/^report:/)).toBeNull()
+  })
+
   it('shows only the name and a note on a name-only page', () => {
     view(nameOnly)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
