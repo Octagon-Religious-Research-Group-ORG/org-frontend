@@ -107,22 +107,15 @@ export function OrgPageReactions({
   }, [auth, pageId])
 
   // A newer revision than the one shown (review MEDIUM 2): a vote now would
-  // be on text the reader has not seen, so the buttons show the counts only
-  // and the reader is asked to reload. Taking a vote back needs no revision,
-  // but here it waits for the reload too, like every other button.
+  // be on text the reader has not seen, so casting and confirming are off
+  // and the reader is asked to reload. The reader's own vote stays shown and
+  // can still be taken back, which needs no revision (round 2, N2).
   const stale = state !== undefined && state.revision !== revision
-  const shownVotes = useMemo(
-    () =>
-      state === undefined || !stale
-        ? state?.votes
-        : {
-            agree: state.votes.agree,
-            disagree: state.votes.disagree,
-            earlierWording: state.votes.earlierWording,
-            mayVote: false,
-          },
-    [state, stale],
-  )
+  const shownVotes = useMemo(() => {
+    if (state === undefined || !stale) return state?.votes
+    const { viewerVoteBlock: _reason, ...votes } = state.votes
+    return { ...votes, mayVote: false }
+  }, [state, stale])
 
   if (missing) return null
   const headingId = `reactions-${pageId}`
@@ -173,6 +166,9 @@ export function OrgPageReactions({
                 : last,
             )
           }}
+          // A refused vote reads the page's votes again: a newer revision
+          // then shows the reload (round 2, N1).
+          onStale={() => void load()}
           onCompose={(stance) =>
             setCompose((last) => ({
               ...(stance ? { stance } : {}),

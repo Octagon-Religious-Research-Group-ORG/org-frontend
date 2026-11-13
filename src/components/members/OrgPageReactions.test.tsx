@@ -286,15 +286,69 @@ describe('OrgPageReactions', () => {
     ]) {
       expect(button(name).hasAttribute('disabled')).toBe(true)
     }
+    // The reader's earlier vote stays shown; confirming it waits for the
+    // reload, removing it does not (round 2, N2).
     expect(
-      screen.queryByRole('button', {
-        name: 'Confirm my vote on the new version',
-      }),
-    ).toBeNull()
+      button('Confirm my vote on the new version').hasAttribute('disabled'),
+    ).toBe(true)
+    expect(button('Remove my earlier vote').hasAttribute('disabled')).toBe(
+      false,
+    )
     fireEvent.click(button('Agree with “About Us”'))
     expect(mocks.castOrgPageVote).not.toHaveBeenCalled()
     fireEvent.click(button('Reload the page'))
     expect(mocks.reloadPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the reader’s own vote shown and removable while the page is newer (round 2, N2)', async () => {
+    mocks.fetchOrgPageVotes.mockResolvedValue(
+      answer({ agree: 1, myVote: 'agree' }, 3),
+    )
+    mocks.withdrawOrgPageVote.mockResolvedValueOnce({
+      withdrawn: true,
+      ...answer({ agree: 0 }, 3),
+    })
+    renderReactions(2)
+    expect(await screen.findByText(PAGE_UPDATED_NOTE)).toBeTruthy()
+    const mine = button('Agree with “About Us”')
+    expect(mine.getAttribute('aria-pressed')).toBe('true')
+    expect(mine.hasAttribute('disabled')).toBe(false)
+    expect(button('Disagree with “About Us”').hasAttribute('disabled')).toBe(
+      true,
+    )
+    fireEvent.click(mine)
+    await waitFor(() =>
+      expect(mocks.withdrawOrgPageVote).toHaveBeenCalledWith('tok', 'about'),
+    )
+    expect(mocks.castOrgPageVote).not.toHaveBeenCalled()
+    await screen.findByText('0 agree · 0 disagree')
+  })
+
+  it('reads the votes again when a vote is refused as stale, so the reload is offered (round 2, N1)', async () => {
+    mocks.fetchOrgPageVotes
+      .mockResolvedValueOnce(answer())
+      .mockResolvedValueOnce(answer({}, 3))
+    mocks.castOrgPageVote.mockRejectedValueOnce(
+      new ApiError(
+        'This page was updated since you opened it. Reload it to vote on the new version.',
+        409,
+      ),
+    )
+    renderReactions(2)
+    await screen.findByText('1 agree · 0 disagree')
+    expect(screen.queryByText(PAGE_UPDATED_NOTE)).toBeNull()
+    fireEvent.click(button('Agree with “About Us”'))
+    expect(await screen.findByText(PAGE_UPDATED_NOTE)).toBeTruthy()
+    expect(button('Reload the page')).toBeTruthy()
+    for (const name of [
+      'Agree with “About Us”',
+      'Disagree with “About Us”',
+      'Agree and comment on “About Us”',
+      'Disagree and comment on “About Us”',
+    ]) {
+      expect(button(name).hasAttribute('disabled')).toBe(true)
+    }
+    expect(mocks.fetchOrgPageVotes).toHaveBeenCalledTimes(2)
   })
 
   it('stops voting once a vote’s answer shows a newer revision', async () => {

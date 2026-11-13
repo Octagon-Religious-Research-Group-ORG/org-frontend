@@ -8,6 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '#/lib/api'
 import type { TabVotes } from '#/lib/votes-api'
 import { VOTE_BLOCK_NOTES, VoteButtons } from './VoteButtons'
 
@@ -418,6 +419,41 @@ describe('VoteButtons', () => {
       )
       expect(mocks.withdrawOrgPageVote).toHaveBeenCalledWith('tok', 'about')
       expect(mocks.withdrawVote).not.toHaveBeenCalled()
+    })
+
+    it('tells the page when a vote is refused as stale, and only then (round 2, N1)', async () => {
+      const onStale = vi.fn()
+      render(
+        <VoteButtons
+          orgPageId="about"
+          title="About Us"
+          textSeq={2}
+          votes={votes()}
+          onVotes={onVotes}
+          onCompose={onCompose}
+          onStale={onStale}
+        />,
+      )
+      mocks.castOrgPageVote.mockRejectedValueOnce(new ApiError('Busy.', 500))
+      fireEvent.click(button('Agree with “About Us”'))
+      expect(await screen.findByText('Busy.')).toBeTruthy()
+      expect(onStale).not.toHaveBeenCalled()
+      mocks.castOrgPageVote.mockRejectedValueOnce(
+        new ApiError('This page was updated.', 409),
+      )
+      fireEvent.click(button('Agree with “About Us”'))
+      expect(await screen.findByText('This page was updated.')).toBeTruthy()
+      expect(onStale).toHaveBeenCalledTimes(1)
+      expect(onVotes).not.toHaveBeenCalled()
+    })
+
+    it('shows a stale refusal even with nobody to tell', async () => {
+      mocks.castOrgPageVote.mockRejectedValueOnce(
+        new ApiError('This page was updated.', 409),
+      )
+      renderOrg(votes())
+      fireEvent.click(button('Agree with “About Us”'))
+      expect(await screen.findByText('This page was updated.')).toBeTruthy()
     })
 
     it('clears the pressed vote when the page is no longer published (review LOW 4)', async () => {

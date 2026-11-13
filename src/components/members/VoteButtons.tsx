@@ -1,3 +1,4 @@
+import { ApiError } from '#/lib/api'
 import {
   castOrgPageVote,
   castVote,
@@ -75,6 +76,7 @@ export function VoteButtons({
   comment,
   onVotes,
   onCompose,
+  onStale,
 }: VoteTarget & {
   /** The belief's or page's title: part of every button's name. */
   title: string
@@ -87,6 +89,12 @@ export function VoteButtons({
   onVotes: (answer: Pick<VoteAnswer, 'votes' | 'textSeq'>) => void
   /** Open the comment form, with the stance badge when given. */
   onCompose: (stance?: VoteValue) => void
+  /**
+   * An ORG page refused a vote with 409 (a newer revision was published, or
+   * another window is saving): the page reads its votes again, so it can
+   * offer the reload (Chunk 10b round 2, N1).
+   */
+  onStale?: () => void
 }) {
   const { busy, problem, run } = useOwnerAction()
   const [countsOld, setCountsOld] = useState(false)
@@ -113,6 +121,9 @@ export function VoteButtons({
       const page = await castOrgPageVote(token, orgPageId, {
         value,
         baseSeq: textSeq,
+      }).catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 409) onStale?.()
+        throw err
       })
       return { votes: page.votes, textSeq: page.revision }
     })
