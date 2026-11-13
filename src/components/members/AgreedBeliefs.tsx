@@ -3,7 +3,8 @@ import { Link } from '@tanstack/react-router'
 import { useOrgAuth } from '#/lib/auth'
 import { postComment } from '#/lib/comments-api'
 import { fetchAgreedBeliefs } from '#/lib/votes-api'
-import type { AgreedBelief, VoteValue } from '#/lib/votes-api'
+import type { AgreedBelief, AgreedPage, VoteValue } from '#/lib/votes-api'
+import type { CommentAccess } from './VoteButtons'
 import { BELIEF_ANCHOR } from './BeliefTabs'
 import { CommentForm } from './CommentForm'
 import { WRITE_BLOCK_NOTES } from './CommentThread'
@@ -13,6 +14,22 @@ import { useOwnerAction } from './use-owner-action'
 import { STANCE_LABEL, VoteButtons } from './VoteButtons'
 
 export const AGREED_HEADING = "Members' beliefs agreed by 2 or more members"
+
+/**
+ * A page that came back empty but says there is more (every belief it
+ * looked at was on a page this reader may not read) is followed this many
+ * more times before the list says so (fix round 1, LOW 2).
+ */
+export const EMPTY_PAGES_FOLLOWED = 3
+
+/** New entries after the ones shown; an entry already shown is not repeated. */
+export function appendUnique(
+  shown: ReadonlyArray<AgreedBelief>,
+  more: ReadonlyArray<AgreedBelief>,
+) {
+  const seen = new Set(shown.map((belief) => belief.tabId))
+  return [...shown, ...more.filter((belief) => !seen.has(belief.tabId))]
+}
 
 const SESSION_UNCONFIRMED =
   "We couldn't confirm that you're signed in. Please try again."
@@ -32,6 +49,9 @@ export function AgreedBeliefs() {
   const [nextAfter, setNextAfter] = useState<string>()
   const [loading, setLoading] = useState(false)
   const [problem, setProblem] = useState<string>()
+  // Replaced by the list's own answer with the first page.
+  const [comment, setComment] = useState<CommentAccess>({ mayComment: false })
+  const [reworded, setReworded] = useState<ReadonlySet<string>>(new Set())
   const generation = useRef(0)
 
   const load = async (after?: string) => {
@@ -40,15 +60,30 @@ export function AgreedBeliefs() {
     try {
       const token = auth.isAuthenticated ? await auth.getToken() : undefined
       if (auth.isAuthenticated && !token) throw new Error(SESSION_UNCONFIRMED)
-      const page = await fetchAgreedBeliefs({ after, token })
+      let page: AgreedPage = await fetchAgreedBeliefs({ after, token })
+      const found = [...page.beliefs]
+      for (
+        let followed = 0;
+        found.length === 0 && page.nextAfter && followed < EMPTY_PAGES_FOLLOWED;
+        followed++
+      ) {
+        page = await fetchAgreedBeliefs({ after: page.nextAfter, token })
+        found.push(...page.beliefs)
+      }
       if (run !== generation.current) return
       setBeliefs((shown) =>
         // "Show more" exists only once a first page is shown.
-        after
-          ? [...(shown as Array<AgreedBelief>), ...page.beliefs]
-          : page.beliefs,
+        after ? appendUnique(shown as Array<AgreedBelief>, found) : found,
       )
       setNextAfter(page.nextAfter)
+      setComment(
+        page.viewerMayComment
+          ? { mayComment: true }
+          : {
+              mayComment: false,
+              reason: WRITE_BLOCK_NOTES[page.viewerWriteBlock ?? 'sign-in'],
+            },
+      )
       setProblem(undefined)
     } catch (err) {
       if (run !== generation.current) return
@@ -95,7 +130,9 @@ export function AgreedBeliefs() {
         </p>
       ) : beliefs?.length === 0 ? (
         <p className="mt-3 text-sm text-[#b8ad8d]">
-          No member belief has two agreeing votes yet.
+          {nextAfter
+            ? 'None of the beliefs looked at so far are ones you can read. There are more to look at.'
+            : 'No member belief has two agreeing votes yet.'}
         </p>
       ) : (
         <ol className="mt-4 flex flex-col gap-8">
@@ -103,7 +140,8 @@ export function AgreedBeliefs() {
             <AgreedEntry
               key={belief.tabId}
               belief={belief}
-              signedIn={auth.isAuthenticated}
+              comment={comment}
+              reworded={reworded.has(belief.tabId)}
               onVotes={(votes) =>
                 setBeliefs((all) =>
                   all?.map((entry) =>
@@ -111,7 +149,10 @@ export function AgreedBeliefs() {
                   ),
                 )
               }
-              onReworded={() => void load()}
+              // Already loaded pages stay; this entry says it changed.
+              onReworded={() =>
+                setReworded((all) => new Set([...all, belief.tabId]))
+              }
             />
           ))}
         </ol>
@@ -132,12 +173,15 @@ export function AgreedBeliefs() {
 
 function AgreedEntry({
   belief,
-  signedIn,
+  comment,
+  reworded,
   onVotes,
   onReworded,
 }: {
   belief: AgreedBelief
-  signedIn: boolean
+  /** From the list's answer: whether this reader may comment, and why not. */
+  comment: CommentAccess
+  reworded: boolean
   onVotes: (votes: AgreedBelief['votes']) => void
   onReworded: () => void
 }) {
@@ -193,19 +237,32 @@ function AgreedEntry({
         <div className="mt-2">
           <Paragraphs paragraphs={belief.paragraphs} />
         </div>
+        {reworded && (
+          <p role="status" className="mt-2 text-xs text-[#f1d78a]">
+            This belief was reworded since the list was read. Open it on the
+            member’s page to read and vote on the new wording.
+          </p>
+        )}
         <VoteButtons
           slug={belief.slug}
           tabId={belief.tabId}
           title={belief.title}
           textSeq={belief.textSeq}
           votes={belief.votes}
-          comment={
-            signedIn
-              ? { mayComment: true }
-              : { mayComment: false, reason: WRITE_BLOCK_NOTES['sign-in'] }
-          }
+          comment={comment}
           onVotes={(answer) => {
             onVotes(answer.votes)
+            // An open "…and comment" form follows the vote as it is now.
+            setCompose((last) =>
+              last?.stance
+                ? {
+                    nonce: last.nonce,
+                    ...(answer.votes.myVote
+                      ? { stance: answer.votes.myVote }
+                      : {}),
+                  }
+                : last,
+            )
             if (answer.textSeq !== belief.textSeq) onReworded()
           }}
           onCompose={(stance) =>

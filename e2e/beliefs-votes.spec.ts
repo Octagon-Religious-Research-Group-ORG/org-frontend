@@ -66,4 +66,18 @@ test.describe('belief votes, for a guest', () => {
       }),
     ).toBeDisabled()
   })
+
+  test('a link to a belief that is not the first opens it and scrolls it into view (fix round 1, LOW 1)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/open-example#belief-t2')
+    const second = page.locator('#panel-t2')
+    await expect(second).toBeVisible()
+    await expect(page.locator('#panel-t1')).toBeHidden()
+    await expect(second).toBeInViewport()
+    await expect(
+      page.getByRole('button', { name: /Second tab/ }),
+    ).toHaveAttribute('aria-expanded', 'true')
+  })
 })

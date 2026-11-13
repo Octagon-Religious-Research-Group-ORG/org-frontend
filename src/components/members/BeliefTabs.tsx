@@ -87,16 +87,23 @@ export function BeliefTabs({
   }, [tabs])
 
   // Opened from a link to one belief (only in the browser: the hash never
-  // reaches the server).
+  // reaches the server). The panel is scrolled to once it is shown: a
+  // hidden panel has no place to scroll to (fix round 1, LOW 1).
+  const [scrollTo, setScrollTo] = useState<string>()
   useEffect(() => {
     const wanted = window.location.hash.slice(1)
     if (!wanted.startsWith(BELIEF_ANCHOR)) return
     const tabId = wanted.slice(BELIEF_ANCHOR.length)
     if (tabs.some((tab) => tab.tabId === tabId)) {
       setOpen(tabId)
-      document.getElementById(`panel-${tabId}`)?.scrollIntoView()
+      setScrollTo(tabId)
     }
   }, [])
+  useEffect(() => {
+    if (scrollTo === undefined || open !== scrollTo) return
+    document.getElementById(`panel-${scrollTo}`)?.scrollIntoView()
+    setScrollTo(undefined)
+  }, [open, scrollTo])
 
   if (tabs.length === 0) return null
 
@@ -173,6 +180,19 @@ export function BeliefTabs({
               comment={access[tab.tabId]}
               onVotes={(answer) => {
                 setVoted((all) => ({ ...all, [tab.tabId]: answer.votes }))
+                // An open "…and comment" form follows the vote as it is now
+                // (fix round 1, LOW 5): no badge once there is no vote.
+                setCompose((last) =>
+                  last?.tabId === tab.tabId && last.stance
+                    ? {
+                        tabId: last.tabId,
+                        nonce: last.nonce,
+                        ...(answer.votes.myVote
+                          ? { stance: answer.votes.myVote }
+                          : {}),
+                      }
+                    : last,
+                )
                 // Reworded meanwhile: read the page again for the new text.
                 if (answer.textSeq !== (tab.textSeq ?? 0)) onChanged()
               }}

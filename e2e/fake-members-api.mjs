@@ -208,6 +208,8 @@ const AGREED = {
       },
     },
   ],
+  viewerMayComment: false,
+  viewerWriteBlock: 'sign-in',
 }
 
 const CORS = {

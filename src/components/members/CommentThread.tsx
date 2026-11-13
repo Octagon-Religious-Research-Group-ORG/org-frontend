@@ -143,7 +143,8 @@ export function CommentThread({
 
   useEffect(() => {
     if (compose) setStance(compose.stance)
-  }, [compose?.nonce])
+    // A new request, or the vote it follows changed (fix round 1, LOW 5).
+  }, [compose?.nonce, compose?.stance])
 
   const first = thread.pages.at(0)
   const last = thread.pages.at(-1)

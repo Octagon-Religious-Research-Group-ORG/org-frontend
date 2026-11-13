@@ -11,7 +11,12 @@ import {
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgreedBelief, TabVotes } from '#/lib/votes-api'
-import { AGREED_HEADING, AgreedBeliefs } from './AgreedBeliefs'
+import {
+  AGREED_HEADING,
+  AgreedBeliefs,
+  appendUnique,
+  EMPTY_PAGES_FOLLOWED,
+} from './AgreedBeliefs'
 
 const mocks = vi.hoisted(() => ({
   auth: { isLoading: false, isAuthenticated: false, getToken: vi.fn() },
@@ -128,6 +133,49 @@ describe('AgreedBeliefs', () => {
     })
   })
 
+  it('follows empty pages that say there is more, and shows what it then finds (fix round 1, LOW 2)', async () => {
+    mocks.fetchAgreedBeliefs
+      .mockReset()
+      .mockResolvedValueOnce({ beliefs: [], nextAfter: '2.9.a' })
+      .mockResolvedValueOnce({ beliefs: [], nextAfter: '2.8.b' })
+      .mockResolvedValueOnce({ beliefs: [belief('tab_far')] })
+    render(<AgreedBeliefs />)
+    expect(
+      await screen.findByRole('article', { name: 'Title tab_far' }),
+    ).toBeTruthy()
+    expect(mocks.fetchAgreedBeliefs.mock.calls.map((c) => c[0].after)).toEqual([
+      undefined,
+      '2.9.a',
+      '2.8.b',
+    ])
+    expect(screen.queryByText(/No member belief/)).toBeNull()
+  })
+
+  it('stops following after a bound, and says neutrally that there is more', async () => {
+    mocks.fetchAgreedBeliefs
+      .mockReset()
+      .mockResolvedValue({ beliefs: [], nextAfter: '2.1.z' })
+    render(<AgreedBeliefs />)
+    expect(
+      await screen.findByText(/None of the beliefs looked at so far/),
+    ).toBeTruthy()
+    expect(screen.queryByText(/No member belief/)).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Show more beliefs' }),
+    ).toBeTruthy()
+    expect(mocks.fetchAgreedBeliefs).toHaveBeenCalledTimes(
+      1 + EMPTY_PAGES_FOLLOWED,
+    )
+  })
+
+  it('never repeats an entry a later page sends again', () => {
+    expect(
+      appendUnique([belief('a'), belief('b')], [belief('b'), belief('c')]).map(
+        (entry) => entry.tabId,
+      ),
+    ).toEqual(['a', 'b', 'c'])
+  })
+
   it('says when no belief is there yet', async () => {
     mocks.fetchAgreedBeliefs.mockResolvedValueOnce({ beliefs: [] })
     render(<AgreedBeliefs />)
@@ -238,6 +286,7 @@ describe('AgreedBeliefs', () => {
             votes: votes({ mayVote: true, viewerVoteBlock: undefined }),
           }),
         ],
+        viewerMayComment: true,
       })
     })
 
@@ -264,7 +313,7 @@ describe('AgreedBeliefs', () => {
       ).toBe('true')
     })
 
-    it('reads the list again when the belief was reworded meanwhile', async () => {
+    it('keeps what is loaded and marks the entry when the belief was reworded meanwhile (fix round 1, LOW 3)', async () => {
       mocks.castVote.mockResolvedValueOnce({
         tabId: 'tab_1',
         textSeq: 2,
@@ -274,9 +323,108 @@ describe('AgreedBeliefs', () => {
       fireEvent.click(
         await screen.findByRole('button', { name: 'Agree with “Title tab_1”' }),
       )
-      await waitFor(() =>
-        expect(mocks.fetchAgreedBeliefs).toHaveBeenCalledTimes(2),
+      expect(
+        await screen.findByText(/This belief was reworded since the list/),
+      ).toBeTruthy()
+      expect(mocks.fetchAgreedBeliefs).toHaveBeenCalledTimes(1)
+      expect(screen.getByRole('article', { name: 'Title tab_1' })).toBeTruthy()
+    })
+
+    it('the badge follows the vote: none once the vote is taken back (fix round 1, LOW 5)', async () => {
+      mocks.castVote.mockResolvedValueOnce({
+        tabId: 'tab_1',
+        textSeq: 1,
+        votes: votes({ agree: 3, myVote: 'agree', mayVote: true }),
+      })
+      mocks.withdrawVote.mockResolvedValueOnce({
+        withdrawn: true,
+        tabId: 'tab_1',
+        textSeq: 1,
+        votes: votes({ agree: 2, mayVote: true }),
+      })
+      render(<AgreedBeliefs />)
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Agree and comment on “Title tab_1”',
+        }),
       )
+      expect(await screen.findByText(/will show “Agrees”/)).toBeTruthy()
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Agree with “Title tab_1”' }),
+      )
+      await waitFor(() => expect(screen.queryByText(/will show/)).toBeNull())
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: 'No badge now.' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Post comment' }))
+      await waitFor(() => expect(mocks.postComment).toHaveBeenCalled())
+      expect(mocks.postComment.mock.calls[0][1]).not.toHaveProperty('stance')
+    })
+
+    it('the badge switches when the reader changes their vote', async () => {
+      mocks.castVote
+        .mockResolvedValueOnce({
+          tabId: 'tab_1',
+          textSeq: 1,
+          votes: votes({ agree: 3, myVote: 'agree', mayVote: true }),
+        })
+        .mockResolvedValueOnce({
+          tabId: 'tab_1',
+          textSeq: 1,
+          votes: votes({
+            agree: 2,
+            disagree: 2,
+            myVote: 'disagree',
+            mayVote: true,
+          }),
+        })
+      render(<AgreedBeliefs />)
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Agree and comment on “Title tab_1”',
+        }),
+      )
+      await screen.findByText(/will show “Agrees”/)
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Disagree with “Title tab_1”' }),
+      )
+      expect(await screen.findByText(/will show “Disagrees”/)).toBeTruthy()
+    })
+
+    it('a plain comment form keeps having no badge when the reader votes', async () => {
+      mocks.castVote.mockResolvedValueOnce({
+        tabId: 'tab_1',
+        textSeq: 1,
+        votes: votes({ agree: 3, myVote: 'agree', mayVote: true }),
+      })
+      render(<AgreedBeliefs />)
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Comment without a vote on “Title tab_1”',
+        }),
+      )
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Agree with “Title tab_1”' }),
+      )
+      await screen.findByText('3 agree · 1 disagree')
+      expect(screen.queryByText(/will show/)).toBeNull()
+      expect(screen.getByRole('textbox')).toBeTruthy()
+    })
+
+    it('gates "Comment without a vote" on what the list says (fix round 1, LOW 6)', async () => {
+      mocks.fetchAgreedBeliefs.mockResolvedValueOnce({
+        beliefs: [belief('tab_1', { votes: votes({ mayVote: true }) })],
+        viewerMayComment: false,
+        viewerWriteBlock: 'verify-email',
+      })
+      render(<AgreedBeliefs />)
+      const button = await screen.findByRole('button', {
+        name: 'Comment without a vote on “Title tab_1”',
+      })
+      expect(button.hasAttribute('disabled')).toBe(true)
+      expect(
+        screen.getByText(/confirm your email address to comment/),
+      ).toBeTruthy()
     })
 
     it('"Agree and comment" votes, then posts the comment with the badge', async () => {

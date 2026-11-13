@@ -1,3 +1,4 @@
+import type { WriteBlock } from './comments-api'
 import type { ParagraphView } from './members-api'
 import { memberRequest } from './membership-api'
 
@@ -48,6 +49,9 @@ export interface AgreedBelief {
 export interface AgreedPage {
   beliefs: Array<AgreedBelief>
   nextAfter?: string
+  /** The reader may comment on the listed beliefs; why not, when not. */
+  viewerMayComment: boolean
+  viewerWriteBlock?: WriteBlock
 }
 
 /** Casts, changes or confirms a vote on the wording `baseSeq`. */

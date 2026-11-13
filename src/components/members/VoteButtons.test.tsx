@@ -132,11 +132,69 @@ describe('VoteButtons', () => {
     })
   })
 
-  it('takes a vote back on a belief the reader can no longer read, with nothing to show', async () => {
+  it('takes a vote back on a belief the reader can no longer read: unpressed here, counts marked old (fix round 1, LOW 4)', async () => {
+    renderButtons(votes({ myVote: 'agree', myVoteOnEarlierWording: 'agree' }))
+    fireEvent.click(button('Agree with “Synthetic belief”'))
+    await waitFor(() => expect(onVotes).toHaveBeenCalled())
+    expect(onVotes).toHaveBeenCalledWith({
+      votes: votes(),
+      textSeq: 3,
+    })
+    expect(screen.getByText(/Your vote was taken back/)).toBeTruthy()
+  })
+
+  it('does nothing more when a withdrawal is refused', async () => {
+    mocks.withdrawVote.mockRejectedValueOnce(new Error('Try again.'))
     renderButtons(votes({ myVote: 'agree' }))
     fireEvent.click(button('Agree with “Synthetic belief”'))
-    await waitFor(() => expect(mocks.withdrawVote).toHaveBeenCalled())
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'Try again.',
+    )
     expect(onVotes).not.toHaveBeenCalled()
+  })
+
+  it('removes a vote kept only on an earlier wording (fix round 1, LOW 7)', async () => {
+    mocks.withdrawVote.mockResolvedValueOnce({
+      withdrawn: true,
+      tabId: 'tab_1',
+      textSeq: 3,
+      votes: votes({ earlierWording: 0 }),
+    })
+    renderButtons(
+      votes({
+        mayVote: false,
+        viewerVoteBlock: 'anonymous-off',
+        myVoteOnEarlierWording: 'disagree',
+        earlierWording: 1,
+      }),
+    )
+    // Removing needs no right to vote now; confirming does.
+    expect(
+      button('Confirm my vote on the new wording').hasAttribute('disabled'),
+    ).toBe(true)
+    fireEvent.click(button('Remove my earlier vote'))
+    await waitFor(() => expect(onVotes).toHaveBeenCalled())
+    expect(mocks.withdrawVote).toHaveBeenCalledWith('tok', {
+      slug: 'quiet-fern',
+      tabId: 'tab_1',
+    })
+  })
+
+  it('lets a reader who may not vote now still take back their vote', () => {
+    renderButtons(
+      votes({
+        myVote: 'agree',
+        mayVote: false,
+        viewerVoteBlock: 'anonymous-off',
+      }),
+    )
+    expect(
+      button('Agree with “Synthetic belief”').hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      button('Disagree with “Synthetic belief”').hasAttribute('disabled'),
+    ).toBe(true)
   })
 
   it('keeps the old wording when a withdrawal answer has no text version', async () => {

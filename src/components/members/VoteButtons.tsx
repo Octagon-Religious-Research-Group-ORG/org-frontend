@@ -10,6 +10,7 @@ import type {
   VoteBlock,
   VoteValue,
 } from '#/lib/votes-api'
+import { useState } from 'react'
 import { buttonStyle, primaryStyle } from './editor-styles'
 import { useOwnerAction } from './use-owner-action'
 
@@ -78,6 +79,7 @@ export function VoteButtons({
   onCompose: (stance?: VoteValue) => void
 }) {
   const { busy, problem, run } = useOwnerAction()
+  const [countsOld, setCountsOld] = useState(false)
   const name = `“${title}”`
   const blocked = !votes.mayVote
   const reason = votes.viewerVoteBlock
@@ -93,15 +95,30 @@ export function VoteButtons({
     return true
   }
 
+  /**
+   * Takes the reader's vote back, on this wording or an earlier one. When
+   * the answer carries no counts (the reader can no longer read the belief),
+   * the pressed state is cleared here and the counts are marked as not
+   * updated (fix round 1, LOW 4).
+   */
+  const withdraw = async () => {
+    const answer = await run((token) => withdrawVote(token, { slug, tabId }))
+    if (answer === undefined) return
+    if (answer.votes) {
+      onVotes({ votes: answer.votes, textSeq: answer.textSeq ?? textSeq })
+      return
+    }
+    const { myVote: _vote, myVoteOnEarlierWording: _earlier, ...rest } = votes
+    setCountsOld(true)
+    onVotes({ votes: rest, textSeq })
+  }
+
   const toggle = async (value: VoteValue) => {
     if (votes.myVote !== value) {
       await cast(value)
       return
     }
-    const answer = await run((token) => withdrawVote(token, { slug, tabId }))
-    if (answer?.votes) {
-      onVotes({ votes: answer.votes, textSeq: answer.textSeq ?? textSeq })
-    }
+    await withdraw()
   }
 
   const voteAndComment = async (value: VoteValue) => {
@@ -137,6 +154,14 @@ export function VoteButtons({
             className={primaryStyle}
           >
             Confirm my vote on the new wording
+          </button>{' '}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void withdraw()}
+            className={buttonStyle}
+          >
+            Remove my earlier vote
           </button>
         </div>
       )}
@@ -146,7 +171,8 @@ export function VoteButtons({
             key={value}
             type="button"
             aria-pressed={votes.myVote === value}
-            disabled={busy || blocked}
+            // Taking one's own vote back never needs the right to vote now.
+            disabled={busy || (blocked && votes.myVote !== value)}
             onClick={() => void toggle(value)}
             aria-label={`${value === 'agree' ? 'Agree' : 'Disagree'} with ${name}`}
             className={votes.myVote === value ? primaryStyle : buttonStyle}
@@ -188,6 +214,12 @@ export function VoteButtons({
       )}
       {comment && !comment.mayComment && comment.reason && (
         <p className="mt-1 text-xs text-[#9f9676]">{comment.reason}</p>
+      )}
+      {countsOld && (
+        <p role="status" className="mt-2 text-xs text-[#9f9676]">
+          Your vote was taken back. The counts above are from before; reload the
+          page to see them now.
+        </p>
       )}
       {problem && (
         <p role="alert" className="mt-2 text-sm text-[#f1a07a]">

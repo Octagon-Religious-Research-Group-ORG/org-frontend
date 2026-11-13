@@ -141,6 +141,24 @@ describe('CommentThread stance badges (Chunk 10)', () => {
     await waitFor(() => expect(screen.queryByText(/will show/)).toBeNull())
   })
 
+  it('follows a changed stance without a new request (fix round 1, LOW 5)', async () => {
+    const { rerender } = renderThread({ stance: 'agree', nonce: 1 })
+    await screen.findByText(/will show “Agrees”/)
+    const props = {
+      slug: 'quiet-fern',
+      title: 'Comments',
+      tabId: 'tab_1',
+      onPageChanged: vi.fn(),
+      onAccess,
+    }
+    rerender(
+      <CommentThread {...props} compose={{ stance: 'disagree', nonce: 1 }} />,
+    )
+    expect(await screen.findByText(/will show “Disagrees”/)).toBeTruthy()
+    rerender(<CommentThread {...props} compose={{ nonce: 1 }} />)
+    await waitFor(() => expect(screen.queryByText(/will show/)).toBeNull())
+  })
+
   it('can drop the badge before posting', async () => {
     renderThread({ stance: 'disagree', nonce: 1 })
     await screen.findByText(/will show “Disagrees”/)
