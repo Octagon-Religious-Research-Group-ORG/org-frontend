@@ -10,7 +10,7 @@ import type {
   VoteBlock,
   VoteValue,
 } from '#/lib/votes-api'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { buttonStyle, primaryStyle } from './editor-styles'
 import { useOwnerAction } from './use-owner-action'
 
@@ -80,6 +80,13 @@ export function VoteButtons({
 }) {
   const { busy, problem, run } = useOwnerAction()
   const [countsOld, setCountsOld] = useState(false)
+  // The votes this component handed up itself with old counts; any other
+  // votes the page passes down (a page read again included) are fresh
+  // (fix round 3, N2).
+  const handedUp = useRef<TabVotes>(undefined)
+  useEffect(() => {
+    if (votes !== handedUp.current) setCountsOld(false)
+  }, [votes])
   const name = `“${title}”`
   const blocked = !votes.mayVote
   const reason = votes.viewerVoteBlock
@@ -113,6 +120,7 @@ export function VoteButtons({
     }
     const { myVote: _vote, myVoteOnEarlierWording: _earlier, ...rest } = votes
     setCountsOld(true)
+    handedUp.current = rest
     onVotes({ votes: rest, textSeq })
   }
 

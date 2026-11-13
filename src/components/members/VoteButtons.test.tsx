@@ -143,6 +143,32 @@ describe('VoteButtons', () => {
     expect(screen.getByText(/Your vote was taken back/)).toBeTruthy()
   })
 
+  it('keeps the note while the page shows the votes it handed up, and drops it when the page brings fresh ones (fix round 3, N2)', async () => {
+    const props = {
+      slug: 'quiet-fern',
+      tabId: 'tab_1',
+      title: 'Synthetic belief',
+      textSeq: 3,
+      comment: { mayComment: true },
+      onVotes,
+      onCompose,
+    }
+    const { rerender } = render(
+      <VoteButtons {...props} votes={votes({ myVote: 'agree' })} />,
+    )
+    fireEvent.click(button('Agree with “Synthetic belief”'))
+    await screen.findByText(/Your vote was taken back/)
+    // The page passes back exactly what the buttons handed up.
+    const handed = (onVotes.mock.calls[0][0] as { votes: TabVotes }).votes
+    rerender(<VoteButtons {...props} votes={handed} />)
+    expect(screen.getByText(/Your vote was taken back/)).toBeTruthy()
+    // The page is read again (onChanged): fresh votes, same key.
+    rerender(<VoteButtons {...props} votes={votes({ agree: 1 })} />)
+    await waitFor(() =>
+      expect(screen.queryByText(/Your vote was taken back/)).toBeNull(),
+    )
+  })
+
   it('drops the "counts are from before" note once fresh counts arrive (fix round 2, item a)', async () => {
     const { rerender } = renderButtons(votes({ myVote: 'agree' }))
     fireEvent.click(button('Agree with “Synthetic belief”'))
