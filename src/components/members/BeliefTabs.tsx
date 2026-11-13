@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TabPerforations } from '#/components/BlotterPerforations'
 import { editorText } from '#/lib/members-api'
 import type { BeliefTab, Revisions } from '#/lib/members-api'
@@ -7,6 +7,12 @@ import { CommentThread } from './CommentThread'
 import { buttonStyle } from './editor-styles'
 import { HistoryPanel } from './HistoryPanel'
 import { Paragraphs } from './Paragraphs'
+import { VoteButtons } from './VoteButtons'
+import type { CommentAccess } from './VoteButtons'
+import type { TabVotes, VoteValue } from '#/lib/votes-api'
+
+/** `#belief-<tabId>`: the Beliefs page links straight to one belief. */
+export const BELIEF_ANCHOR = 'belief-'
 
 const REVIEW_NOTE = 'Imported, please review'
 
@@ -66,6 +72,31 @@ export function BeliefTabs({
     tabId: string
     field: 'text' | 'title'
   }>()
+  // Votes after this reader's own writes, until the page is read again.
+  const [voted, setVoted] = useState<Record<string, TabVotes>>({})
+  const [access, setAccess] = useState<Record<string, CommentAccess>>({})
+  const [compose, setCompose] = useState<{
+    tabId: string
+    stance?: VoteValue
+    nonce: number
+  }>()
+
+  // A page read again is the truth again.
+  useEffect(() => {
+    setVoted((shown) => (Object.keys(shown).length === 0 ? shown : {}))
+  }, [tabs])
+
+  // Opened from a link to one belief (only in the browser: the hash never
+  // reaches the server).
+  useEffect(() => {
+    const wanted = window.location.hash.slice(1)
+    if (!wanted.startsWith(BELIEF_ANCHOR)) return
+    const tabId = wanted.slice(BELIEF_ANCHOR.length)
+    if (tabs.some((tab) => tab.tabId === tabId)) {
+      setOpen(tabId)
+      document.getElementById(`panel-${tabId}`)?.scrollIntoView()
+    }
+  }, [])
 
   if (tabs.length === 0) return null
 
@@ -132,6 +163,29 @@ export function BeliefTabs({
           <div className="mt-4">
             <Paragraphs paragraphs={tab.paragraphs} />
           </div>
+          {tab.votes && (
+            <VoteButtons
+              slug={slug}
+              tabId={tab.tabId}
+              title={tab.title}
+              textSeq={tab.textSeq ?? 0}
+              votes={voted[tab.tabId] ?? tab.votes}
+              comment={access[tab.tabId]}
+              onVotes={(answer) => {
+                setVoted((all) => ({ ...all, [tab.tabId]: answer.votes }))
+                // Reworded meanwhile: read the page again for the new text.
+                if (answer.textSeq !== (tab.textSeq ?? 0)) onChanged()
+              }}
+              onCompose={(stance) => {
+                setOpen(tab.tabId)
+                setCompose((last) => ({
+                  tabId: tab.tabId,
+                  ...(stance ? { stance } : {}),
+                  nonce: (last?.nonce ?? 0) + 1,
+                }))
+              }}
+            />
+          )}
           <div className="flex flex-wrap gap-3">
             {(['text', 'title'] as const).map((field) => (
               <button
@@ -169,7 +223,7 @@ export function BeliefTabs({
           )}
           {owner && (
             <BeliefOwnerTools
-              key={tab.tabId}
+              key={`owner-${tab.tabId}`}
               tab={tab}
               revision={
                 owner.revisions.tabs[tab.tabId] ?? { text: 0, title: 0 }
@@ -183,7 +237,7 @@ export function BeliefTabs({
           {/* Only the open belief loads its thread. */}
           {open === tab.tabId && (
             <CommentThread
-              key={tab.tabId}
+              key={`thread-${tab.tabId}`}
               slug={slug}
               title="Comments"
               tabId={tab.tabId}
@@ -192,6 +246,10 @@ export function BeliefTabs({
                 textSeq: tab.textSeq ?? 0,
               }}
               onPageChanged={onChanged}
+              {...(compose?.tabId === tab.tabId ? { compose } : {})}
+              onAccess={(next) =>
+                setAccess((all) => ({ ...all, [tab.tabId]: next }))
+              }
             />
           )}
         </article>

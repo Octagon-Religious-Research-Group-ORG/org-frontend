@@ -30,6 +30,13 @@ const PROFILES = {
         paragraphs: [paragraph('b2', 'First synthetic belief.')],
         commentCount: 4,
         textSeq: 2,
+        votes: {
+          agree: 3,
+          disagree: 1,
+          earlierWording: 2,
+          mayVote: false,
+          viewerVoteBlock: 'sign-in',
+        },
       },
       {
         tabId: 't2',
@@ -182,6 +189,27 @@ const COMMENT_HISTORY = {
   ],
 }
 
+// The Beliefs page section (Chunk 10), as a guest sees it.
+const AGREED = {
+  beliefs: [
+    {
+      slug: 'open-example',
+      tabId: 't1',
+      title: 'First tab',
+      paragraphs: [paragraph('b2', 'First synthetic belief.')],
+      textSeq: 2,
+      author: { displayName: 'Open Example', slug: 'open-example' },
+      votes: {
+        agree: 3,
+        disagree: 1,
+        earlierWording: 2,
+        mayVote: false,
+        viewerVoteBlock: 'sign-in',
+      },
+    },
+  ],
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
@@ -243,6 +271,10 @@ createServer((request, response) => {
         picturePublic: false,
       })),
     })
+    return
+  }
+  if (url.pathname === '/api/v1/members/agreed-beliefs') {
+    send(200, AGREED)
     return
   }
   if (url.pathname === '/api/v1/members/chats') {

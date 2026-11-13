@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ReferencePage } from '#/components/ReferencePage'
+import { AgreedBeliefs } from '#/components/members/AgreedBeliefs'
 import { loadPublishedPage } from '#/lib/content-api'
 
 export const Route = createFileRoute('/beliefs')({
@@ -14,5 +15,16 @@ export const Route = createFileRoute('/beliefs')({
 })
 
 function BeliefsRoute() {
-  return <ReferencePage page={Route.useLoaderData().content} />
+  // The CMS text stays as it is; the members' agreed beliefs follow it.
+  return (
+    <ReferencePage
+      page={Route.useLoaderData().content}
+      wrapContent={(body) => (
+        <>
+          {body}
+          <AgreedBeliefs />
+        </>
+      )}
+    />
+  )
 }

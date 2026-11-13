@@ -3,6 +3,7 @@ import { API_BASE_URL, ApiError } from './api'
 import { memberRequest } from './membership-api'
 import type { ContactEntry, ProfileVisibility } from './membership-api'
 import type { CommentAuthor } from './comments-api'
+import type { TabVotes } from './votes-api'
 
 export interface ParagraphView {
   blockId: string
@@ -21,6 +22,8 @@ export interface BeliefTab {
   commentCount?: number
   /** The belief text's newest version: what a suggestion is written on. */
   textSeq?: number
+  /** The belief's votes as this reader sees them (Chunk 10; older servers: absent). */
+  votes?: TabVotes
 }
 
 export interface ExtraSection {

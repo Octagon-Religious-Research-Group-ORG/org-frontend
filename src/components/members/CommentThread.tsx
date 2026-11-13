@@ -16,6 +16,9 @@ import {
 } from './thread-state'
 import type { ThreadState } from './thread-state'
 import { useOwnerAction } from './use-owner-action'
+import { STANCE_LABEL } from './VoteButtons'
+import type { CommentAccess } from './VoteButtons'
+import type { VoteValue } from '#/lib/votes-api'
 
 const SESSION_UNCONFIRMED =
   "We couldn't confirm that you're signed in. Please try again."
@@ -50,6 +53,8 @@ export function CommentThread({
   tabId,
   belief,
   onPageChanged,
+  compose,
+  onAccess,
 }: {
   slug: string
   /** The heading, e.g. "Comments" or "About this page". */
@@ -59,6 +64,13 @@ export function CommentThread({
   /** The belief as the page shows it, for suggestions. */
   belief?: { text: string; textSeq: number }
   onPageChanged: () => void
+  /**
+   * A request from the vote buttons (Chunk 10) to write a comment, with the
+   * stance badge "…and comment" adds; a new `nonce` asks again.
+   */
+  compose?: { stance?: VoteValue; nonce: number }
+  /** Tells the vote buttons whether this reader may comment, and why not. */
+  onAccess?: (access: CommentAccess) => void
 }) {
   const auth = useOrgAuth()
   const [thread, setThread] = useState<ThreadState>(EMPTY_THREAD)
@@ -66,6 +78,7 @@ export function CommentThread({
   const [loading, setLoading] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
   const writer = useOwnerAction()
+  const [stance, setStance] = useState<VoteValue>()
   const current = useRef<ThreadState>(EMPTY_THREAD)
   // Only the newest load may show its answer; closing the thread ends all.
   const generation = useRef(0)
@@ -128,8 +141,25 @@ export function CommentThread({
     else void load({ count: current.current.pages.length })
   }
 
+  useEffect(() => {
+    if (compose) setStance(compose.stance)
+  }, [compose?.nonce])
+
   const first = thread.pages.at(0)
   const last = thread.pages.at(-1)
+  const mayComment = first?.viewerMayComment
+  const writeBlock = first?.viewerWriteBlock
+  useEffect(() => {
+    if (mayComment === undefined) return
+    onAccess?.(
+      mayComment
+        ? { mayComment: true }
+        : {
+            mayComment: false,
+            reason: WRITE_BLOCK_NOTES[writeBlock ?? 'sign-in'],
+          },
+    )
+  }, [mayComment, writeBlock])
   const comments = shownComments(thread)
   const actions: ThreadActions = {
     slug,
@@ -141,9 +171,15 @@ export function CommentThread({
 
   const post = async (body: string) => {
     const saved = await writer.run((token) =>
-      postComment(token, { slug, body, ...(tabId ? { tabId } : {}) }),
+      postComment(token, {
+        slug,
+        body,
+        ...(tabId ? { tabId } : {}),
+        ...(stance ? { stance } : {}),
+      }),
     )
     if (saved === undefined) return false
+    setStance(undefined)
     changed(saved.comment)
     return true
   }
@@ -229,6 +265,22 @@ export function CommentThread({
           submitLabel="Post comment"
           busy={writer.busy}
           onSubmit={post}
+          focusKey={compose?.nonce}
+          note={
+            stance && (
+              <p className="mt-2 text-xs text-[#ece2c4]">
+                Your comment will show “{STANCE_LABEL[stance]}”, as your vote
+                says.{' '}
+                <button
+                  type="button"
+                  onClick={() => setStance(undefined)}
+                  className="underline underline-offset-4"
+                >
+                  Post it without the badge
+                </button>
+              </p>
+            )
+          }
         />
       ) : (
         first && (

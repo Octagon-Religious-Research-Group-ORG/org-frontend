@@ -14,6 +14,7 @@ import { buttonStyle, dangerStyle, primaryStyle } from './editor-styles'
 import { formatSavedAt } from './HistoryPanel'
 import { MemberText } from './MemberText'
 import { useOwnerAction } from './use-owner-action'
+import { STANCE_LABEL } from './VoteButtons'
 
 export const REMOVED_NOTE = 'Comment removed by its author.'
 export const REMOVE_COMMENT_EXPLAINED =
@@ -139,6 +140,11 @@ export function CommentItem({
           {comment.importedDate &&
             `; Pages showed ${formatDay(comment.importedDate)}, which is not proof of when it was written`}
           .
+        </p>
+      )}
+      {comment.stance && (
+        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#e2bd65]">
+          {STANCE_LABEL[comment.stance]}
         </p>
       )}
       {suggestion && (

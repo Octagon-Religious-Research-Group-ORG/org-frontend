@@ -1,5 +1,5 @@
-import { useId, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { MAX_COMMENT_LENGTH } from '#/lib/comments-api'
 import { normaliseMemberText } from '#/lib/members-api'
 import { CharacterCount } from './CharacterCount'
@@ -25,6 +25,8 @@ export function CommentForm({
   busy,
   onSubmit,
   onCancel,
+  focusKey,
+  note,
 }: {
   label: string
   submitLabel: string
@@ -33,8 +35,16 @@ export function CommentForm({
   busy: boolean
   onSubmit: (text: string) => Promise<boolean>
   onCancel?: () => void
+  /** A new value moves the focus into the box ("…and comment", Chunk 10). */
+  focusKey?: number
+  /** Shown above the buttons, e.g. the stance badge the comment will carry. */
+  note?: ReactNode
 }) {
   const id = useId()
+  const box = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    if (focusKey) box.current?.focus()
+  }, [focusKey])
   const [text, setText] = useState(initial)
   const [problem, setProblem] = useState<string>()
 
@@ -62,6 +72,7 @@ export function CommentForm({
       </label>
       <textarea
         id={`${id}-text`}
+        ref={box}
         value={text}
         rows={4}
         aria-describedby={`${id}-count`}
@@ -74,6 +85,7 @@ export function CommentForm({
           {problem}
         </p>
       )}
+      {note}
       <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={busy} className={primaryStyle}>
           {submitLabel}

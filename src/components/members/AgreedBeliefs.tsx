@@ -1,0 +1,250 @@
+import { useEffect, useRef, useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import { useOrgAuth } from '#/lib/auth'
+import { postComment } from '#/lib/comments-api'
+import { fetchAgreedBeliefs } from '#/lib/votes-api'
+import type { AgreedBelief, VoteValue } from '#/lib/votes-api'
+import { BELIEF_ANCHOR } from './BeliefTabs'
+import { CommentForm } from './CommentForm'
+import { WRITE_BLOCK_NOTES } from './CommentThread'
+import { buttonStyle } from './editor-styles'
+import { Paragraphs } from './Paragraphs'
+import { useOwnerAction } from './use-owner-action'
+import { STANCE_LABEL, VoteButtons } from './VoteButtons'
+
+export const AGREED_HEADING = "Members' beliefs agreed by 2 or more members"
+
+const SESSION_UNCONFIRMED =
+  "We couldn't confirm that you're signed in. Please try again."
+
+/**
+ * Below the Beliefs page's own text (Chunk 10, Tripp Q04: "2+ is all it
+ * takes"): every member belief at least two members agree with, on its
+ * current wording, that this reader may read. Most agrees first, then
+ * newest; ten at a time. Voting and commenting work right here.
+ *
+ * Read in the browser, with the reader's token when signed in: who may see
+ * which belief, and their own votes, depend on who asks.
+ */
+export function AgreedBeliefs() {
+  const auth = useOrgAuth()
+  const [beliefs, setBeliefs] = useState<Array<AgreedBelief>>()
+  const [nextAfter, setNextAfter] = useState<string>()
+  const [loading, setLoading] = useState(false)
+  const [problem, setProblem] = useState<string>()
+  const generation = useRef(0)
+
+  const load = async (after?: string) => {
+    const run = ++generation.current
+    setLoading(true)
+    try {
+      const token = auth.isAuthenticated ? await auth.getToken() : undefined
+      if (auth.isAuthenticated && !token) throw new Error(SESSION_UNCONFIRMED)
+      const page = await fetchAgreedBeliefs({ after, token })
+      if (run !== generation.current) return
+      setBeliefs((shown) =>
+        // "Show more" exists only once a first page is shown.
+        after
+          ? [...(shown as Array<AgreedBelief>), ...page.beliefs]
+          : page.beliefs,
+      )
+      setNextAfter(page.nextAfter)
+      setProblem(undefined)
+    } catch (err) {
+      if (run !== generation.current) return
+      setProblem(
+        err instanceof Error ? err.message : 'This list is unavailable.',
+      )
+    } finally {
+      if (run === generation.current) setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (auth.isLoading) return
+    void load()
+    return () => {
+      generation.current++
+    }
+  }, [auth])
+
+  return (
+    <section
+      aria-labelledby="agreed-beliefs-heading"
+      aria-busy={loading}
+      className="mx-auto mt-12 max-w-[860px]"
+    >
+      <h2
+        id="agreed-beliefs-heading"
+        className="text-2xl font-light uppercase tracking-[0.06em] text-[#f6efd9]"
+      >
+        {AGREED_HEADING}
+      </h2>
+      <p className="mt-2 text-sm text-[#b8ad8d]">
+        A member’s belief appears here once two members agree with its current
+        wording. Disagreeing votes are shown too.
+      </p>
+      {problem && (
+        <p role="alert" className="mt-3 text-sm text-[#f1a07a]">
+          {problem}
+        </p>
+      )}
+      {beliefs === undefined && !problem ? (
+        <p role="status" className="mt-3 text-sm text-[#b8ad8d]">
+          Opening the list…
+        </p>
+      ) : beliefs?.length === 0 ? (
+        <p className="mt-3 text-sm text-[#b8ad8d]">
+          No member belief has two agreeing votes yet.
+        </p>
+      ) : (
+        <ol className="mt-4 flex flex-col gap-8">
+          {beliefs?.map((belief) => (
+            <AgreedEntry
+              key={belief.tabId}
+              belief={belief}
+              signedIn={auth.isAuthenticated}
+              onVotes={(votes) =>
+                setBeliefs((all) =>
+                  all?.map((entry) =>
+                    entry.tabId === belief.tabId ? { ...entry, votes } : entry,
+                  ),
+                )
+              }
+              onReworded={() => void load()}
+            />
+          ))}
+        </ol>
+      )}
+      {nextAfter && (
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void load(nextAfter)}
+          className={buttonStyle}
+        >
+          Show more beliefs
+        </button>
+      )}
+    </section>
+  )
+}
+
+function AgreedEntry({
+  belief,
+  signedIn,
+  onVotes,
+  onReworded,
+}: {
+  belief: AgreedBelief
+  signedIn: boolean
+  onVotes: (votes: AgreedBelief['votes']) => void
+  onReworded: () => void
+}) {
+  const [compose, setCompose] = useState<{
+    stance?: VoteValue
+    nonce: number
+  }>()
+  const [posted, setPosted] = useState(false)
+  const writer = useOwnerAction()
+
+  const post = async (body: string) => {
+    const saved = await writer.run((token) =>
+      postComment(token, {
+        slug: belief.slug,
+        tabId: belief.tabId,
+        body,
+        ...(compose?.stance ? { stance: compose.stance } : {}),
+      }),
+    )
+    if (saved === undefined) return false
+    setCompose(undefined)
+    setPosted(true)
+    return true
+  }
+
+  const link = (
+    <Link
+      to="/$slug"
+      params={{ slug: belief.slug }}
+      hash={`${BELIEF_ANCHOR}${belief.tabId}`}
+      className="underline underline-offset-4"
+    >
+      Open this belief on {belief.author.displayName}’s page
+    </Link>
+  )
+
+  return (
+    <li className="border-t border-[rgba(236,226,196,0.16)] pt-5">
+      <article aria-label={belief.title}>
+        <h3 className="text-xl font-light text-[#f6efd9] [overflow-wrap:anywhere]">
+          {belief.title}
+        </h3>
+        <p className="mt-1 text-sm text-[#b8ad8d]">
+          By{' '}
+          <Link
+            to="/$slug"
+            params={{ slug: belief.author.slug }}
+            className="text-[#f6efd9] underline underline-offset-4 [overflow-wrap:anywhere]"
+          >
+            {belief.author.displayName}
+          </Link>
+        </p>
+        <div className="mt-2">
+          <Paragraphs paragraphs={belief.paragraphs} />
+        </div>
+        <VoteButtons
+          slug={belief.slug}
+          tabId={belief.tabId}
+          title={belief.title}
+          textSeq={belief.textSeq}
+          votes={belief.votes}
+          comment={
+            signedIn
+              ? { mayComment: true }
+              : { mayComment: false, reason: WRITE_BLOCK_NOTES['sign-in'] }
+          }
+          onVotes={(answer) => {
+            onVotes(answer.votes)
+            if (answer.textSeq !== belief.textSeq) onReworded()
+          }}
+          onCompose={(stance) =>
+            setCompose((last) => ({
+              ...(stance ? { stance } : {}),
+              nonce: (last?.nonce ?? 0) + 1,
+            }))
+          }
+        />
+        {compose && (
+          <CommentForm
+            label={`Comment on “${belief.title}”`}
+            submitLabel="Post comment"
+            busy={writer.busy}
+            onSubmit={post}
+            onCancel={() => setCompose(undefined)}
+            focusKey={compose.nonce}
+            note={
+              compose.stance && (
+                <p className="mt-2 text-xs text-[#ece2c4]">
+                  Your comment will show “{STANCE_LABEL[compose.stance]}”, as
+                  your vote says.
+                </p>
+              )
+            }
+          />
+        )}
+        {writer.problem && (
+          <p role="alert" className="mt-2 text-sm text-[#f1a07a]">
+            {writer.problem}
+          </p>
+        )}
+        {posted && (
+          <p role="status" className="mt-2 text-sm text-[#ece2c4]">
+            Your comment is posted. {link}
+          </p>
+        )}
+        <p className="mt-3 text-sm text-[#b8ad8d]">{link}</p>
+      </article>
+    </li>
+  )
+}

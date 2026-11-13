@@ -1,4 +1,5 @@
 import { memberRequest } from './membership-api'
+import type { VoteValue } from './votes-api'
 
 /** Most characters one comment holds (the server's limit). */
 export const MAX_COMMENT_LENGTH = 10_000
@@ -52,6 +53,8 @@ export interface CommentView {
   suggestion?: SuggestionView
   /** On a reply: the comment it answers. */
   parentCommentId?: string
+  /** Posted with "Agree and comment" / "Disagree and comment" (Chunk 10). */
+  stance?: VoteValue
   /** Top-level comments only. */
   replies?: Array<CommentView>
 }
@@ -122,6 +125,8 @@ export function postComment(
     body: string
     tabId?: string
     parentCommentId?: string
+    /** The writer's vote on the belief, shown as a badge (Chunk 10). */
+    stance?: VoteValue
   },
 ) {
   return memberRequest<WriteAnswer & { commentId: string; seq: number }>(
