@@ -346,6 +346,19 @@ describe('RolesSection', () => {
     )
   })
 
+  it('shows an invitation whose sending time Clerk did not give (round 5)', async () => {
+    mocks.fetchInvitations.mockResolvedValue({
+      invitations: [{ invitationId: 'inv_u', email: 'undated@example.test' }],
+      complete: true,
+    })
+    render(<RolesSection />)
+    const card = await screen.findByRole('article', {
+      name: 'undated@example.test',
+    })
+    expect(within(card).getByText('As a member')).toBeTruthy()
+    expect(within(card).queryByText(/sent/)).toBeNull()
+  })
+
   it('shows waiting invitations and withdraws one', async () => {
     const user = userEvent.setup()
     render(<RolesSection />)

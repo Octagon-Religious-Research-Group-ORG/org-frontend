@@ -348,8 +348,8 @@ function InvitationCard({
         {invitation.email}
       </p>
       <p className="mt-1 text-xs text-[#9f9676]">
-        {invitation.role === 'admin' ? 'As an admin' : 'As a member'} · sent{' '}
-        {adminTime(invitation.createdAt)}
+        {invitation.role === 'admin' ? 'As an admin' : 'As a member'}
+        {invitation.createdAt && ` · sent ${adminTime(invitation.createdAt)}`}
       </p>
       {action.error && (
         <p role="alert" className="mt-2 text-sm text-[#f1a07a]">

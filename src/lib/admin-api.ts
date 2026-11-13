@@ -47,7 +47,8 @@ export interface PendingInvitation {
   invitationId: string
   email: string
   role?: 'admin' | 'moderator'
-  createdAt: string
+  /** Absent when Clerk did not say when it was sent. */
+  createdAt?: string
 }
 
 export interface LogEntry {
