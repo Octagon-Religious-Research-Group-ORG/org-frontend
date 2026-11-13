@@ -6,21 +6,31 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '#/lib/api'
 import type * as ClaimsApi from '#/lib/claims-api'
-import { ADMINS_ONLY, AdminClaims, APPROVE_EXPLAINED } from './AdminClaims'
+import {
+  ADMINS_ONLY,
+  AdminClaims,
+  APPROVE_EXPLAINED,
+  OWN_REQUEST_NOTE,
+} from './AdminClaims'
 
 // Synthetic data only.
-const mocks = vi.hoisted(() => ({
-  auth: {
-    isLoading: false,
-    isAuthenticated: true,
-    getToken: vi.fn<() => Promise<string | undefined>>(),
-  },
-  fetchAdminClaims: vi.fn(),
-  approveClaim: vi.fn(),
-  rejectClaim: vi.fn(),
-  fetchLegacyComments: vi.fn(),
-  linkLegacyComments: vi.fn(),
-}))
+const mocks = vi.hoisted(() => {
+  // Who is signed in: the admin, unless a test says otherwise.
+  const user: { sub?: string } = { sub: 'user_admin' }
+  return {
+    auth: {
+      isLoading: false,
+      isAuthenticated: true,
+      user,
+      getToken: vi.fn<() => Promise<string | undefined>>(),
+    },
+    fetchAdminClaims: vi.fn(),
+    approveClaim: vi.fn(),
+    rejectClaim: vi.fn(),
+    fetchLegacyComments: vi.fn(),
+    linkLegacyComments: vi.fn(),
+  }
+})
 
 vi.mock('#/lib/auth', () => ({ useOrgAuth: () => mocks.auth }))
 vi.mock('#/lib/claims-api', async (original) => ({
@@ -202,6 +212,44 @@ describe('AdminClaims', () => {
     expect(
       screen.queryByText('No imported comments are left to link.'),
     ).toBeNull()
+  })
+
+  it('offers no decision and no linking on the admin’s own request (review round 2)', async () => {
+    mocks.fetchAdminClaims.mockResolvedValueOnce({
+      claims: [
+        claim({ claimant: { userId: 'user_admin' } }),
+        claim({
+          claimId: 'c2',
+          status: 'approved',
+          claimant: { userId: 'user_admin' },
+        }),
+        claim({
+          claimId: 'c3',
+          status: 'rejected',
+          claimant: { userId: 'user_admin' },
+        }),
+      ],
+    })
+    render(<AdminClaims />)
+    expect(await screen.findAllByText(OWN_REQUEST_NOTE)).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Reject…' })).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'Link imported comments…' }),
+    ).toBeNull()
+  })
+
+  it('still offers linking on someone else’s approved request', async () => {
+    mocks.auth.user = {}
+    mocks.fetchAdminClaims.mockResolvedValueOnce({
+      claims: [claim({ status: 'approved' })],
+    })
+    render(<AdminClaims />)
+    expect(
+      await screen.findByRole('button', { name: 'Link imported comments…' }),
+    ).toBeTruthy()
+    expect(screen.queryByText(OWN_REQUEST_NOTE)).toBeNull()
+    mocks.auth.user = { sub: 'user_admin' }
   })
 
   it('tells a non-admin this page is not for them', async () => {

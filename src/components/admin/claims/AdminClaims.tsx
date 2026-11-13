@@ -27,6 +27,8 @@ export const STATUS_TABS: Array<{ status: ClaimStatus; label: string }> = [
 ]
 
 export const ADMINS_ONLY = 'This page is for ORG admins.'
+export const OWN_REQUEST_NOTE =
+  'This is your own request: another admin decides it, and links its imported comments.'
 export const APPROVE_EXPLAINED =
   'Approving gives this page to the person who asked: they can then edit it and accept suggestions. Any other requests for the page are rejected.'
 
@@ -158,6 +160,8 @@ function ClaimCard({
   const [linking, setLinking] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
+  // The server refuses an admin's own request (403); offer nothing for it.
+  const own = auth.user?.sub === claim.claimant.userId
   const who = claim.claimant.email ?? claim.claimant.userId
   const pageName = claim.page?.displayName ?? 'A page that no longer exists'
 
@@ -216,7 +220,10 @@ function ClaimCard({
         </p>
       )}
 
-      {claim.status === 'pending' && !rejecting && (
+      {own && claim.status !== 'withdrawn' && claim.status !== 'rejected' && (
+        <p className="mt-3 text-xs text-[#f1d78a]">{OWN_REQUEST_NOTE}</p>
+      )}
+      {!own && claim.status === 'pending' && !rejecting && (
         <>
           <p className="mt-3 text-xs text-[#9f9676]">{APPROVE_EXPLAINED}</p>
           <div className="flex flex-wrap gap-3">
@@ -241,7 +248,7 @@ function ClaimCard({
           </div>
         </>
       )}
-      {claim.status === 'pending' && rejecting && (
+      {!own && claim.status === 'pending' && rejecting && (
         <form
           className="mt-3"
           onSubmit={(event) => {
@@ -275,7 +282,7 @@ function ClaimCard({
           </div>
         </form>
       )}
-      {claim.status === 'approved' && claim.page && (
+      {!own && claim.status === 'approved' && claim.page && (
         <>
           <button
             type="button"
