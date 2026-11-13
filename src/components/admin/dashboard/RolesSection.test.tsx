@@ -298,10 +298,16 @@ describe('RolesSection', () => {
 
   it('shows an unknown outcome in the server’s words, and keeps what was typed (round 3)', async () => {
     const user = userEvent.setup()
+    // The server's own words (OUTCOME_UNKNOWN and DEMOTION_UNKNOWN in
+    // org-backend's admin-roles.service.ts).
     const unknown =
-      'The sign-in service did not answer in time, so this change may or may not have happened. Role changes are paused for up to 5 minutes; then check the list and the moderation log.'
+      'The sign-in service did not confirm this change, so it may or may not have happened. Role changes are paused for up to 5 minutes; then check the list and the moderation log.'
+    const demotionUnknown =
+      'The sign-in service did not confirm the removal, so the admin role may or may not have been removed. Role changes are paused for up to 5 minutes; then check the list, and if the role is gone, withdraw any invitations they sent.'
     mocks.inviteByEmail.mockRejectedValueOnce(new ApiError(unknown, 503))
-    mocks.removeAdminRole.mockRejectedValueOnce(new ApiError(unknown, 503))
+    mocks.removeAdminRole.mockRejectedValueOnce(
+      new ApiError(demotionUnknown, 503),
+    )
     render(<RolesSection />)
     const field = await screen.findByLabelText('Email address')
     await user.type(field, 'late@example.test')
@@ -317,7 +323,9 @@ describe('RolesSection', () => {
     await user.click(
       within(other).getByRole('button', { name: 'Remove the admin role' }),
     )
-    expect((await within(other).findByRole('alert')).textContent).toBe(unknown)
+    expect((await within(other).findByRole('alert')).textContent).toBe(
+      demotionUnknown,
+    )
     // A 503 does not reload the list as if the change were done.
     expect(mocks.fetchAdmins).toHaveBeenCalledTimes(1)
   })
