@@ -414,6 +414,7 @@ describe('RolesSection', () => {
       'This is the only admin.',
     )
     cleanup()
+    mocks.fetchInvitations.mockClear()
     mocks.revokeInvitation.mockRejectedValue(new Error('No longer waiting.'))
     mocks.fetchInvitations.mockResolvedValue({
       invitations: [
@@ -431,8 +432,80 @@ describe('RolesSection', () => {
     await user.click(
       within(invitation).getByRole('button', { name: 'Withdraw' }),
     )
-    expect((await within(invitation).findByRole('alert')).textContent).toBe(
-      'No longer waiting.',
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'z@example.test: No longer waiting.',
     )
+    // A plain refusal (no 409/500) re-reads nothing.
+    expect(mocks.fetchInvitations).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps a withdrawal’s audit-gap message after the re-read removes its card (round 7, LOW 2)', async () => {
+    const user = userEvent.setup()
+    const message =
+      'The invitation was withdrawn, but the audit record is incomplete.'
+    mocks.revokeInvitation.mockRejectedValueOnce(new ApiError(message, 500))
+    render(<RolesSection />)
+    const card = await screen.findByRole('article', {
+      name: 'new@example.test',
+    })
+    // The re-read no longer lists the withdrawn invitation.
+    mocks.fetchInvitations.mockResolvedValue({
+      invitations: [
+        {
+          invitationId: 'inv_2',
+          email: 'member@example.test',
+          createdAt: '2026-11-13T10:00:00Z',
+        },
+      ],
+      complete: true,
+    })
+    await user.click(within(card).getByRole('button', { name: 'Withdraw' }))
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('article', { name: 'new@example.test' }),
+      ).toBeNull(),
+    )
+    expect(mocks.fetchInvitations).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('alert').textContent).toBe(
+      `new@example.test: ${message}`,
+    )
+  })
+
+  it('clears a withdrawal error when the next withdrawal works', async () => {
+    const user = userEvent.setup()
+    mocks.revokeInvitation.mockRejectedValueOnce(new Error('Not now.'))
+    render(<RolesSection />)
+    const card = await screen.findByRole('article', {
+      name: 'member@example.test',
+    })
+    await user.click(within(card).getByRole('button', { name: 'Withdraw' }))
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'member@example.test: Not now.',
+    )
+    await user.click(within(card).getByRole('button', { name: 'Withdraw' }))
+    await waitFor(() => expect(mocks.fetchInvitations).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('re-reads the admins after a 409 on a removal, without a success (round 7)', async () => {
+    const user = userEvent.setup()
+    mocks.removeAdminRole.mockRejectedValueOnce(
+      new ApiError('Someone else changed this admin first.', 409),
+    )
+    render(<RolesSection />)
+    const other = await screen.findByRole('article', { name: 'Other Admin' })
+    await user.click(
+      within(other).getByRole('button', { name: 'Remove admin role…' }),
+    )
+    await user.type(within(other).getByRole('textbox'), 'r')
+    await user.click(
+      within(other).getByRole('button', { name: 'Remove the admin role' }),
+    )
+    expect((await within(other).findByRole('alert')).textContent).toBe(
+      'Someone else changed this admin first.',
+    )
+    await waitFor(() => expect(mocks.fetchAdmins).toHaveBeenCalledTimes(2))
+    // The form is still open with its reason: nothing claimed success.
+    expect(within(other).getByRole('textbox')).toHaveProperty('value', 'r')
   })
 })

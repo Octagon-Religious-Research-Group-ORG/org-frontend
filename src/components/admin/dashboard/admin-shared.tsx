@@ -57,9 +57,14 @@ export function useAdminAction() {
 
   async function run(
     write: (token: string) => Promise<unknown>,
+    /** Runs only when the write succeeded. */
     after: () => void,
-    /** Re-reads the screen without claiming success; defaults to `after`. */
-    refresh: () => void = after,
+    /**
+     * Re-reads the screen after a 409 or a 500, without claiming success.
+     * Does nothing unless a caller passes a pure re-read: `after` may announce
+     * success or close a form, which a failed write must never do.
+     */
+    refresh: () => void = () => undefined,
   ) {
     setBusy(true)
     setError(undefined)

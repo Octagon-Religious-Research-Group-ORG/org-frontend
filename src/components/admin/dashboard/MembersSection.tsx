@@ -263,6 +263,7 @@ function MemberCard({
                 void action.run(
                   (token) => decideOnPage(token, member.slug, 'approve'),
                   onChanged,
+                  onChanged,
                 )
               }
             >
@@ -306,6 +307,9 @@ function MemberCard({
                 close()
                 onChanged()
               },
+              // A failed write keeps the form and its reason; only the lists
+              // are re-read.
+              onChanged,
             )
           }}
         >

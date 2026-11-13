@@ -86,6 +86,7 @@ function SettingsForms({
             void voting.run(
               (token) => setAnonymousVoting(token, !settings.anonymousMayVote),
               onChanged,
+              onChanged,
             )
           }
         >
@@ -106,6 +107,8 @@ function SettingsForms({
               setSaved(typed ? 'Invite saved.' : 'Invite cleared.')
               onChanged()
             },
+            // Re-read only: a failed save never says "saved".
+            onChanged,
           )
         }}
       >

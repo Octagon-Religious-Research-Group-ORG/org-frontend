@@ -164,6 +164,7 @@ function InboxCard({
               void action.run(
                 (token) => markInboxHandled(token, entry.entryId),
                 onChanged,
+                onChanged,
               )
             }
           >
@@ -178,6 +179,7 @@ function InboxCard({
             onClick={() =>
               void action.run(
                 (token) => resetEamRequest(token, entry.entryId),
+                onChanged,
                 onChanged,
               )
             }

@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '#/lib/api'
 import type * as AdminApi from '#/lib/admin-api'
 import { MembersSection, OWN_PAGE_NOTE } from './MembersSection'
 
@@ -297,6 +298,50 @@ describe('MembersSection', () => {
     await user.click(within(page).getByRole('button', { name: 'Approve' }))
     expect((await within(page).findByRole('alert')).textContent).toBe(
       'Another admin must decide.',
+    )
+    // A plain refusal re-reads nothing.
+    expect(mocks.fetchAdminMembers).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the form and its reason when a promotion answers 500, and re-reads (round 7, MEDIUM 1)', async () => {
+    const user = userEvent.setup()
+    const message = 'The role was given, but the audit record is incomplete.'
+    listOf(member({ reviewStatus: 'approved' }))
+    mocks.promoteToAdmin.mockRejectedValueOnce(new ApiError(message, 500))
+    render(<MembersSection />)
+    const page = await card('Quiet Fern')
+    await user.click(
+      await within(page).findByRole('button', { name: 'Make admin…' }),
+    )
+    await user.type(
+      within(page).getByLabelText('Why they become an admin'),
+      'Synthetic reason',
+    )
+    await user.click(
+      within(page).getByRole('button', { name: 'Make them an admin' }),
+    )
+    expect((await within(page).findByRole('alert')).textContent).toBe(message)
+    await waitFor(() => expect(mocks.fetchAdmins).toHaveBeenCalledTimes(2))
+    expect(mocks.fetchAdminMembers).toHaveBeenCalledTimes(2)
+    const stillOpen = await card('Quiet Fern')
+    expect(
+      within(stillOpen).getByLabelText('Why they become an admin'),
+    ).toHaveProperty('value', 'Synthetic reason')
+  })
+
+  it('re-reads the lists when an approval answers 409 (round 7)', async () => {
+    const user = userEvent.setup()
+    mocks.decideOnPage.mockRejectedValueOnce(
+      new ApiError('Someone else decided first.', 409),
+    )
+    render(<MembersSection />)
+    const page = await card('Quiet Fern')
+    await user.click(within(page).getByRole('button', { name: 'Approve' }))
+    expect((await within(page).findByRole('alert')).textContent).toBe(
+      'Someone else decided first.',
+    )
+    await waitFor(() =>
+      expect(mocks.fetchAdminMembers).toHaveBeenCalledTimes(2),
     )
   })
 })

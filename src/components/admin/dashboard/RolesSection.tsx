@@ -51,6 +51,8 @@ export function RolesSection() {
   // The last-admin rule counts Clerk roles only, like the server.
   const onlyOne = list.filter((person) => !person.viaAllowlist).length <= 1
   const [warning, setWarning] = useState<string>()
+  const withdraw = useAdminAction()
+  const [withdrawing, setWithdrawing] = useState<string>()
 
   return (
     <section aria-labelledby="roles-heading">
@@ -97,6 +99,7 @@ export function RolesSection() {
                   setWarning(followUp)
                   admins.reload()
                 }}
+                onRefresh={admins.reload}
               />
             </li>
           ))}
@@ -118,6 +121,12 @@ export function RolesSection() {
             {INVITATIONS_INCOMPLETE}
           </p>
         )}
+        {/* Here, not on the card: the re-read removes a withdrawn card. */}
+        {withdraw.error && (
+          <p role="alert" className="mt-3 text-sm text-[#f1a07a]">
+            {withdrawing}: {withdraw.error}
+          </p>
+        )}
         {invitations.data?.invitations.length === 0 && (
           <p className="mt-3 text-sm text-[#9f9676]">None.</p>
         )}
@@ -126,7 +135,15 @@ export function RolesSection() {
             <li key={invitation.invitationId}>
               <InvitationCard
                 invitation={invitation}
-                onChanged={invitations.reload}
+                busy={withdraw.busy}
+                onWithdraw={() => {
+                  setWithdrawing(invitation.email)
+                  void withdraw.run(
+                    (token) => revokeInvitation(token, invitation.invitationId),
+                    invitations.reload,
+                    invitations.reload,
+                  )
+                }}
               />
             </li>
           ))}
@@ -140,11 +157,14 @@ function AdminCard({
   person,
   removable,
   onChanged,
+  onRefresh,
 }: {
   person: AdminPerson
   removable: boolean
   /** With the server's follow-up warning, when there is one. */
   onChanged: (followUpWarning?: string) => void
+  /** Re-reads the admins after a 409 or 500, claiming nothing. */
+  onRefresh: () => void
 }) {
   const action = useAdminAction()
   const [open, setOpen] = useState(false)
@@ -211,6 +231,7 @@ function AdminCard({
                 followUp = result.followUpWarning
               },
               () => onChanged(followUp),
+              onRefresh,
             )
           }}
         >
@@ -338,12 +359,13 @@ function InviteForm({ onSent }: { onSent: () => void }) {
 
 function InvitationCard({
   invitation,
-  onChanged,
+  busy,
+  onWithdraw,
 }: {
   invitation: PendingInvitation
-  onChanged: () => void
+  busy: boolean
+  onWithdraw: () => void
 }) {
-  const action = useAdminAction()
   return (
     <article aria-label={invitation.email} className={cardStyle}>
       <p className="text-[#f6efd9] [overflow-wrap:anywhere]">
@@ -353,21 +375,11 @@ function InvitationCard({
         {invitation.role === 'admin' ? 'As an admin' : 'As a member'}
         {invitation.createdAt && ` · sent ${adminTime(invitation.createdAt)}`}
       </p>
-      {action.error && (
-        <p role="alert" className="mt-2 text-sm text-[#f1a07a]">
-          {action.error}
-        </p>
-      )}
       <button
         type="button"
         className={dangerStyle}
-        disabled={action.busy}
-        onClick={() =>
-          void action.run(
-            (token) => revokeInvitation(token, invitation.invitationId),
-            onChanged,
-          )
-        }
+        disabled={busy}
+        onClick={onWithdraw}
       >
         Withdraw
       </button>
