@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '#/lib/api'
 import type * as AdminApi from '#/lib/admin-api'
 import {
   ADMIN_INVITE_NOTE,
@@ -293,6 +294,32 @@ describe('RolesSection', () => {
       'Co-admin',
     )
     await user.click(screen.getByLabelText('A member'))
+  })
+
+  it('shows an unknown outcome in the server’s words, and keeps what was typed (round 3)', async () => {
+    const user = userEvent.setup()
+    const unknown =
+      'The sign-in service did not answer in time, so this change may or may not have happened. Role changes are paused for up to 5 minutes; then check the list and the moderation log.'
+    mocks.inviteByEmail.mockRejectedValueOnce(new ApiError(unknown, 503))
+    mocks.removeAdminRole.mockRejectedValueOnce(new ApiError(unknown, 503))
+    render(<RolesSection />)
+    const field = await screen.findByLabelText('Email address')
+    await user.type(field, 'late@example.test')
+    await user.click(screen.getByRole('button', { name: 'Send invitation' }))
+    expect((await screen.findByRole('alert')).textContent).toBe(unknown)
+    expect((field as HTMLInputElement).value).toBe('late@example.test')
+    expect(screen.queryByRole('status')).toBeNull()
+    const other = screen.getByRole('article', { name: 'Other Admin' })
+    await user.click(
+      within(other).getByRole('button', { name: 'Remove admin role…' }),
+    )
+    await user.type(within(other).getByRole('textbox'), 'r')
+    await user.click(
+      within(other).getByRole('button', { name: 'Remove the admin role' }),
+    )
+    expect((await within(other).findByRole('alert')).textContent).toBe(unknown)
+    // A 503 does not reload the list as if the change were done.
+    expect(mocks.fetchAdmins).toHaveBeenCalledTimes(1)
   })
 
   it('says why an invitation was refused', async () => {
