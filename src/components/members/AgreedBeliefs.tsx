@@ -76,6 +76,8 @@ export function AgreedBeliefs() {
         after ? appendUnique(shown as Array<AgreedBelief>, found) : found,
       )
       setNextAfter(page.nextAfter)
+      // A whole new list shows each belief as read now (fix round 2, c).
+      if (!after) setReworded(new Set())
       setComment(
         page.viewerMayComment
           ? { mayComment: true }

@@ -143,6 +143,43 @@ describe('VoteButtons', () => {
     expect(screen.getByText(/Your vote was taken back/)).toBeTruthy()
   })
 
+  it('drops the "counts are from before" note once fresh counts arrive (fix round 2, item a)', async () => {
+    const { rerender } = renderButtons(votes({ myVote: 'agree' }))
+    fireEvent.click(button('Agree with “Synthetic belief”'))
+    await screen.findByText(/Your vote was taken back/)
+    const props = {
+      slug: 'quiet-fern',
+      tabId: 'tab_1',
+      title: 'Synthetic belief',
+      textSeq: 3,
+      comment: { mayComment: true },
+      onVotes,
+      onCompose,
+    }
+    // After a cast.
+    rerender(<VoteButtons {...props} votes={votes()} />)
+    fireEvent.click(button('Agree with “Synthetic belief”'))
+    await waitFor(() =>
+      expect(screen.queryByText(/Your vote was taken back/)).toBeNull(),
+    )
+    // After a withdrawal that brings the counts.
+    mocks.withdrawVote.mockResolvedValueOnce({ withdrawn: true })
+    rerender(<VoteButtons {...props} votes={votes({ myVote: 'agree' })} />)
+    fireEvent.click(button('Agree with “Synthetic belief”'))
+    await screen.findByText(/Your vote was taken back/)
+    mocks.withdrawVote.mockResolvedValueOnce({
+      withdrawn: true,
+      tabId: 'tab_1',
+      textSeq: 3,
+      votes: votes({ agree: 1 }),
+    })
+    rerender(<VoteButtons {...props} votes={votes({ myVote: 'agree' })} />)
+    fireEvent.click(button('Agree with “Synthetic belief”'))
+    await waitFor(() =>
+      expect(screen.queryByText(/Your vote was taken back/)).toBeNull(),
+    )
+  })
+
   it('does nothing more when a withdrawal is refused', async () => {
     mocks.withdrawVote.mockRejectedValueOnce(new Error('Try again.'))
     renderButtons(votes({ myVote: 'agree' }))

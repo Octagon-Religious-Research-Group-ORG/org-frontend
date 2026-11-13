@@ -91,6 +91,8 @@ export function VoteButtons({
       castVote(token, { slug, tabId, value, baseSeq: textSeq }),
     )
     if (answer === undefined) return false
+    // Fresh counts: no longer "from before" (fix round 2, item a).
+    setCountsOld(false)
     onVotes(answer)
     return true
   }
@@ -105,6 +107,7 @@ export function VoteButtons({
     const answer = await run((token) => withdrawVote(token, { slug, tabId }))
     if (answer === undefined) return
     if (answer.votes) {
+      setCountsOld(false)
       onVotes({ votes: answer.votes, textSeq: answer.textSeq ?? textSeq })
       return
     }

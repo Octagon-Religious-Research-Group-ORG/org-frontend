@@ -159,6 +159,52 @@ describe('CommentThread stance badges (Chunk 10)', () => {
     await waitFor(() => expect(screen.queryByText(/will show/)).toBeNull())
   })
 
+  it('a badge taken off stays off when the vote changes, until a new request (fix round 2, item b)', async () => {
+    const props = {
+      slug: 'quiet-fern',
+      title: 'Comments',
+      tabId: 'tab_1',
+      onPageChanged: vi.fn(),
+      onAccess,
+    }
+    const { rerender } = renderThread({ stance: 'agree', nonce: 1 })
+    await screen.findByText(/will show “Agrees”/)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Post it without the badge' }),
+    )
+    rerender(
+      <CommentThread {...props} compose={{ stance: 'disagree', nonce: 1 }} />,
+    )
+    await Promise.resolve()
+    expect(screen.queryByText(/will show/)).toBeNull()
+    // A new "…and comment" press puts it on again.
+    rerender(
+      <CommentThread {...props} compose={{ stance: 'disagree', nonce: 2 }} />,
+    )
+    expect(await screen.findByText(/will show “Disagrees”/)).toBeTruthy()
+  })
+
+  it('a badge used by a posted comment does not come back on a vote change', async () => {
+    const props = {
+      slug: 'quiet-fern',
+      title: 'Comments',
+      tabId: 'tab_1',
+      onPageChanged: vi.fn(),
+      onAccess,
+    }
+    const { rerender } = renderThread({ stance: 'agree', nonce: 1 })
+    fireEvent.change(await screen.findByRole('textbox'), {
+      target: { value: 'Posted with the badge.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }))
+    await waitFor(() => expect(screen.queryByText(/will show/)).toBeNull())
+    rerender(
+      <CommentThread {...props} compose={{ stance: 'disagree', nonce: 1 }} />,
+    )
+    await Promise.resolve()
+    expect(screen.queryByText(/will show/)).toBeNull()
+  })
+
   it('can drop the badge before posting', async () => {
     renderThread({ stance: 'disagree', nonce: 1 })
     await screen.findByText(/will show “Disagrees”/)

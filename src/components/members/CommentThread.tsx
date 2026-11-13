@@ -141,10 +141,26 @@ export function CommentThread({
     else void load({ count: current.current.pages.length })
   }
 
+  // A new "…and comment" request sets the badge. Afterwards the badge
+  // follows a changed vote only while it is still on: once the writer took
+  // it off ("Post it without the badge") or posted with it, a vote change
+  // does not put it back (fix round 2, item b).
+  const lastRequest = useRef<number>(undefined)
+  const badgeOff = useRef(false)
   useEffect(() => {
-    if (compose) setStance(compose.stance)
-    // A new request, or the vote it follows changed (fix round 1, LOW 5).
+    if (!compose) return
+    if (compose.nonce !== lastRequest.current) {
+      lastRequest.current = compose.nonce
+      badgeOff.current = false
+      setStance(compose.stance)
+      return
+    }
+    if (!badgeOff.current) setStance(compose.stance)
   }, [compose?.nonce, compose?.stance])
+  const takeBadgeOff = () => {
+    badgeOff.current = true
+    setStance(undefined)
+  }
 
   const first = thread.pages.at(0)
   const last = thread.pages.at(-1)
@@ -180,7 +196,7 @@ export function CommentThread({
       }),
     )
     if (saved === undefined) return false
-    setStance(undefined)
+    takeBadgeOff()
     changed(saved.comment)
     return true
   }
@@ -274,7 +290,7 @@ export function CommentThread({
                 says.{' '}
                 <button
                   type="button"
-                  onClick={() => setStance(undefined)}
+                  onClick={takeBadgeOff}
                   className="underline underline-offset-4"
                 >
                   Post it without the badge

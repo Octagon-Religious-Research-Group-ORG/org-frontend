@@ -330,6 +330,57 @@ describe('AgreedBeliefs', () => {
       expect(screen.getByRole('article', { name: 'Title tab_1' })).toBeTruthy()
     })
 
+    it('clears the reworded notes when the whole list is read again (fix round 2, item c)', async () => {
+      mocks.castVote.mockResolvedValueOnce({
+        tabId: 'tab_1',
+        textSeq: 2,
+        votes: votes({ agree: 0, mayVote: true }),
+      })
+      const { rerender } = render(<AgreedBeliefs />)
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Agree with “Title tab_1”' }),
+      )
+      await screen.findByText(/This belief was reworded since the list/)
+      // A new sign-in state reads the whole list again.
+      mocks.auth = { ...mocks.auth }
+      rerender(<AgreedBeliefs />)
+      await waitFor(() =>
+        expect(mocks.fetchAgreedBeliefs).toHaveBeenCalledTimes(2),
+      )
+      await waitFor(() =>
+        expect(screen.queryByText(/This belief was reworded/)).toBeNull(),
+      )
+    })
+
+    it('keeps the reworded notes while more pages are added', async () => {
+      mocks.fetchAgreedBeliefs
+        .mockReset()
+        .mockResolvedValueOnce({
+          beliefs: [belief('tab_1', { votes: votes({ mayVote: true }) })],
+          nextAfter: '2.1.tab_1',
+          viewerMayComment: true,
+        })
+        .mockResolvedValueOnce({
+          beliefs: [belief('tab_2')],
+          viewerMayComment: true,
+        })
+      mocks.castVote.mockResolvedValueOnce({
+        tabId: 'tab_1',
+        textSeq: 2,
+        votes: votes({ agree: 0, mayVote: true }),
+      })
+      render(<AgreedBeliefs />)
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Agree with “Title tab_1”' }),
+      )
+      await screen.findByText(/This belief was reworded since the list/)
+      fireEvent.click(screen.getByRole('button', { name: 'Show more beliefs' }))
+      await screen.findByRole('article', { name: 'Title tab_2' })
+      expect(
+        screen.getByText(/This belief was reworded since the list/),
+      ).toBeTruthy()
+    })
+
     it('the badge follows the vote: none once the vote is taken back (fix round 1, LOW 5)', async () => {
       mocks.castVote.mockResolvedValueOnce({
         tabId: 'tab_1',
