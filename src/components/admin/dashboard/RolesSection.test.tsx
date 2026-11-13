@@ -10,7 +10,14 @@ import {
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as AdminApi from '#/lib/admin-api'
-import { INCOMPLETE_NOTE, LAST_ADMIN_NOTE, RolesSection } from './RolesSection'
+import {
+  ADMIN_INVITE_NOTE,
+  ALLOWLIST_NOTE,
+  INCOMPLETE_NOTE,
+  INVITATIONS_INCOMPLETE,
+  LAST_ADMIN_NOTE,
+  RolesSection,
+} from './RolesSection'
 
 const mocks = vi.hoisted(() => ({
   auth: {
@@ -147,6 +154,57 @@ describe('RolesSection', () => {
     ).toBeTruthy()
   })
 
+  it('marks an allowlist admin, offers no removal, and does not count them as a second admin (MEDIUM-2)', async () => {
+    mocks.fetchAdmins.mockResolvedValue({
+      admins: [
+        { userId: 'user_admin', isYou: true },
+        {
+          userId: 'user_list',
+          email: 'list@example.test',
+          isYou: false,
+          viaAllowlist: true,
+        },
+        { userId: 'user_other', name: 'Other Admin', isYou: false },
+      ],
+      complete: true,
+    })
+    render(<RolesSection />)
+    const listed = await screen.findByRole('article', {
+      name: 'list@example.test',
+    })
+    expect(within(listed).getByText(ALLOWLIST_NOTE)).toBeTruthy()
+    expect(within(listed).queryByRole('button')).toBeNull()
+    expect(
+      within(screen.getByRole('article', { name: 'Other Admin' })).getByRole(
+        'button',
+      ),
+    ).toBeTruthy()
+    cleanup()
+    mocks.fetchAdmins.mockResolvedValue({
+      admins: [
+        { userId: 'user_admin', isYou: true },
+        {
+          userId: 'user_list',
+          email: 'list@example.test',
+          isYou: false,
+          viaAllowlist: true,
+        },
+      ],
+      complete: true,
+    })
+    render(<RolesSection />)
+    expect(await screen.findByText(LAST_ADMIN_NOTE)).toBeTruthy()
+  })
+
+  it('warns when there are more waiting invitations than listed (LOW-1)', async () => {
+    mocks.fetchInvitations.mockResolvedValue({
+      invitations: [],
+      complete: false,
+    })
+    render(<RolesSection />)
+    expect(await screen.findByText(INVITATIONS_INCOMPLETE)).toBeTruthy()
+  })
+
   it('invites a member or an admin by email', async () => {
     const user = userEvent.setup()
     render(<RolesSection />)
@@ -169,7 +227,9 @@ describe('RolesSection', () => {
       screen.getByLabelText('Email address'),
       'helper@example.test',
     )
+    expect(screen.queryByText(ADMIN_INVITE_NOTE)).toBeNull()
     await user.click(screen.getByLabelText('An admin'))
+    expect(screen.getByText(ADMIN_INVITE_NOTE)).toBeTruthy()
     await user.type(
       screen.getByLabelText('Note for the log (optional)'),
       'Co-admin',
@@ -217,7 +277,10 @@ describe('RolesSection', () => {
 
   it('shows refusals on the cards, and an empty invitation list', async () => {
     const user = userEvent.setup()
-    mocks.fetchInvitations.mockResolvedValue({ invitations: [] })
+    mocks.fetchInvitations.mockResolvedValue({
+      invitations: [],
+      complete: true,
+    })
     mocks.removeAdminRole.mockRejectedValue(
       new Error('This is the only admin.'),
     )

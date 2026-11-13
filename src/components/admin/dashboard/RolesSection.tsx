@@ -30,6 +30,12 @@ export const ROLES_EXPLAINED =
   'Admins can read every page and belief, decide on new pages, claims and removals, and change these settings. To make an existing member an admin, use "Make admin…" on their card under Members. There is no password tool: members reset their own password by email.'
 export const LAST_ADMIN_NOTE =
   'The only admin cannot be removed. Make someone else an admin first.'
+export const ALLOWLIST_NOTE =
+  "Admin through the server's allowlist; remove it from the server configuration."
+export const ADMIN_INVITE_NOTE =
+  'Admin invitations expire after 3 days, and are withdrawn if the admin who sent them loses the role.'
+export const INVITATIONS_INCOMPLETE =
+  'There are more waiting invitations than this list shows; these are the newest.'
 export const INCOMPLETE_NOTE =
   'Not every account could be read, so this list may be missing someone, and no admin can be removed from here.'
 
@@ -38,7 +44,8 @@ export function RolesSection() {
   const admins = useAdminLoad(fetchAdmins, 'admins')
   const invitations = useAdminLoad(fetchInvitations, 'invitations')
   const list = admins.data?.admins ?? []
-  const onlyOne = list.length <= 1
+  // The last-admin rule counts Clerk roles only, like the server.
+  const onlyOne = list.filter((person) => !person.viaAllowlist).length <= 1
 
   return (
     <section aria-labelledby="roles-heading">
@@ -65,7 +72,10 @@ export function RolesSection() {
               <AdminCard
                 person={person}
                 removable={
-                  !person.isYou && !onlyOne && admins.data?.complete !== false
+                  !person.isYou &&
+                  !person.viaAllowlist &&
+                  !onlyOne &&
+                  admins.data?.complete !== false
                 }
                 onChanged={admins.reload}
               />
@@ -84,6 +94,11 @@ export function RolesSection() {
         loading={!invitations.data}
         onRetry={invitations.reload}
       >
+        {invitations.data?.complete === false && (
+          <p className="mt-3 text-xs text-[#f1a07a]">
+            {INVITATIONS_INCOMPLETE}
+          </p>
+        )}
         {invitations.data?.invitations.length === 0 && (
           <p className="mt-3 text-sm text-[#9f9676]">None.</p>
         )}
@@ -135,6 +150,9 @@ function AdminCard({
           <span className="ml-2 text-xs text-[#9dcf83]">(you)</span>
         )}
       </p>
+      {person.viaAllowlist && (
+        <p className="mt-1 text-xs text-[#f1d78a]">{ALLOWLIST_NOTE}</p>
+      )}
       {person.email && (
         <p className="mt-1 text-xs text-[#9f9676] [overflow-wrap:anywhere]">
           {person.email}
@@ -254,6 +272,9 @@ function InviteForm({ onSent }: { onSent: () => void }) {
             </label>
           ))}
         </div>
+        {as === 'admin' && (
+          <p className="mt-2 text-xs text-[#9f9676]">{ADMIN_INVITE_NOTE}</p>
+        )}
       </fieldset>
       <label className="mt-4 block">
         <span className={labelStyle}>Note for the log (optional)</span>

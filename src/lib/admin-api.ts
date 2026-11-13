@@ -37,6 +37,8 @@ export interface AdminPerson {
   name?: string
   page?: { slug: string; displayName: string }
   isYou: boolean
+  /** Admin only through the server's allowlist, not a Clerk role. */
+  viaAllowlist?: true
 }
 
 export interface PendingInvitation {
@@ -121,10 +123,11 @@ export function removeAdminRole(token: string, userId: string, reason: string) {
 }
 
 export function fetchInvitations(token: string) {
-  return memberRequest<{ invitations: Array<PendingInvitation> }>(
-    '/admin/invitations',
-    { token },
-  )
+  return memberRequest<{
+    invitations: Array<PendingInvitation>
+    /** False when there were more than the server reads. */
+    complete: boolean
+  }>('/admin/invitations', { token })
 }
 
 /** An empty reason is sent as none. */
