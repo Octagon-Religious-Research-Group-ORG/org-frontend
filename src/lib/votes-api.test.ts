@@ -2,10 +2,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  castOrgPageVote,
   castVote,
   countsLabel,
   earlierLabel,
   fetchAgreedBeliefs,
+  fetchOrgPageVotes,
+  withdrawOrgPageVote,
   withdrawVote,
 } from './votes-api'
 
@@ -73,5 +76,29 @@ describe('votes API', () => {
     expect(earlierLabel(0)).toBeUndefined()
     expect(earlierLabel(1)).toBe('1 vote on an earlier wording')
     expect(earlierLabel(3)).toBe('3 votes on an earlier wording')
+    expect(earlierLabel(1, 'version')).toBe('1 vote on an earlier version')
+    expect(earlierLabel(2, 'version')).toBe('2 votes on an earlier version')
+  })
+
+  it('reads, casts and withdraws on one of ORG’s own pages (Chunk 10b)', async () => {
+    await fetchOrgPageVotes('about')
+    expect(call(0).url).toMatch(/\/members\/org-pages\/about\/votes$/)
+    expect(call(0).headers.Authorization).toBeUndefined()
+    await fetchOrgPageVotes('future', { token: 'tok' })
+    expect(call(1).headers.Authorization).toBe('Bearer tok')
+
+    await castOrgPageVote('tok', 'about', { value: 'disagree', baseSeq: 4 })
+    expect(call(2).url).toMatch(/\/me\/org-pages\/about\/vote$/)
+    expect(call(2).init.method).toBe('PUT')
+    expect(call(2).headers.Authorization).toBe('Bearer tok')
+    expect(JSON.parse(call(2).init.body as string)).toEqual({
+      value: 'disagree',
+      baseSeq: 4,
+    })
+
+    await withdrawOrgPageVote('tok', 'about')
+    expect(call(3).url).toMatch(/\/me\/org-pages\/about\/vote$/)
+    expect(call(3).init.method).toBe('DELETE')
+    expect(call(3).init.body).toBeUndefined()
   })
 })

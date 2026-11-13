@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   auth: { isLoading: false, isAuthenticated: true, getToken: vi.fn() },
   castVote: vi.fn(),
   withdrawVote: vi.fn(),
+  castOrgPageVote: vi.fn(),
+  withdrawOrgPageVote: vi.fn(),
 }))
 
 vi.mock('#/lib/auth', () => ({ useOrgAuth: () => mocks.auth }))
@@ -22,6 +24,8 @@ vi.mock('#/lib/votes-api', async (original) => ({
   ...(await original<object>()),
   castVote: mocks.castVote,
   withdrawVote: mocks.withdrawVote,
+  castOrgPageVote: mocks.castOrgPageVote,
+  withdrawOrgPageVote: mocks.withdrawOrgPageVote,
 }))
 
 const votes = (overrides: Partial<TabVotes> = {}): TabVotes => ({
@@ -362,6 +366,72 @@ describe('VoteButtons', () => {
         'disabled',
       ),
     ).toBe(true)
+  })
+
+  describe('on one of ORG’s own pages (Chunk 10b)', () => {
+    const renderOrg = (current: TabVotes) =>
+      render(
+        <VoteButtons
+          orgPageId="about"
+          title="About Us"
+          textSeq={2}
+          votes={current}
+          comment={{ mayComment: true }}
+          onVotes={onVotes}
+          onCompose={onCompose}
+        />,
+      )
+
+    it('casts on the revision shown and hands up the page’s votes', async () => {
+      mocks.castOrgPageVote.mockResolvedValueOnce({
+        pageId: 'about',
+        revision: 2,
+        votes: votes({ agree: 3, myVote: 'agree' }),
+      })
+      renderOrg(votes())
+      fireEvent.click(button('Agree with “About Us”'))
+      await waitFor(() =>
+        expect(onVotes).toHaveBeenCalledWith({
+          textSeq: 2,
+          votes: votes({ agree: 3, myVote: 'agree' }),
+        }),
+      )
+      expect(mocks.castOrgPageVote).toHaveBeenCalledWith('tok', 'about', {
+        value: 'agree',
+        baseSeq: 2,
+      })
+      expect(mocks.castVote).not.toHaveBeenCalled()
+    })
+
+    it('takes the vote back and speaks of the page, not a belief', async () => {
+      mocks.withdrawOrgPageVote.mockResolvedValueOnce({
+        withdrawn: true,
+        pageId: 'about',
+        revision: 2,
+        votes: votes(),
+      })
+      renderOrg(votes({ myVote: 'disagree' }))
+      expect(screen.getByText(/You disagree with this page./)).toBeTruthy()
+      fireEvent.click(button('Disagree with “About Us”'))
+      await waitFor(() =>
+        expect(onVotes).toHaveBeenCalledWith({ textSeq: 2, votes: votes() }),
+      )
+      expect(mocks.withdrawOrgPageVote).toHaveBeenCalledWith('tok', 'about')
+      expect(mocks.withdrawVote).not.toHaveBeenCalled()
+    })
+
+    it('calls an earlier vote one on an earlier version of this page', () => {
+      renderOrg(votes({ earlierWording: 1, myVoteOnEarlierWording: 'agree' }))
+      expect(screen.getByText('(1 vote on an earlier version)')).toBeTruthy()
+      expect(
+        screen.getByText(
+          /You voted “agree” on an earlier version of this page, so your vote is not counted/,
+        ),
+      ).toBeTruthy()
+      expect(
+        button('Confirm my vote on the new version').hasAttribute('disabled'),
+      ).toBe(false)
+    })
   })
 
   it('never offers the confirm next to a vote already on this wording', () => {

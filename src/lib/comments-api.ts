@@ -118,6 +118,45 @@ export function fetchCommentHistory(
   )
 }
 
+const orgPageComments = (pageId: string) =>
+  `/members/org-pages/${encodeURIComponent(pageId)}/comments`
+
+/** One page of the thread of one of ORG's own pages (Chunk 10b). */
+export function fetchOrgPageThread(
+  pageId: string,
+  options: { after?: string; token?: string } = {},
+) {
+  const query = options.after
+    ? `?after=${encodeURIComponent(options.after)}`
+    : ''
+  return memberRequest<ThreadPage>(`${orgPageComments(pageId)}${query}`, {
+    token: options.token,
+  })
+}
+
+export function fetchOrgPageCommentHistory(
+  pageId: string,
+  commentId: string,
+  options: { page?: number; token?: string } = {},
+) {
+  return memberRequest<CommentHistoryPage>(
+    `${orgPageComments(pageId)}/${encodeURIComponent(commentId)}/history?page=${options.page ?? 1}`,
+    { token: options.token },
+  )
+}
+
+/** A comment or a reply on one of ORG's own pages: it has one thread. */
+export function postOrgPageComment(
+  token: string,
+  pageId: string,
+  comment: { body: string; parentCommentId?: string; stance?: VoteValue },
+) {
+  return memberRequest<WriteAnswer & { commentId: string; seq: number }>(
+    `/me/org-pages/${encodeURIComponent(pageId)}/comments`,
+    { method: 'POST', token, body: JSON.stringify(comment) },
+  )
+}
+
 export function postComment(
   token: string,
   comment: {

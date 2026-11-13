@@ -279,6 +279,45 @@ createServer((request, response) => {
     send(200, AGREED)
     return
   }
+  // ORG's own pages (Chunk 10b): only Research answers; every other page is
+  // unknown here, so its reactions stay hidden.
+  if (url.pathname === '/api/v1/members/org-pages/research/votes') {
+    send(200, {
+      pageId: 'research',
+      revision: 1,
+      votes: {
+        agree: 2,
+        disagree: 1,
+        earlierWording: 1,
+        mayVote: false,
+        viewerVoteBlock: 'sign-in',
+      },
+    })
+    return
+  }
+  if (url.pathname === '/api/v1/members/org-pages/research/comments') {
+    send(200, {
+      viewerMayComment: false,
+      viewerWriteBlock: 'sign-in',
+      viewerMaySuggest: false,
+      comments: [
+        {
+          commentId: 'cmt_org1',
+          kind: 'comment',
+          source: 'member',
+          author: { kind: 'member', displayName: 'Open Example' },
+          postedAt: '2026-11-12T09:00:00.000Z',
+          removed: false,
+          body: 'A synthetic comment on an ORG page.',
+          edited: false,
+          mine: false,
+          stance: 'agree',
+          replies: [],
+        },
+      ],
+    })
+    return
+  }
   if (url.pathname === '/api/v1/members/chats') {
     send(200, { voting: 'hidden' })
     return

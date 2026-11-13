@@ -153,13 +153,16 @@ function ReferenceLine({
 /**
  * @param wrapContent - optional gate around the page body, e.g. the Members
  *   Community entry; the title and subtitle always show.
+ * @param after - shown after the body, e.g. the reactions to the page
  */
 export function ReferencePage({
   page,
   wrapContent = (body) => body,
+  after,
 }: {
   page: ReferencePageContent
   wrapContent?: (body: ReactNode) => ReactNode
+  after?: ReactNode
 }) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -247,6 +250,7 @@ export function ReferencePage({
             </div>
           </article>,
         )}
+        {after}
       </main>
     </div>
   )

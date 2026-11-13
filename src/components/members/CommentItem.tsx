@@ -4,6 +4,7 @@ import {
   declineSuggestion,
   editComment,
   postComment,
+  postOrgPageComment,
   removeComment,
 } from '#/lib/comments-api'
 import type { CommentView } from '#/lib/comments-api'
@@ -35,8 +36,11 @@ const STATUS_LABEL = {
 
 type Mode = 'idle' | 'replying' | 'editing' | 'confirm-remove' | 'history'
 
-export interface ThreadActions {
-  slug: string
+export type ThreadActions = (
+  | { slug: string; orgPageId?: never }
+  /** A thread on one of ORG's own pages (Chunk 10b). */
+  | { orgPageId: string; slug?: never }
+) & {
   /** The reader may write: shows "Reply". */
   mayReply: boolean
   /** The belief's text now, to compare a suggestion with. */
@@ -87,11 +91,16 @@ export function CommentItem({
   const reply = async (body: string) =>
     done(
       await run((token) =>
-        postComment(token, {
-          slug: actions.slug,
-          parentCommentId: comment.commentId,
-          body,
-        }),
+        actions.orgPageId === undefined
+          ? postComment(token, {
+              slug: actions.slug,
+              parentCommentId: comment.commentId,
+              body,
+            })
+          : postOrgPageComment(token, actions.orgPageId, {
+              parentCommentId: comment.commentId,
+              body,
+            }),
       ),
     )
 
@@ -311,7 +320,9 @@ export function CommentItem({
       )}
       {mode === 'history' && (
         <CommentHistory
-          slug={actions.slug}
+          {...(actions.orgPageId === undefined
+            ? { slug: actions.slug }
+            : { orgPageId: actions.orgPageId })}
           commentId={comment.commentId}
           onClose={() => setMode('idle')}
         />

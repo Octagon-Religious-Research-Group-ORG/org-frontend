@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { AboutDocument } from '#/components/about/AboutDocument'
+import { PageReactions } from '#/components/members/OrgPageReactions'
 import { loadPublishedPage } from '#/lib/content-api'
 
 export const Route = createFileRoute('/about')({
@@ -20,5 +21,11 @@ export const Route = createFileRoute('/about')({
 })
 
 function AboutPage() {
-  return <AboutDocument content={Route.useLoaderData().content} />
+  const page = Route.useLoaderData()
+  return (
+    <AboutDocument
+      content={page.content}
+      after={<PageReactions page={page} />}
+    />
+  )
 }

@@ -1,7 +1,9 @@
 import {
+  castOrgPageVote,
   castVote,
   countsLabel,
   earlierLabel,
+  withdrawOrgPageVote,
   withdrawVote,
 } from '#/lib/votes-api'
 import type {
@@ -42,8 +44,17 @@ export interface CommentAccess {
 }
 
 /**
- * The five buttons on a belief (Tripp, D06/Q04): Agree · Disagree · Agree
- * and comment · Disagree and comment · Comment without a vote.
+ * What the buttons vote on: a member's belief, or one of ORG's own pages
+ * (Chunk 10b), whose wording is its published revision.
+ */
+export type VoteTarget =
+  | { slug: string; tabId: string; orgPageId?: never }
+  | { orgPageId: string; slug?: never; tabId?: never }
+
+/**
+ * The five buttons on a belief or an ORG page (Tripp, D06/Q04): Agree ·
+ * Disagree · Agree and comment · Disagree and comment · Comment without a
+ * vote.
  *
  * - Agree and Disagree are toggles (`aria-pressed`): pressing your own vote
  *   again takes it back.
@@ -57,16 +68,15 @@ export interface CommentAccess {
 export function VoteButtons({
   slug,
   tabId,
+  orgPageId,
   title,
   textSeq,
   votes,
   comment,
   onVotes,
   onCompose,
-}: {
-  slug: string
-  tabId: string
-  /** The belief's title: part of every button's name. */
+}: VoteTarget & {
+  /** The belief's or page's title: part of every button's name. */
   title: string
   /** The wording the page shows: what a vote is cast on. */
   textSeq: number
@@ -88,15 +98,24 @@ export function VoteButtons({
     if (votes !== handedUp.current) setCountsOld(false)
   }, [votes])
   const name = `“${title}”`
+  const subject = orgPageId === undefined ? 'belief' : 'page'
+  const unit = orgPageId === undefined ? 'wording' : 'version'
   const blocked = !votes.mayVote
   const reason = votes.viewerVoteBlock
     ? VOTE_BLOCK_NOTES[votes.viewerVoteBlock]
     : undefined
 
   const cast = async (value: VoteValue) => {
-    const answer = await run((token) =>
-      castVote(token, { slug, tabId, value, baseSeq: textSeq }),
-    )
+    const answer = await run(async (token) => {
+      if (orgPageId === undefined) {
+        return castVote(token, { slug, tabId, value, baseSeq: textSeq })
+      }
+      const page = await castOrgPageVote(token, orgPageId, {
+        value,
+        baseSeq: textSeq,
+      })
+      return { votes: page.votes, textSeq: page.revision }
+    })
     if (answer === undefined) return false
     // Fresh counts: no longer "from before" (fix round 2, item a).
     setCountsOld(false)
@@ -111,7 +130,13 @@ export function VoteButtons({
    * updated (fix round 1, LOW 4).
    */
   const withdraw = async () => {
-    const answer = await run((token) => withdrawVote(token, { slug, tabId }))
+    const answer = await run(async (token) => {
+      if (orgPageId === undefined) {
+        return withdrawVote(token, { slug, tabId })
+      }
+      const page = await withdrawOrgPageVote(token, orgPageId)
+      return { votes: page.votes, textSeq: page.revision }
+    })
     if (answer === undefined) return
     if (answer.votes) {
       setCountsOld(false)
@@ -136,7 +161,7 @@ export function VoteButtons({
     if (votes.myVote === value || (await cast(value))) onCompose(value)
   }
 
-  const earlier = earlierLabel(votes.earlierWording)
+  const earlier = earlierLabel(votes.earlierWording, unit)
 
   return (
     <div className="mt-6" aria-label={`Votes on ${name}`} role="group">
@@ -155,8 +180,8 @@ export function VoteButtons({
       {votes.myVoteOnEarlierWording && !votes.myVote && (
         <div className="mt-2 text-xs text-[#f1d78a]">
           <p>
-            You voted “{votes.myVoteOnEarlierWording}” on an earlier wording of
-            this belief, so your vote is not counted on this one.
+            You voted “{votes.myVoteOnEarlierWording}” on an earlier {unit} of
+            this {subject}, so your vote is not counted on this one.
           </p>
           <button
             type="button"
@@ -164,7 +189,7 @@ export function VoteButtons({
             onClick={() => void cast(votes.myVoteOnEarlierWording as VoteValue)}
             className={primaryStyle}
           >
-            Confirm my vote on the new wording
+            Confirm my vote on the new {unit}
           </button>{' '}
           <button
             type="button"
@@ -215,7 +240,7 @@ export function VoteButtons({
       </div>
       {votes.myVote && (
         <p className="mt-2 text-xs text-[#9f9676]">
-          You {votes.myVote} with this belief. Press{' '}
+          You {votes.myVote} with this {subject}. Press{' '}
           {votes.myVote === 'agree' ? 'Agree' : 'Disagree'} again to take your
           vote back.
         </p>

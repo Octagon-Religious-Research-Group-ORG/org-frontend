@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import type { AboutPageContent } from '#/lib/content-types'
 import { SiteNav } from '#/components/SiteNav'
@@ -10,7 +11,14 @@ import {
   octagonPoints,
 } from './about-document-theme'
 
-export function AboutDocument({ content }: { content: AboutPageContent }) {
+/** @param after - shown after the document, e.g. the reactions to it */
+export function AboutDocument({
+  content,
+  after,
+}: {
+  content: AboutPageContent
+  after?: ReactNode
+}) {
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -175,6 +183,7 @@ export function AboutDocument({ content }: { content: AboutPageContent }) {
             />
           ))}
           <AboutContactBlock contact={content.contact} />
+          {after}
         </main>
       </div>
     </div>

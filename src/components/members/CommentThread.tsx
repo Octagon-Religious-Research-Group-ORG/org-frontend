@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useOrgAuth } from '#/lib/auth'
-import { fetchThread, postComment, suggestRewording } from '#/lib/comments-api'
+import {
+  fetchOrgPageThread,
+  fetchThread,
+  postComment,
+  postOrgPageComment,
+  suggestRewording,
+} from '#/lib/comments-api'
 import type { CommentView, ThreadPage, WriteBlock } from '#/lib/comments-api'
 import { CommentForm } from './CommentForm'
 import { CommentItem } from './CommentItem'
@@ -49,14 +55,18 @@ export const WRITE_HINT = WRITE_BLOCK_NOTES['sign-in']
  */
 export function CommentThread({
   slug,
+  orgPageId,
   title,
   tabId,
   belief,
   onPageChanged,
   compose,
   onAccess,
-}: {
-  slug: string
+}: (
+  | { slug: string; orgPageId?: never }
+  /** One of ORG's own pages (Chunk 10b): its one thread, no suggestions. */
+  | { orgPageId: string; slug?: never }
+) & {
   /** The heading, e.g. "Comments" or "About this page". */
   title: string
   /** A belief's thread; without it, the page's own. */
@@ -104,7 +114,9 @@ export function CommentThread({
         : undefined
       const want = Math.max(plan.count ?? 1, 1)
       do {
-        const page = await fetchThread(slug, { tabId, after, token })
+        const page = await (orgPageId === undefined
+          ? fetchThread(slug, { tabId, after, token })
+          : fetchOrgPageThread(orgPageId, { after, token }))
         fetched.push(page)
         after = page.nextAfter
       } while (after && fetched.length < want)
@@ -133,7 +145,7 @@ export function CommentThread({
       generation.current++
     }
     // `load` reads the latest props itself; a new reader or thread reloads.
-  }, [auth, slug, tabId])
+  }, [auth, slug, orgPageId, tabId])
 
   /** Shows a write's answer in place; an older server sends none. */
   const changed = (view?: CommentView) => {
@@ -179,7 +191,7 @@ export function CommentThread({
   }, [mayComment, writeBlock])
   const comments = shownComments(thread)
   const actions: ThreadActions = {
-    slug,
+    ...(orgPageId === undefined ? { slug } : { orgPageId }),
     mayReply: first?.viewerMayComment ?? false,
     ...(belief ? { currentText: belief.text } : {}),
     onChanged: changed,
@@ -188,12 +200,17 @@ export function CommentThread({
 
   const post = async (body: string) => {
     const saved = await writer.run((token) =>
-      postComment(token, {
-        slug,
-        body,
-        ...(tabId ? { tabId } : {}),
-        ...(stance ? { stance } : {}),
-      }),
+      orgPageId === undefined
+        ? postComment(token, {
+            slug,
+            body,
+            ...(tabId ? { tabId } : {}),
+            ...(stance ? { stance } : {}),
+          })
+        : postOrgPageComment(token, orgPageId, {
+            body,
+            ...(stance ? { stance } : {}),
+          }),
     )
     if (saved === undefined) return false
     takeBadgeOff()
@@ -202,11 +219,11 @@ export function CommentThread({
   }
 
   const suggestOn =
-    (target: { tabId: string; textSeq: number }) =>
+    (target: { slug: string; tabId: string; textSeq: number }) =>
     async (text: string, note: string) => {
       const saved = await writer.run((token) =>
         suggestRewording(token, {
-          slug,
+          slug: target.slug,
           tabId: target.tabId,
           text,
           baseSeq: target.textSeq,
@@ -306,7 +323,8 @@ export function CommentThread({
           </p>
         )
       )}
-      {first?.viewerMaySuggest && tabId && belief && (
+      {/* Never on ORG's own pages: they have no slug (Chunk 10b). */}
+      {first?.viewerMaySuggest && slug && tabId && belief && (
         <>
           <button
             type="button"
@@ -320,7 +338,11 @@ export function CommentThread({
             <SuggestForm
               initial={belief.text}
               busy={writer.busy}
-              onSubmit={suggestOn({ tabId, textSeq: belief.textSeq })}
+              onSubmit={suggestOn({
+                slug,
+                tabId,
+                textSeq: belief.textSeq,
+              })}
               onCancel={() => setSuggesting(false)}
             />
           )}

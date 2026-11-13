@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useOrgAuth } from '#/lib/auth'
-import { fetchCommentHistory } from '#/lib/comments-api'
+import {
+  fetchCommentHistory,
+  fetchOrgPageCommentHistory,
+} from '#/lib/comments-api'
 import type { CommentHistoryPage } from '#/lib/comments-api'
 import { formatSavedAt } from './HistoryPanel'
 import { MemberText } from './MemberText'
@@ -18,10 +21,14 @@ const pager =
  */
 export function CommentHistory({
   slug,
+  orgPageId,
   commentId,
   onClose,
-}: {
-  slug: string
+}: (
+  | { slug: string; orgPageId?: never }
+  /** A comment on one of ORG's own pages (Chunk 10b). */
+  | { orgPageId: string; slug?: never }
+) & {
   commentId: string
   onClose: () => void
 }) {
@@ -37,10 +44,9 @@ export function CommentHistory({
       try {
         const token = auth.isAuthenticated ? await auth.getToken() : undefined
         if (auth.isAuthenticated && !token) throw new Error(SESSION_UNCONFIRMED)
-        const result = await fetchCommentHistory(slug, commentId, {
-          page,
-          token,
-        })
+        const result = await (orgPageId === undefined
+          ? fetchCommentHistory(slug, commentId, { page, token })
+          : fetchOrgPageCommentHistory(orgPageId, commentId, { page, token }))
         if (!closed.signal.aborted) {
           setLoaded(result)
           setProblem(undefined)
@@ -53,7 +59,7 @@ export function CommentHistory({
       }
     })()
     return () => closed.abort()
-  }, [auth, slug, commentId, page])
+  }, [auth, slug, orgPageId, commentId, page])
 
   return (
     <section

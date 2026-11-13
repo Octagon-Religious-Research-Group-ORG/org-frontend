@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ReferencePage } from '#/components/ReferencePage'
+import { PageReactions } from '#/components/members/OrgPageReactions'
 import { loadPublishedPage } from '#/lib/content-api'
 
 export const Route = createFileRoute('/future-ideas')({
@@ -14,5 +15,8 @@ export const Route = createFileRoute('/future-ideas')({
 })
 
 function FutureIdeasRoute() {
-  return <ReferencePage page={Route.useLoaderData().content} />
+  const page = Route.useLoaderData()
+  return (
+    <ReferencePage page={page.content} after={<PageReactions page={page} />} />
+  )
 }

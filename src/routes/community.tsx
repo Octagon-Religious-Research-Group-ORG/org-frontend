@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ReferencePage } from '#/components/ReferencePage'
 import { CommunityPanels } from '#/components/members/CommunityPanels'
 import { MembersEntry } from '#/components/members/MembersEntry'
+import { PageReactions } from '#/components/members/OrgPageReactions'
 import { loadPublishedPage } from '#/lib/content-api'
 
 export const Route = createFileRoute('/community')({
@@ -20,7 +21,8 @@ export const Route = createFileRoute('/community')({
  * after the visitor logs in, signs up, or enters as a guest.
  */
 function CommunityRoute() {
-  const content = Route.useLoaderData().content
+  const page = Route.useLoaderData()
+  const content = page.content
   return (
     <ReferencePage
       page={{ ...content, title: 'Members Community' }}
@@ -29,6 +31,7 @@ function CommunityRoute() {
       wrapContent={(body) => (
         <MembersEntry>
           {body}
+          <PageReactions page={page} title="Members Community" />
           <CommunityPanels />
         </MembersEntry>
       )}

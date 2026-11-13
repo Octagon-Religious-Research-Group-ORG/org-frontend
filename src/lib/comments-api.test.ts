@@ -6,8 +6,11 @@ import {
   declineSuggestion,
   editComment,
   fetchCommentHistory,
+  fetchOrgPageCommentHistory,
+  fetchOrgPageThread,
   fetchThread,
   postComment,
+  postOrgPageComment,
   removeComment,
   suggestRewording,
 } from './comments-api'
@@ -32,6 +35,36 @@ function call(index = 0) {
 }
 
 describe('comments API', () => {
+  it('reads, pages and writes the thread of one of ORG’s own pages (Chunk 10b)', async () => {
+    await fetchOrgPageThread('about')
+    expect(call(0).url).toMatch(/\/members\/org-pages\/about\/comments$/)
+    expect(call(0).headers.Authorization).toBeUndefined()
+    await fetchOrgPageThread('about', { after: 'cmt_9', token: 'tok' })
+    expect(call(1).url).toMatch(/\/org-pages\/about\/comments\?after=cmt_9$/)
+    expect(call(1).headers.Authorization).toBe('Bearer tok')
+    await fetchOrgPageCommentHistory('about', 'cmt_9')
+    expect(call(2).url).toMatch(
+      /\/org-pages\/about\/comments\/cmt_9\/history\?page=1$/,
+    )
+    await fetchOrgPageCommentHistory('about', 'cmt_9', {
+      page: 2,
+      token: 'tok',
+    })
+    expect(call(3).url).toMatch(/history\?page=2$/)
+    expect(call(3).headers.Authorization).toBe('Bearer tok')
+
+    await postOrgPageComment('tok', 'about', {
+      body: 'Synthetic.',
+      stance: 'agree',
+    })
+    expect(call(4).url).toMatch(/\/me\/org-pages\/about\/comments$/)
+    expect(call(4).init.method).toBe('POST')
+    expect(JSON.parse(call(4).init.body as string)).toEqual({
+      body: 'Synthetic.',
+      stance: 'agree',
+    })
+  })
+
   it('reads a page thread as a guest, and a belief thread page with a token', async () => {
     await fetchThread('Quiet-Fern')
     expect(call(0).url).toMatch(/\/members\/profiles\/quiet-fern\/comments$/)

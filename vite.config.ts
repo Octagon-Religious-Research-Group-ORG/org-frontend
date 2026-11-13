@@ -62,6 +62,7 @@ const config = defineConfig({
         'src/lib/votes-api.ts',
         'src/components/members/VoteButtons.tsx',
         'src/components/members/AgreedBeliefs.tsx',
+        'src/components/members/OrgPageReactions.tsx',
         'src/components/shop/MemberProfileSync.tsx',
         'src/components/TestSiteBanner.tsx',
         'src/components/admin/content-editor/editor-utils.ts',
