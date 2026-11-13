@@ -17,6 +17,9 @@ vi.mock('./MembersDirectory', () => ({
   MembersDirectory: () => <div>directory</div>,
 }))
 vi.mock('./ChatsPanel', () => ({ ChatsPanel: () => <div>chats</div> }))
+vi.mock('./EamRequestPanel', () => ({
+  EamRequestPanel: () => <div>eam request</div>,
+}))
 
 afterEach(cleanup)
 
@@ -43,6 +46,7 @@ describe('CommunityPanels', () => {
     render(<CommunityPanels />)
     expect(screen.getByText('directory')).toBeTruthy()
     expect(screen.getByText('chats')).toBeTruthy()
+    expect(screen.getByText('eam request')).toBeTruthy()
     expect(screen.getByRole('navigation')).toBeTruthy()
   })
 })

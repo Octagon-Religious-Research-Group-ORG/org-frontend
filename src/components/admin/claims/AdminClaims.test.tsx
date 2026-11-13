@@ -94,6 +94,20 @@ describe('AdminClaims', () => {
     expect(mocks.fetchAdminClaims).toHaveBeenCalledWith('tok', 'pending')
   })
 
+  it('titles itself as a section inside the admin dashboard (Chunk 12)', async () => {
+    render(<AdminClaims />)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Page claims' }),
+    ).toBeTruthy()
+    cleanup()
+    render(<AdminClaims embedded />)
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Page claims' }),
+    ).toBeTruthy()
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+    await screen.findByRole('link', { name: 'Synthetic Page' })
+  })
+
   it('approves, then reloads the queue', async () => {
     const user = userEvent.setup()
     render(<AdminClaims />)

@@ -548,6 +548,13 @@ describe('MembershipJoinForm', () => {
       expect(screen.getByRole('link', { name: /Back to/ })).toBeTruthy()
     })
 
+    it('tells a member whose page was removed that a new one cannot start (Chunk 12)', async () => {
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'removed' })
+      render(<MembershipJoinForm nickname={false} />)
+      expect(await screen.findByText('Your page was removed')).toBeTruthy()
+      expect(screen.getByText(/contact an admin/)).toBeTruthy()
+    })
+
     it('does not ask for a status without a token', async () => {
       mocks.auth.getToken.mockResolvedValue(undefined)
       render(<MembershipJoinForm nickname={false} />)

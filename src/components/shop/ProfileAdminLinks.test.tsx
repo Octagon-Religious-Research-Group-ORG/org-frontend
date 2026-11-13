@@ -26,6 +26,7 @@ describe('ProfileAdminLinks', () => {
 
     expect(screen.queryByRole('link', { name: 'Edit Website' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Admin order queue' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Admin dashboard' })).toBeNull()
   })
 
   it('shows the exact website editor entrance only to website admins', () => {
@@ -42,6 +43,11 @@ describe('ProfileAdminLinks', () => {
     expect(
       screen.getByRole('link', { name: 'Edit Website' }).getAttribute('href'),
     ).toBe('/admin/website')
+    expect(
+      screen
+        .getByRole('link', { name: 'Admin dashboard' })
+        .getAttribute('href'),
+    ).toBe('/admin')
     expect(screen.queryByRole('link', { name: 'Admin order queue' })).toBeNull()
   })
 

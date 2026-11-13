@@ -16,6 +16,10 @@ import { SLOW_SERVER_MESSAGE, useSlowNotice } from './use-slow-notice'
 export const JOIN_PATH = '/membership/join'
 export const JOIN_NICKNAME_PATH = '/membership/join?nickname=1'
 
+/** What a member whose page an admin removed reads (Chunk 12). */
+export const PAGE_REMOVED_NOTE =
+  'An admin has taken your member page off the site. ORG keeps it, and an admin can put it back. Please contact an admin if you think this is a mistake.'
+
 /**
  * Whether a guest needs their visit recorded before coming in (the owner's
  * D10: visitors' IP addresses are tracked). True means that when the record
@@ -237,6 +241,26 @@ export function MembersEntry({
           >
             <UserPlus size={15} /> Create my page
           </Link>
+          {guestOption}
+          {slowNotice}
+        </Panel>
+      )
+    }
+    if (membership.status === 'removed') {
+      return (
+        <Panel>
+          <Eyebrow>Your page</Eyebrow>
+          <p className="mt-4 max-w-xl text-sm leading-7 text-[#b8ad8d]">
+            {PAGE_REMOVED_NOTE}{' '}
+            <a
+              href="https://t.me/Tripp_ORG"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#f1d78a] underline underline-offset-4"
+            >
+              Contact Tripp
+            </a>
+          </p>
           {guestOption}
           {slowNotice}
         </Panel>

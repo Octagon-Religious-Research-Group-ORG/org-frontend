@@ -310,12 +310,16 @@ function JoinForm({ nickname }: { nickname: boolean }) {
         <h1 className="text-3xl font-light uppercase tracking-[0.06em] text-[#f6efd9]">
           {summary.status === 'pending'
             ? 'Your page is waiting for approval'
-            : 'You are already a member'}
+            : summary.status === 'removed'
+              ? 'Your page was removed'
+              : 'You are already a member'}
         </h1>
         <p className="mt-4 text-sm leading-7 text-[#b8ad8d]">
           {summary.status === 'pending'
             ? 'An admin reviews every new page before it opens to the community.'
-            : 'Your page is in the Members Community.'}{' '}
+            : summary.status === 'removed'
+              ? 'An admin took your page off the site, so a new one cannot be started on this account. Please contact an admin.'
+              : 'Your page is in the Members Community.'}{' '}
           <Link to="/community" className="text-[#f1d78a] underline">
             Back to the Members Community
           </Link>

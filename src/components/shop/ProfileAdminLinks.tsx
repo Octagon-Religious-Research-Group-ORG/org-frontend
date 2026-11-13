@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { FilePenLine } from 'lucide-react'
+import { FilePenLine, LayoutDashboard } from 'lucide-react'
 import type { WebsiteCapabilities } from '#/lib/content-types'
 
 export function ProfileAdminLinks({
@@ -9,6 +9,15 @@ export function ProfileAdminLinks({
 }) {
   return (
     <>
+      {capabilities?.canEditWebsite ? (
+        <Link
+          to="/admin"
+          className="flex items-center justify-center gap-2 border border-[#9dcf83] px-4 py-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-[#9dcf83] no-underline hover:bg-[#9dcf83] hover:text-[#0b0d12]"
+        >
+          <LayoutDashboard size={13} /> Admin dashboard
+        </Link>
+      ) : null}
+
       {capabilities?.canEditWebsite ? (
         <Link
           to="/admin/website"

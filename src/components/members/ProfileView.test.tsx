@@ -207,6 +207,15 @@ describe('ProfileView', () => {
     expect(screen.getByText(/Waiting for an admin/)).toBeTruthy()
   })
 
+  it('tells an admin a page is removed (Chunk 12)', () => {
+    view(
+      full({
+        manage: { visibility: 'public', reviewStatus: 'removed' },
+      }),
+    )
+    expect(screen.getByText(/Removed by an admin/)).toBeTruthy()
+  })
+
   it('gives the owner editing on their bio and beliefs, from the versions the page showed', () => {
     view(
       full({

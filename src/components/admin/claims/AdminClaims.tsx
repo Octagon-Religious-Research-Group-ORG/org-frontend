@@ -39,10 +39,11 @@ function sessionToken(token: string | undefined) {
 
 /**
  * The admins' claims queue (Chunk 11): requests to own imported pages,
- * approve or reject, and then link imported comments. Kept small on purpose:
- * it moves into the admin dashboard in Chunk 12.
+ * approve or reject, and then link imported comments. Also the Claims
+ * section of the admin dashboard (Chunk 12), where `embedded` makes its
+ * title a section heading under the dashboard's.
  */
-export function AdminClaims() {
+export function AdminClaims({ embedded = false }: { embedded?: boolean }) {
   const auth = useOrgAuth()
   const [status, setStatus] = useState<ClaimStatus>('pending')
   const [claims, setClaims] = useState<Array<AdminClaim>>()
@@ -84,9 +85,15 @@ export function AdminClaims() {
 
   return (
     <div className="text-[#ece2c4]">
-      <h1 className="text-[clamp(28px,6vw,52px)] font-thin uppercase tracking-[0.06em] text-[#f6efd9]">
-        Page claims
-      </h1>
+      {embedded ? (
+        <h2 className="text-2xl font-light uppercase tracking-[0.06em] text-[#f6efd9]">
+          Page claims
+        </h2>
+      ) : (
+        <h1 className="text-[clamp(28px,6vw,52px)] font-thin uppercase tracking-[0.06em] text-[#f6efd9]">
+          Page claims
+        </h1>
+      )}
       <p className="mt-3 max-w-2xl text-sm leading-7 text-[#b8ad8d]">
         Members asking to own a page imported from the old Pages profiles. Only
         you, the other admins and the person who asked can see a request.

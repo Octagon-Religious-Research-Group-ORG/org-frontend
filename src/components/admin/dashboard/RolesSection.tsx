@@ -1,0 +1,322 @@
+import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import {
+  adminTime,
+  fetchAdmins,
+  fetchInvitations,
+  inviteByEmail,
+  MAX_ROLE_REASON_LENGTH,
+  removeAdminRole,
+  revokeInvitation,
+} from '#/lib/admin-api'
+import type { AdminPerson, PendingInvitation } from '#/lib/admin-api'
+import {
+  buttonStyle,
+  dangerStyle,
+  fieldStyle,
+  labelStyle,
+  primaryStyle,
+} from '#/components/members/editor-styles'
+import {
+  cardStyle,
+  LoadState,
+  noteStyle,
+  sectionHeading,
+  useAdminAction,
+  useAdminLoad,
+} from './admin-shared'
+
+export const ROLES_EXPLAINED =
+  'Admins can read every page and belief, decide on new pages, claims and removals, and change these settings. To make an existing member an admin, use "Make admin…" on their card under Members. There is no password tool: members reset their own password by email.'
+export const LAST_ADMIN_NOTE =
+  'The only admin cannot be removed. Make someone else an admin first.'
+export const INCOMPLETE_NOTE =
+  'Not every account could be read, so this list may be missing someone, and no admin can be removed from here.'
+
+/** Roles (Chunk 12): the admins, removing one, and invitations by email. */
+export function RolesSection() {
+  const admins = useAdminLoad(fetchAdmins, 'admins')
+  const invitations = useAdminLoad(fetchInvitations, 'invitations')
+  const list = admins.data?.admins ?? []
+  const onlyOne = list.length <= 1
+
+  return (
+    <section aria-labelledby="roles-heading">
+      <h2 id="roles-heading" className={sectionHeading}>
+        Roles
+      </h2>
+      <p className={noteStyle}>{ROLES_EXPLAINED}</p>
+      <h3 className="mt-6 text-lg text-[#f6efd9]">Admins</h3>
+      <LoadState
+        denied={admins.denied}
+        error={admins.error}
+        loading={!admins.data}
+        onRetry={admins.reload}
+      >
+        {admins.data?.complete === false && (
+          <p className="mt-3 text-xs text-[#f1a07a]">{INCOMPLETE_NOTE}</p>
+        )}
+        {onlyOne && (
+          <p className="mt-3 text-xs text-[#9f9676]">{LAST_ADMIN_NOTE}</p>
+        )}
+        <ul className="mt-4 flex flex-col gap-3">
+          {list.map((person) => (
+            <li key={person.userId}>
+              <AdminCard
+                person={person}
+                removable={
+                  !person.isYou && !onlyOne && admins.data?.complete !== false
+                }
+                onChanged={admins.reload}
+              />
+            </li>
+          ))}
+        </ul>
+      </LoadState>
+
+      <h3 className="mt-10 text-lg text-[#f6efd9]">Invite someone</h3>
+      <InviteForm onSent={invitations.reload} />
+
+      <h3 className="mt-10 text-lg text-[#f6efd9]">Waiting invitations</h3>
+      <LoadState
+        denied={invitations.denied}
+        error={invitations.error}
+        loading={!invitations.data}
+        onRetry={invitations.reload}
+      >
+        {invitations.data?.invitations.length === 0 && (
+          <p className="mt-3 text-sm text-[#9f9676]">None.</p>
+        )}
+        <ul className="mt-4 flex flex-col gap-3">
+          {invitations.data?.invitations.map((invitation) => (
+            <li key={invitation.invitationId}>
+              <InvitationCard
+                invitation={invitation}
+                onChanged={invitations.reload}
+              />
+            </li>
+          ))}
+        </ul>
+      </LoadState>
+    </section>
+  )
+}
+
+function AdminCard({
+  person,
+  removable,
+  onChanged,
+}: {
+  person: AdminPerson
+  removable: boolean
+  onChanged: () => void
+}) {
+  const action = useAdminAction()
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const name =
+    person.page?.displayName ?? person.name ?? person.email ?? person.userId
+
+  return (
+    <article aria-label={name} className={cardStyle}>
+      <p className="text-[#f6efd9]">
+        {person.page ? (
+          <Link
+            to="/$slug"
+            params={{ slug: person.page.slug }}
+            className="underline underline-offset-4"
+          >
+            {name}
+          </Link>
+        ) : (
+          name
+        )}
+        {person.isYou && (
+          <span className="ml-2 text-xs text-[#9dcf83]">(you)</span>
+        )}
+      </p>
+      {person.email && (
+        <p className="mt-1 text-xs text-[#9f9676] [overflow-wrap:anywhere]">
+          {person.email}
+        </p>
+      )}
+      {action.error && (
+        <p role="alert" className="mt-2 text-sm text-[#f1a07a]">
+          {action.error}
+        </p>
+      )}
+      {removable && !open && (
+        <button
+          type="button"
+          className={dangerStyle}
+          onClick={() => setOpen(true)}
+        >
+          Remove admin role…
+        </button>
+      )}
+      {removable && open && (
+        <form
+          className="mt-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void action.run(
+              (token) => removeAdminRole(token, person.userId, reason),
+              onChanged,
+            )
+          }}
+        >
+          <label htmlFor={`demote-${person.userId}`} className={labelStyle}>
+            Why (kept in the moderation log)
+          </label>
+          <textarea
+            id={`demote-${person.userId}`}
+            rows={2}
+            required
+            maxLength={MAX_ROLE_REASON_LENGTH}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            className={fieldStyle}
+          />
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              className={dangerStyle}
+              disabled={action.busy || !reason.trim()}
+            >
+              Remove the admin role
+            </button>
+            <button
+              type="button"
+              className={buttonStyle}
+              onClick={() => {
+                setOpen(false)
+                setReason('')
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </article>
+  )
+}
+
+function InviteForm({ onSent }: { onSent: () => void }) {
+  const action = useAdminAction()
+  const [email, setEmail] = useState('')
+  const [as, setAs] = useState<'member' | 'admin'>('member')
+  const [reason, setReason] = useState('')
+  const [sent, setSent] = useState<string>()
+
+  return (
+    <form
+      className="mt-3 max-w-xl"
+      onSubmit={(event) => {
+        event.preventDefault()
+        setSent(undefined)
+        const address = email.trim()
+        void action.run(
+          (token) => inviteByEmail(token, address, as, reason),
+          () => {
+            setSent(address)
+            setEmail('')
+            setReason('')
+            onSent()
+          },
+        )
+      }}
+    >
+      <label className="block">
+        <span className={labelStyle}>Email address</span>
+        <input
+          type="email"
+          required
+          maxLength={254}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          className={fieldStyle}
+        />
+      </label>
+      <fieldset className="mt-4">
+        <legend className={labelStyle}>Invite as</legend>
+        <div className="mt-2 flex gap-6 text-sm text-[#ece2c4]">
+          {(['member', 'admin'] as const).map((value) => (
+            <label key={value} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="invite-as"
+                value={value}
+                checked={as === value}
+                onChange={() => setAs(value)}
+              />
+              {value === 'member' ? 'A member' : 'An admin'}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label className="mt-4 block">
+        <span className={labelStyle}>Note for the log (optional)</span>
+        <input
+          type="text"
+          maxLength={MAX_ROLE_REASON_LENGTH}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          className={fieldStyle}
+        />
+      </label>
+      {action.error && (
+        <p role="alert" className="mt-2 text-sm text-[#f1a07a]">
+          {action.error}
+        </p>
+      )}
+      {sent && (
+        <p role="status" className="mt-2 text-sm text-[#9dcf83]">
+          Invitation sent to {sent}.
+        </p>
+      )}
+      <button type="submit" className={primaryStyle} disabled={action.busy}>
+        Send invitation
+      </button>
+    </form>
+  )
+}
+
+function InvitationCard({
+  invitation,
+  onChanged,
+}: {
+  invitation: PendingInvitation
+  onChanged: () => void
+}) {
+  const action = useAdminAction()
+  return (
+    <article aria-label={invitation.email} className={cardStyle}>
+      <p className="text-[#f6efd9] [overflow-wrap:anywhere]">
+        {invitation.email}
+      </p>
+      <p className="mt-1 text-xs text-[#9f9676]">
+        {invitation.role === 'admin' ? 'As an admin' : 'As a member'} · sent{' '}
+        {adminTime(invitation.createdAt)}
+      </p>
+      {action.error && (
+        <p role="alert" className="mt-2 text-sm text-[#f1a07a]">
+          {action.error}
+        </p>
+      )}
+      <button
+        type="button"
+        className={dangerStyle}
+        disabled={action.busy}
+        onClick={() =>
+          void action.run(
+            (token) => revokeInvitation(token, invitation.invitationId),
+            onChanged,
+          )
+        }
+      >
+        Withdraw
+      </button>
+    </article>
+  )
+}

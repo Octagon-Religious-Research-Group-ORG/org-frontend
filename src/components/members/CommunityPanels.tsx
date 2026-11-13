@@ -1,4 +1,5 @@
 import { ChatsPanel } from './ChatsPanel'
+import { EamRequestPanel } from './EamRequestPanel'
 import { MembersDirectory } from './MembersDirectory'
 import { ReferenceLinks } from './ReferenceLinks'
 
@@ -8,6 +9,7 @@ export function CommunityPanels() {
     <>
       <MembersDirectory />
       <ChatsPanel />
+      <EamRequestPanel />
       <ReferenceLinks />
     </>
   )

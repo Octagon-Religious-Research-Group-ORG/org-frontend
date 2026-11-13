@@ -70,6 +70,12 @@ export function ProfileView({
               can see it for now.
             </p>
           )}
+          {profile.manage?.reviewStatus === 'removed' && (
+            <p className="mt-3 text-sm text-[#f1a07a]">
+              Removed by an admin. Only admins can see this page; restore it
+              from the admin dashboard.
+            </p>
+          )}
         </div>
       </div>
 

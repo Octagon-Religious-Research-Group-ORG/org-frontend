@@ -48,7 +48,8 @@ export interface MembershipTerms {
 }
 
 export interface MembershipSummary {
-  status: 'none' | 'pending' | 'approved'
+  /** `removed`: an admin took the page off the site (Chunk 12). */
+  status: 'none' | 'pending' | 'approved' | 'removed'
   profile?: {
     slug: string
     displayName: string

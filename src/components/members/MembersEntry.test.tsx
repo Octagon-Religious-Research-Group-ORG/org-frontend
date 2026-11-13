@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as MembershipApi from '#/lib/membership-api'
-import { MembersEntry } from './MembersEntry'
+import { MembersEntry, PAGE_REMOVED_NOTE } from './MembersEntry'
 import { SLOW_NOTICE_AFTER_MS, SLOW_SERVER_MESSAGE } from './use-slow-notice'
 
 const mocks = vi.hoisted(() => ({
@@ -187,6 +187,21 @@ describe('MembersEntry', () => {
       renderEntry()
       await screen.findByText(/Thank you, Quiet Fern/)
       expect(screen.queryByRole('note')).toBeNull()
+    })
+
+    it('tells a member whose page an admin removed, with a way to reach an admin (Chunk 12)', async () => {
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'removed' })
+      renderEntry()
+      expect(
+        await screen.findByText(new RegExp(PAGE_REMOVED_NOTE.slice(0, 30))),
+      ).toBeTruthy()
+      expect(
+        screen
+          .getByRole('link', { name: 'Contact Tripp' })
+          .getAttribute('href'),
+      ).toBe('https://t.me/Tripp_ORG')
+      expect(screen.queryByText('Community content')).toBeNull()
+      expect(screen.getByRole('button', { name: /Guest/ })).toBeTruthy()
     })
 
     describe.each([
