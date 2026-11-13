@@ -93,6 +93,9 @@ export const ADDRESS_CHECK_DAILY_LIMIT = 'ADDRESS_CHECK_DAILY_LIMIT'
 /** The server's code for the per-account daily ration of page changes. */
 export const MEMBER_WRITE_DAILY_LIMIT = 'MEMBER_WRITE_DAILY_LIMIT'
 
+/** The server's code for the per-account daily ration of claim requests. */
+export const CLAIM_REQUEST_DAILY_LIMIT = 'CLAIM_REQUEST_DAILY_LIMIT'
+
 const DAILY_CHECKS_USED =
   "You've used today's address checks, so we can't check this one ahead of time. You can still create your page: if the address is taken, we'll tell you when you submit, and you can pick another. Checks come back within 24 hours."
 
@@ -117,7 +120,12 @@ export async function memberRequest<T>(
         throw new ApiError(DAILY_CHECKS_USED, 429, err.code)
       }
       // The server's own words: this ration lasts a day, not a minute.
-      if (err.code === MEMBER_WRITE_DAILY_LIMIT) throw err
+      if (
+        err.code === MEMBER_WRITE_DAILY_LIMIT ||
+        err.code === CLAIM_REQUEST_DAILY_LIMIT
+      ) {
+        throw err
+      }
       throw new ApiError(TOO_MANY_TRIES, 429)
     }
     if (err.status >= 500) throw new ApiError(SERVER_TROUBLE, err.status)

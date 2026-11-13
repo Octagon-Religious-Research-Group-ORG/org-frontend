@@ -11,8 +11,16 @@ export type CommentAuthor =
    * may see it; `slug` only when the reader may open the whole page.
    */
   | { kind: 'member'; displayName?: string; slug?: string }
-  /** A name typed into Apple Pages; it proves no identity. */
-  | { kind: 'imported'; name: string }
+  /**
+   * A name typed into Apple Pages; it proves no identity. `member` is the
+   * member an admin linked it to after their claim (Chunk 11), named by the
+   * same rule as a member's own comment.
+   */
+  | {
+      kind: 'imported'
+      name: string
+      member?: { displayName: string; slug?: string }
+    }
   | { kind: 'admin' }
 
 /** Why the comment form is not offered. */

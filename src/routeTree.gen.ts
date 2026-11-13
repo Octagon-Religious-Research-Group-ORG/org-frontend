@@ -25,6 +25,7 @@ import { Route as MembershipRouteImport } from './routes/membership'
 import { Route as OfferingsRouteImport } from './routes/offerings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResearchRouteImport } from './routes/research'
+import { Route as AdminClaimsRouteImport } from './routes/admin.claims'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminWebsiteRouteImport } from './routes/admin.website'
 import { Route as Archive1RouteImport } from './routes/archive/1'
@@ -116,6 +117,11 @@ const ResearchRoute = ResearchRouteImport.update({
   path: '/research',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminClaimsRoute = AdminClaimsRouteImport.update({
+  id: '/admin/claims',
+  path: '/admin/claims',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/admin/orders',
   path: '/admin/orders',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
+  '/admin/claims': typeof AdminClaimsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/archive/1': typeof Archive1Route
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
+  '/admin/claims': typeof AdminClaimsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/archive/1': typeof Archive1Route
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
+  '/admin/claims': typeof AdminClaimsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/archive/1': typeof Archive1Route
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/offerings'
     | '/profile'
     | '/research'
+    | '/admin/claims'
     | '/admin/orders'
     | '/admin/website'
     | '/archive/1'
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/offerings'
     | '/profile'
     | '/research'
+    | '/admin/claims'
     | '/admin/orders'
     | '/admin/website'
     | '/archive/1'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/offerings'
     | '/profile'
     | '/research'
+    | '/admin/claims'
     | '/admin/orders'
     | '/admin/website'
     | '/archive/1'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   OfferingsRoute: typeof OfferingsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   ResearchRoute: typeof ResearchRoute
+  AdminClaimsRoute: typeof AdminClaimsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminWebsiteRoute: typeof AdminWebsiteRoute
   Archive1Route: typeof Archive1Route
@@ -481,6 +494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/claims': {
+      id: '/admin/claims'
+      path: '/admin/claims'
+      fullPath: '/admin/claims'
+      preLoaderRoute: typeof AdminClaimsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/orders': {
       id: '/admin/orders'
       path: '/admin/orders'
@@ -583,6 +603,7 @@ const rootRouteChildren: RootRouteChildren = {
   OfferingsRoute: OfferingsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   ResearchRoute: ResearchRoute,
+  AdminClaimsRoute: AdminClaimsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminWebsiteRoute: AdminWebsiteRoute,
   Archive1Route: Archive1Route,

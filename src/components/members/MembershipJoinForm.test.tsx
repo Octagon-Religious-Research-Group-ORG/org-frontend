@@ -105,7 +105,7 @@ describe('MembershipJoinForm', () => {
     expect(await screen.findByText('Admins can read beliefs.')).toBeTruthy()
     expect(screen.getByText('ORG keeps a copy for 5 years.')).toBeTruthy()
     expect(screen.getByRole('note').textContent).toMatch(
-      /old Pages profiles.*don't create a new one.*claim/,
+      /old Pages profiles.*don't create a new one.*This is my page.*claim it/,
     )
     expect(
       screen.getByLabelText<HTMLInputElement>('A nickname (anonymous)').checked,

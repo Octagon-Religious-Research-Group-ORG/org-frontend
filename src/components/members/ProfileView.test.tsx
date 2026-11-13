@@ -27,6 +27,9 @@ vi.mock('./CommentThread', () => ({
     </div>
   ),
 }))
+vi.mock('./ClaimPanel', () => ({
+  ClaimPanel: ({ slug }: { slug: string }) => <div>claim panel: {slug}</div>,
+}))
 vi.mock('./GetStartedChecklist', () => ({
   GetStartedChecklist: () => <div>get started</div>,
 }))
@@ -82,6 +85,20 @@ describe('ProfileView', () => {
     )
     expect(screen.getByText(/for members only/)).toBeTruthy()
     expect(document.querySelector('.octagon')).toBeNull()
+  })
+
+  it('offers a claim only on a page the server marked claimable (Chunk 11)', () => {
+    view({ ...nameOnly, claimable: true })
+    expect(screen.getByText('claim panel: quiet-fern')).toBeTruthy()
+    cleanup()
+    view(full({ claimable: true }))
+    expect(screen.getByText('claim panel: quiet-fern')).toBeTruthy()
+    cleanup()
+    view(nameOnly)
+    expect(screen.queryByText(/claim panel/)).toBeNull()
+    cleanup()
+    view(full())
+    expect(screen.queryByText(/claim panel/)).toBeNull()
   })
 
   it('shows bio, contact rows, tabs and the picture box', () => {

@@ -68,6 +68,10 @@ const config = defineConfig({
         'src/components/admin/content-editor/editor-utils.ts',
         'src/components/admin/website-workbench/workbench-state.ts',
         'src/components/admin/website-workbench/website-pages.ts',
+        'src/lib/claims-api.ts',
+        'src/components/members/ClaimPanel.tsx',
+        'src/components/admin/claims/AdminClaims.tsx',
+        'src/components/admin/claims/LegacyCommentLinker.tsx',
       ],
       thresholds: {
         statements: 100,

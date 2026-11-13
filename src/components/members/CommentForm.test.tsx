@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { CommentAuthorName } from './CommentAuthorName'
+import { authorLabel, CommentAuthorName } from './CommentAuthorName'
 import { CharacterCount } from './CharacterCount'
 import { CommentForm } from './CommentForm'
 import { SuggestForm } from './SuggestForm'
@@ -137,6 +137,42 @@ describe('CommentAuthorName', () => {
     // Not named by the server: not named here, and never linked.
     expect(screen.getAllByText('A member')).toHaveLength(2)
     expect(container.querySelectorAll('a')).toHaveLength(1)
+  })
+
+  it('keeps an imported name and adds the member an admin linked it to (Chunk 11)', () => {
+    const { container } = render(
+      <>
+        <CommentAuthorName
+          author={{
+            kind: 'imported',
+            name: 'Pages One',
+            member: { displayName: 'Open Member', slug: 'open-member' },
+          }}
+        />
+        <CommentAuthorName
+          author={{
+            kind: 'imported',
+            name: 'Pages Two',
+            member: { displayName: 'Members-only Member' },
+          }}
+        />
+      </>,
+    )
+    expect(container.textContent).toContain('Pages One (now Open Member)')
+    expect(
+      screen.getByText('Open Member').closest('a')?.getAttribute('href'),
+    ).toBe('/open-member')
+    expect(container.textContent).toContain(
+      'Pages Two (now Members-only Member)',
+    )
+    expect(container.querySelectorAll('a')).toHaveLength(1)
+    expect(
+      authorLabel({
+        kind: 'imported',
+        name: 'Pages One',
+        member: { displayName: 'Open Member' },
+      }),
+    ).toBe('Pages One (now Open Member)')
   })
 })
 

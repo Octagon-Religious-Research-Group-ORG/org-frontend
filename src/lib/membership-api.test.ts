@@ -72,6 +72,21 @@ describe('membership API calls', () => {
       )
     })
 
+    it('keeps the server’s own words for the daily ration of claim requests', async () => {
+      fetchMock.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: 'CLAIM_REQUEST_DAILY_LIMIT',
+            message: 'Requests come back tomorrow.',
+          }),
+          { status: 429 },
+        ),
+      )
+      await expect(fetchMyMembership('tok')).rejects.toThrow(
+        'Requests come back tomorrow.',
+      )
+    })
+
     it('explains a server that cannot be reached', async () => {
       fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
       await expect(fetchMyMembership('tok')).rejects.toThrow(

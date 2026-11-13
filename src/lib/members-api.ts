@@ -38,6 +38,8 @@ export interface NameOnlyProfile {
   isOwner: false
   hasPicture: false
   picturePublic: false
+  /** An imported page with no owner; sent only to a signed-in reader (Chunk 11). */
+  claimable?: true
 }
 
 export interface FullProfile {
@@ -56,6 +58,8 @@ export interface FullProfile {
   pageCommentCount?: number
   /** Owner only: the newest version of each field, what an edit starts from. */
   revisions?: Revisions
+  /** An imported page with no owner; sent only to a signed-in reader (Chunk 11). */
+  claimable?: true
   manage?: {
     visibility: ProfileVisibility
     reviewStatus: string

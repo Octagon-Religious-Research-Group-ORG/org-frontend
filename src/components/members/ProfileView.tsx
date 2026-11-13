@@ -3,6 +3,7 @@ import type { MemberProfile } from '#/lib/members-api'
 import { CONTACT_METHODS } from '#/lib/membership-api'
 import { BeliefTabs } from './BeliefTabs'
 import { BioSection } from './BioSection'
+import { ClaimPanel } from './ClaimPanel'
 import { CommentThread } from './CommentThread'
 import { GetStartedChecklist } from './GetStartedChecklist'
 import { OwnerTools } from './OwnerTools'
@@ -44,6 +45,7 @@ export function ProfileView({
           </Link>{' '}
           to join or sign in.
         </p>
+        {profile.claimable && <ClaimPanel slug={profile.slug} />}
       </>
     )
   }
@@ -70,6 +72,8 @@ export function ProfileView({
           )}
         </div>
       </div>
+
+      {profile.claimable && <ClaimPanel slug={profile.slug} />}
 
       {/* New members only: an imported member is not new here. */}
       {profile.isOwner && profile.manage?.source === 'native' && (

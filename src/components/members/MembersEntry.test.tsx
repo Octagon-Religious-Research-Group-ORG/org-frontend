@@ -175,7 +175,7 @@ describe('MembersEntry', () => {
       expect(link.getAttribute('href')).toBe('/membership/join')
       expect(mocks.fetchMyMembership).toHaveBeenCalledWith('tok')
       expect(screen.getByRole('note').textContent).toMatch(
-        /old Pages profiles.*don't create a new one.*claim/,
+        /old Pages profiles.*don't create a new one.*This is my page.*claim it/,
       )
     })
 
