@@ -36,6 +36,10 @@ export const ADMIN_INVITE_NOTE =
   'Admin invitations expire after 3 days, and are withdrawn if the admin who sent them loses the role.'
 export const INVITATIONS_INCOMPLETE =
   'There are more waiting invitations than this list shows; these are the newest.'
+export const ALLOWLIST_UNKNOWN_NOTE =
+  "The server's allowlist could not be checked, so admins who are admins only through it may be missing here."
+export const ALSO_ALLOWLISTED_NOTE =
+  "Also on the server's allowlist: remove it from the server configuration before this role can be removed."
 export const INCOMPLETE_NOTE =
   'Not every account could be read, so this list may be missing someone, and no admin can be removed from here.'
 
@@ -46,6 +50,7 @@ export function RolesSection() {
   const list = admins.data?.admins ?? []
   // The last-admin rule counts Clerk roles only, like the server.
   const onlyOne = list.filter((person) => !person.viaAllowlist).length <= 1
+  const [warning, setWarning] = useState<string>()
 
   return (
     <section aria-labelledby="roles-heading">
@@ -60,6 +65,16 @@ export function RolesSection() {
         loading={!admins.data}
         onRetry={admins.reload}
       >
+        {warning && (
+          <p role="alert" className="mt-3 text-sm text-[#f1d78a]">
+            {warning}
+          </p>
+        )}
+        {admins.data?.allowlistUnknown && (
+          <p className="mt-3 text-xs text-[#f1a07a]">
+            {ALLOWLIST_UNKNOWN_NOTE}
+          </p>
+        )}
         {admins.data?.complete === false && (
           <p className="mt-3 text-xs text-[#f1a07a]">{INCOMPLETE_NOTE}</p>
         )}
@@ -74,10 +89,14 @@ export function RolesSection() {
                 removable={
                   !person.isYou &&
                   !person.viaAllowlist &&
+                  !person.allowlisted &&
                   !onlyOne &&
                   admins.data?.complete !== false
                 }
-                onChanged={admins.reload}
+                onChanged={(followUp) => {
+                  setWarning(followUp)
+                  admins.reload()
+                }}
               />
             </li>
           ))}
@@ -124,13 +143,15 @@ function AdminCard({
 }: {
   person: AdminPerson
   removable: boolean
-  onChanged: () => void
+  /** With the server's follow-up warning, when there is one. */
+  onChanged: (followUpWarning?: string) => void
 }) {
   const action = useAdminAction()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const name =
     person.page?.displayName ?? person.name ?? person.email ?? person.userId
+  let followUp: string | undefined
 
   return (
     <article aria-label={name} className={cardStyle}>
@@ -152,6 +173,9 @@ function AdminCard({
       </p>
       {person.viaAllowlist && (
         <p className="mt-1 text-xs text-[#f1d78a]">{ALLOWLIST_NOTE}</p>
+      )}
+      {person.allowlisted && (
+        <p className="mt-1 text-xs text-[#f1d78a]">{ALSO_ALLOWLISTED_NOTE}</p>
       )}
       {person.email && (
         <p className="mt-1 text-xs text-[#9f9676] [overflow-wrap:anywhere]">
@@ -178,8 +202,15 @@ function AdminCard({
           onSubmit={(event) => {
             event.preventDefault()
             void action.run(
-              (token) => removeAdminRole(token, person.userId, reason),
-              onChanged,
+              async (token) => {
+                const result = await removeAdminRole(
+                  token,
+                  person.userId,
+                  reason,
+                )
+                followUp = result.followUpWarning
+              },
+              () => onChanged(followUp),
             )
           }}
         >

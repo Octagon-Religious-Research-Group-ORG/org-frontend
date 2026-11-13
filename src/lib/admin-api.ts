@@ -39,6 +39,8 @@ export interface AdminPerson {
   isYou: boolean
   /** Admin only through the server's allowlist, not a Clerk role. */
   viaAllowlist?: true
+  /** A Clerk admin whose address is also on the allowlist. */
+  allowlisted?: true
 }
 
 export interface PendingInvitation {
@@ -102,10 +104,12 @@ const post = (body?: unknown) =>
 const id = (value: string) => encodeURIComponent(value)
 
 export function fetchAdmins(token: string) {
-  return memberRequest<{ admins: Array<AdminPerson>; complete: boolean }>(
-    '/admin/roles',
-    { token },
-  )
+  return memberRequest<{
+    admins: Array<AdminPerson>
+    complete: boolean
+    /** The allowlist could not be read; its admins may be missing. */
+    allowlistUnknown?: true
+  }>('/admin/roles', { token })
 }
 
 export function promoteToAdmin(token: string, userId: string, reason: string) {
@@ -116,7 +120,11 @@ export function promoteToAdmin(token: string, userId: string, reason: string) {
 }
 
 export function removeAdminRole(token: string, userId: string, reason: string) {
-  return memberRequest<{ role: null }>(`/admin/roles/${id(userId)}/demote`, {
+  return memberRequest<{
+    role: null
+    /** Set when a follow-up (invitations, cached role) did not fully happen. */
+    followUpWarning?: string
+  }>(`/admin/roles/${id(userId)}/demote`, {
     token,
     ...post({ reason }),
   })

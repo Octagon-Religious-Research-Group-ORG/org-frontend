@@ -13,6 +13,8 @@ import type * as AdminApi from '#/lib/admin-api'
 import {
   ADMIN_INVITE_NOTE,
   ALLOWLIST_NOTE,
+  ALLOWLIST_UNKNOWN_NOTE,
+  ALSO_ALLOWLISTED_NOTE,
   INCOMPLETE_NOTE,
   INVITATIONS_INCOMPLETE,
   LAST_ADMIN_NOTE,
@@ -117,6 +119,55 @@ describe('RolesSection', () => {
       'Stepping back',
     )
     await waitFor(() => expect(mocks.fetchAdmins).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('shows the server warning when a follow-up of the removal failed (round 2, LOW 2)', async () => {
+    const user = userEvent.setup()
+    mocks.removeAdminRole.mockResolvedValueOnce({
+      role: null,
+      followUpWarning:
+        'Their pending admin invitations could not all be withdrawn.',
+    })
+    render(<RolesSection />)
+    const other = await screen.findByRole('article', { name: 'Other Admin' })
+    await user.click(
+      within(other).getByRole('button', { name: 'Remove admin role…' }),
+    )
+    await user.type(within(other).getByRole('textbox'), 'r')
+    await user.click(
+      within(other).getByRole('button', { name: 'Remove the admin role' }),
+    )
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Their pending admin invitations could not all be withdrawn.',
+    )
+  })
+
+  it('offers no removal for a Clerk admin also on the allowlist, and says when the allowlist is unknown (round 2, LOW 3)', async () => {
+    mocks.fetchAdmins.mockResolvedValue({
+      admins: [
+        { userId: 'user_admin', isYou: true },
+        {
+          userId: 'user_both',
+          name: 'Both Ways',
+          isYou: false,
+          allowlisted: true,
+        },
+        { userId: 'user_other', name: 'Other Admin', isYou: false },
+      ],
+      complete: true,
+      allowlistUnknown: true,
+    })
+    render(<RolesSection />)
+    const both = await screen.findByRole('article', { name: 'Both Ways' })
+    expect(within(both).getByText(ALSO_ALLOWLISTED_NOTE)).toBeTruthy()
+    expect(within(both).queryByRole('button')).toBeNull()
+    expect(screen.getByText(ALLOWLIST_UNKNOWN_NOTE)).toBeTruthy()
+    expect(
+      within(screen.getByRole('article', { name: 'Other Admin' })).getByRole(
+        'button',
+      ),
+    ).toBeTruthy()
   })
 
   it('never offers to remove the only admin, or when the count is unsure', async () => {
