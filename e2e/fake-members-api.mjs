@@ -212,6 +212,9 @@ const AGREED = {
   viewerWriteBlock: 'sign-in',
 }
 
+/** The one unsubscribe token this fake accepts (Chunk 14). Synthetic. */
+const GOOD_UNSUBSCRIBE_TOKEN = 'v1.dXNlcl9ndWVzdA.digest.c3ludGhldGlj'
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
@@ -329,6 +332,33 @@ createServer((request, response) => {
           replies: [],
         },
       ],
+    })
+    return
+  }
+  // Chunk 14: the one-click unsubscribe. Only this synthetic token is good;
+  // the real server checks an HMAC signature.
+  if (
+    url.pathname === '/api/v1/notifications/unsubscribe' &&
+    request.method === 'POST'
+  ) {
+    let raw = ''
+    request.on('data', (chunk) => (raw += chunk))
+    request.on('end', () => {
+      let token
+      try {
+        token = JSON.parse(raw).token
+      } catch {
+        token = undefined
+      }
+      if (token === GOOD_UNSUBSCRIBE_TOKEN) {
+        send(200, { unsubscribed: true, scope: 'digest' })
+      } else {
+        send(400, {
+          statusCode: 400,
+          message:
+            'This link is not valid. You can change your email settings after signing in.',
+        })
+      }
     })
     return
   }

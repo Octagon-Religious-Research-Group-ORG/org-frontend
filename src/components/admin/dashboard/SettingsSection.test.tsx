@@ -20,6 +20,10 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('#/lib/auth', () => ({ useOrgAuth: () => mocks.auth }))
+// Its own tests: EmailStatusCard.test.tsx (Chunk 14).
+vi.mock('./EmailStatusCard', () => ({
+  EmailStatusCard: () => <p>email status stub</p>,
+}))
 vi.mock('#/lib/admin-api', async (original) => ({
   ...(await original<typeof AdminApi>()),
   fetchAdminSettings: mocks.fetchAdminSettings,

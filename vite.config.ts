@@ -84,6 +84,10 @@ const config = defineConfig({
         'src/components/shop/ProfileAdminLinks.tsx',
         'src/components/members/ReportButton.tsx',
         'src/components/admin/dashboard/ModerationSection.tsx',
+        'src/lib/notifications-api.ts',
+        'src/components/members/NotificationSettings.tsx',
+        'src/components/members/UnsubscribePanel.tsx',
+        'src/components/admin/dashboard/EmailStatusCard.tsx',
       ],
       thresholds: {
         statements: 100,

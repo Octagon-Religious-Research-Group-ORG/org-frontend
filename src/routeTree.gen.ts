@@ -25,6 +25,7 @@ import { Route as MembershipRouteImport } from './routes/membership'
 import { Route as OfferingsRouteImport } from './routes/offerings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResearchRouteImport } from './routes/research'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminClaimsRouteImport } from './routes/admin.claims'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
@@ -37,6 +38,7 @@ import { Route as Archive5RouteImport } from './routes/archive/5'
 import { Route as MembershipJoinRouteImport } from './routes/membership_.join'
 import { Route as OfferingsCheckoutRouteImport } from './routes/offerings.checkout'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
+import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -118,6 +120,11 @@ const ResearchRoute = ResearchRouteImport.update({
   path: '/research',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -178,6 +185,11 @@ const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
   path: '/orders/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/settings/notifications',
+  path: '/settings/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -196,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/claims': typeof AdminClaimsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/website': typeof AdminWebsiteRoute
@@ -207,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/membership/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -226,6 +240,7 @@ export interface FileRoutesByTo {
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/claims': typeof AdminClaimsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/website': typeof AdminWebsiteRoute
@@ -237,6 +252,7 @@ export interface FileRoutesByTo {
   '/membership/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -257,6 +273,7 @@ export interface FileRoutesById {
   '/offerings': typeof OfferingsRouteWithChildren
   '/profile': typeof ProfileRoute
   '/research': typeof ResearchRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/claims': typeof AdminClaimsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/website': typeof AdminWebsiteRoute
@@ -268,6 +285,7 @@ export interface FileRoutesById {
   '/membership_/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -289,6 +307,7 @@ export interface FileRouteTypes {
     | '/offerings'
     | '/profile'
     | '/research'
+    | '/unsubscribe'
     | '/admin/claims'
     | '/admin/orders'
     | '/admin/website'
@@ -300,6 +319,7 @@ export interface FileRouteTypes {
     | '/membership/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/notifications'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -319,6 +339,7 @@ export interface FileRouteTypes {
     | '/offerings'
     | '/profile'
     | '/research'
+    | '/unsubscribe'
     | '/admin/claims'
     | '/admin/orders'
     | '/admin/website'
@@ -330,6 +351,7 @@ export interface FileRouteTypes {
     | '/membership/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/notifications'
     | '/admin'
   id:
     | '__root__'
@@ -349,6 +371,7 @@ export interface FileRouteTypes {
     | '/offerings'
     | '/profile'
     | '/research'
+    | '/unsubscribe'
     | '/admin/claims'
     | '/admin/orders'
     | '/admin/website'
@@ -360,6 +383,7 @@ export interface FileRouteTypes {
     | '/membership_/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/notifications'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -380,6 +404,7 @@ export interface RootRouteChildren {
   OfferingsRoute: typeof OfferingsRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   ResearchRoute: typeof ResearchRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   AdminClaimsRoute: typeof AdminClaimsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminWebsiteRoute: typeof AdminWebsiteRoute
@@ -390,6 +415,7 @@ export interface RootRouteChildren {
   Archive5Route: typeof Archive5Route
   MembershipJoinRoute: typeof MembershipJoinRoute
   OrdersOrderIdRoute: typeof OrdersOrderIdRoute
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -507,6 +533,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/admin'
@@ -591,6 +624,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/notifications': {
+      id: '/settings/notifications'
+      path: '/settings/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof SettingsNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -623,6 +663,7 @@ const rootRouteChildren: RootRouteChildren = {
   OfferingsRoute: OfferingsRouteWithChildren,
   ProfileRoute: ProfileRoute,
   ResearchRoute: ResearchRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   AdminClaimsRoute: AdminClaimsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminWebsiteRoute: AdminWebsiteRoute,
@@ -633,6 +674,7 @@ const rootRouteChildren: RootRouteChildren = {
   Archive5Route: Archive5Route,
   MembershipJoinRoute: MembershipJoinRoute,
   OrdersOrderIdRoute: OrdersOrderIdRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
