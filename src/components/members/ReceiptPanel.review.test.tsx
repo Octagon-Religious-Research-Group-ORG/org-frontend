@@ -118,7 +118,7 @@ describe('M3: a receipt without the hash input says what it proves', () => {
     expect(text).toContain(
       'proves only that this version’s sealed fingerprint (its leaf in the anchor) existed',
     )
-    expect(text).toContain('only with the complete receipt')
+    expect(text).toContain('only with the author’s complete receipt')
     expect(text).not.toContain('Anyone can check it with free public tools')
   })
 

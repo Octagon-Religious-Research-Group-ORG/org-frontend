@@ -24,7 +24,11 @@ export const COMPLETE_PENDING_RECEIPT =
 
 /** Anyone else's (review M3, round 2 M-A): the hash material is held back. */
 export const PARTIAL_RECEIPT =
-  'This receipt proves only that this version’s sealed fingerprint (its leaf in the anchor) existed no later than those time-stamps; anyone can check that part with free public tools. It cannot show by itself that the text is the text behind that fingerprint: that can be checked only with the complete receipt, which only the author, an ORG admin, or a reader allowed to see who the author is can download.'
+  'This receipt proves only that this version’s sealed fingerprint (its leaf in the anchor) existed no later than those time-stamps; anyone can check that part with free public tools. It cannot show by itself that the text is the text behind that fingerprint: that can be checked only with the author’s complete receipt, which only the author or an ORG admin can download.'
+
+/** A reader allowed to know the author (round 3): hashes, no account id. */
+export const HASHES_RECEIPT =
+  'This receipt proves that this version’s fingerprint (hash) existed no later than those time-stamps; anyone can check every step from that fingerprint on with free public tools. The step from the text to the fingerprint needs the author’s complete receipt, because the fingerprint also covers the author’s account id, which only the author and ORG admins receive.'
 
 const CHECK_NAMES = {
   hash: 'Fingerprint check',
@@ -224,13 +228,20 @@ export function ReceiptPanel({
       {receipt && (
         <>
           <p className="mt-2 text-xs leading-5 text-[#d8ceb0]">
-            {!receipt.versions.every((version) => version.hashInput.included)
+            {receipt.versions.some(
+              (version) =>
+                !version.hashInput.included && version.disclosure !== 'hashes',
+            )
               ? PARTIAL_RECEIPT
-              : receipt.versions.every(
-                    (version) => version.anchor.state === 'anchored',
+              : receipt.versions.some(
+                    (version) => version.disclosure === 'hashes',
                   )
-                ? COMPLETE_RECEIPT
-                : COMPLETE_PENDING_RECEIPT}
+                ? HASHES_RECEIPT
+                : receipt.versions.every(
+                      (version) => version.anchor.state === 'anchored',
+                    )
+                  ? COMPLETE_RECEIPT
+                  : COMPLETE_PENDING_RECEIPT}
           </p>
           <ul className="mt-3 flex flex-col gap-2">
             {receipt.versions.map((version) => (

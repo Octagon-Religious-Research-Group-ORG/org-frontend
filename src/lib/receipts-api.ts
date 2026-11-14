@@ -21,6 +21,8 @@ export interface ReceiptVersion {
   serverTime: string
   /** Only for a reader who may know the author (round 2, M-A). */
   versionHash?: string
+  /** `full` (hash input too), `hashes`, or `none` (round 3). */
+  disclosure?: 'full' | 'hashes' | 'none'
   /** Held back from anyone but the author or an admin (Chunk 16). */
   hashInput: { included: boolean }
   imported?: string

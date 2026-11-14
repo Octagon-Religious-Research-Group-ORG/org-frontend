@@ -143,3 +143,32 @@ describe('M-A: no hash prefix when the server sends none', () => {
     expect(document.querySelector('[title*="hash"]')).toBeNull()
   })
 })
+
+describe('round 3: a reader allowed to know the author gets the hashes, not the hash input', () => {
+  it('says the hash can be checked onwards, and the text step needs the author’s receipt', async () => {
+    mocks.fetchReceipt.mockResolvedValue(
+      receipt([
+        {
+          seq: 1,
+          serverTime: '2026-11-13T10:00:00.000Z',
+          versionHash: 'a'.repeat(64),
+          disclosure: 'hashes',
+          hashInput: { included: false },
+          anchor: {
+            state: 'anchored',
+            anchorId: '2026-11-14',
+            root: 'b'.repeat(64),
+            freetsa: { status: 'granted', genTime: '2026-11-14T03:00:00.000Z' },
+            opentimestamps: { status: 'pending', bitcoinHeights: [] },
+            serverChecks: { hash: ok, path: ok, tsa: ok, ots: ok },
+          },
+        },
+      ]),
+    )
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).toContain('from that fingerprint on')
+    expect(text).toContain('needs the author’s complete receipt')
+    expect(text).not.toContain('sealed fingerprint')
+  })
+})
