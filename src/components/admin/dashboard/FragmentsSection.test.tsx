@@ -92,3 +92,46 @@ describe('FragmentsSection', () => {
     expect((await screen.findByRole('alert')).textContent).toBe(ADMINS_ONLY)
   })
 })
+
+describe('FragmentsSection, review L6', () => {
+  it('gives each reason field an id without spaces', async () => {
+    const { container } = render(<FragmentsSection />)
+    await screen.findByText('9 searchers · Suggested now')
+    const ids = [...container.querySelectorAll('input')].map(
+      (input) => input.id,
+    )
+    expect(ids.length).toBeGreaterThan(0)
+    for (const id of ids) expect(id).not.toMatch(/\s/)
+  })
+
+  it('hides a term that is not listed yet', async () => {
+    const user = userEvent.setup()
+    render(<FragmentsSection />)
+    await screen.findByText('9 searchers · Suggested now')
+    await user.type(screen.getByLabelText('Term to hide'), ' Brand New ')
+    await user.type(screen.getByLabelText('Reason (optional)'), 'why')
+    await user.click(screen.getByRole('button', { name: 'Hide term' }))
+    expect(mocks.setFragmentHidden).toHaveBeenCalledWith(
+      'tok',
+      'Brand New',
+      true,
+      'why',
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText<HTMLInputElement>('Term to hide').value,
+      ).toBe(''),
+    )
+    // Without a reason; and a refusal is shown by the form.
+    mocks.setFragmentHidden.mockRejectedValueOnce(new Error('Not a term.'))
+    await user.type(screen.getByLabelText('Term to hide'), 'a@b')
+    await user.click(screen.getByRole('button', { name: 'Hide term' }))
+    expect(mocks.setFragmentHidden).toHaveBeenLastCalledWith(
+      'tok',
+      'a@b',
+      true,
+      undefined,
+    )
+    expect((await screen.findByRole('alert')).textContent).toBe('Not a term.')
+  })
+})
