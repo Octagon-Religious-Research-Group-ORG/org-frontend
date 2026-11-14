@@ -7,6 +7,7 @@ import { CommentThread } from './CommentThread'
 import { buttonStyle } from './editor-styles'
 import { HistoryPanel } from './HistoryPanel'
 import { Paragraphs } from './Paragraphs'
+import { ReceiptPanel } from './ReceiptPanel'
 import { VoteButtons } from './VoteButtons'
 import type { CommentAccess } from './VoteButtons'
 import type { TabVotes, VoteValue } from '#/lib/votes-api'
@@ -72,6 +73,8 @@ export function BeliefTabs({
     tabId: string
     field: 'text' | 'title'
   }>()
+  // The belief whose receipt is open (Chunk 16).
+  const [receiptFor, setReceiptFor] = useState<string>()
   // Votes after this reader's own writes, until the page is read again.
   const [voted, setVoted] = useState<Record<string, TabVotes>>({})
   const [access, setAccess] = useState<Record<string, CommentAccess>>({})
@@ -226,7 +229,24 @@ export function BeliefTabs({
                 {field === 'text' ? 'History' : 'Title history'}
               </button>
             ))}
+            <button
+              type="button"
+              aria-expanded={receiptFor === tab.tabId}
+              onClick={() =>
+                setReceiptFor(receiptFor === tab.tabId ? undefined : tab.tabId)
+              }
+              className={buttonStyle}
+            >
+              Receipt
+            </button>
           </div>
+          {receiptFor === tab.tabId && (
+            <ReceiptPanel
+              target={{ kind: 'belief', slug, tabId: tab.tabId }}
+              label={`“${tab.title}”`}
+              onClose={() => setReceiptFor(undefined)}
+            />
+          )}
           {history?.tabId === tab.tabId && (
             <HistoryPanel
               key={`${tab.tabId}-${history.field}`}

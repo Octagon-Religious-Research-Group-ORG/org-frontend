@@ -11,6 +11,7 @@ import type { CommentView } from '#/lib/comments-api'
 import { authorLabel, CommentAuthorName } from './CommentAuthorName'
 import { CommentForm } from './CommentForm'
 import { CommentHistory } from './CommentHistory'
+import { ReceiptPanel } from './ReceiptPanel'
 import { buttonStyle, dangerStyle, primaryStyle } from './editor-styles'
 import { formatSavedAt } from './HistoryPanel'
 import { MemberText } from './MemberText'
@@ -50,7 +51,8 @@ const STATUS_LABEL = {
   declined: 'Declined by the page owner',
 } as const
 
-type Mode = 'idle' | 'replying' | 'editing' | 'confirm-remove' | 'history'
+type Mode =
+  'idle' | 'replying' | 'editing' | 'confirm-remove' | 'history' | 'receipt'
 
 export type ThreadActions = (
   | { slug: string; orgPageId?: never }
@@ -297,6 +299,19 @@ export function CommentItem({
               Edit history
             </button>
           )}
+          {comment.kind === 'comment' &&
+            comment.source === 'member' &&
+            comment.body !== undefined && (
+              <button
+                type="button"
+                aria-expanded={mode === 'receipt'}
+                aria-label={`Receipt for ${whose}`}
+                onClick={() => setMode(mode === 'receipt' ? 'idle' : 'receipt')}
+                className={buttonStyle}
+              >
+                Receipt
+              </button>
+            )}
           {comment.mine && comment.kind === 'comment' && !comment.moderated && (
             <button
               type="button"
@@ -363,6 +378,25 @@ export function CommentItem({
             ? { slug: actions.slug }
             : { orgPageId: actions.orgPageId })}
           commentId={comment.commentId}
+          onClose={() => setMode('idle')}
+        />
+      )}
+      {mode === 'receipt' && (
+        <ReceiptPanel
+          target={
+            actions.orgPageId === undefined
+              ? {
+                  kind: 'comment',
+                  slug: actions.slug,
+                  commentId: comment.commentId,
+                }
+              : {
+                  kind: 'org-comment',
+                  pageId: actions.orgPageId,
+                  commentId: comment.commentId,
+                }
+          }
+          label={whose}
           onClose={() => setMode('idle')}
         />
       )}

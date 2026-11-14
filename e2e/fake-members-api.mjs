@@ -219,6 +219,27 @@ const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Expose-Headers': 'Content-Disposition',
+}
+
+// A receipt (Chunk 16) as the server sends it for a version not yet anchored.
+const PENDING_RECEIPT = {
+  format: 'org-receipt-v1',
+  generatedAt: '2026-11-14T08:00:00.000Z',
+  notice: [],
+  versions: [
+    {
+      kind: 'block',
+      seq: 2,
+      text: 'First synthetic belief.',
+      serverTime: '2026-11-01T12:30:00.000Z',
+      versionHash: 'a'.repeat(64),
+      prevHash: 'b'.repeat(64),
+      hashInput: { included: false, withheld: ['authorUserId'], reason: 'x' },
+      anchor: { state: 'pending', message: 'Not anchored yet.' },
+    },
+  ],
+  howToVerify: [],
 }
 
 createServer((request, response) => {
@@ -235,6 +256,33 @@ createServer((request, response) => {
     return
   }
   const url = new URL(request.url, 'http://localhost')
+  // Receipts follow the page's access, as the server's do: a guest gets the
+  // public page's, and the same 404 as reading for a members-only page.
+  const receipt = url.pathname.match(
+    /^\/api\/v1\/members\/profiles\/([^/]+)\/tabs\/([^/]+)\/receipt(\/download)?$/,
+  )
+  if (receipt) {
+    const [, slug, tabId, download] = receipt
+    const page = PROFILES[slug]
+    const readable =
+      page &&
+      (page.access === 'full' || Boolean(request.headers.authorization)) &&
+      (page.tabs ?? [{ tabId: 'm1' }]).some((tab) => tab.tabId === tabId)
+    if (!readable) {
+      send(404, { statusCode: 404, message: 'That page does not exist.' })
+    } else if (download) {
+      response.writeHead(200, {
+        ...CORS,
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="receipt-${slug}-${tabId}-text-2.zip"`,
+      })
+      // An empty zip (end-of-central-directory record only).
+      response.end(Buffer.from('504b0506' + '00'.repeat(18), 'hex'))
+    } else {
+      send(200, PENDING_RECEIPT)
+    }
+    return
+  }
   const history = url.pathname.match(
     /^\/api\/v1\/members\/profiles\/open-example\/(bio|tabs\/t1)\/history$/,
   )

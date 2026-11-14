@@ -94,6 +94,9 @@ const config = defineConfig({
         'src/components/search/SearchResults.tsx',
         'src/components/SearchOverlay.tsx',
         'src/components/admin/dashboard/FragmentsSection.tsx',
+        'src/lib/receipts-api.ts',
+        'src/components/members/ReceiptPanel.tsx',
+        'src/components/admin/dashboard/AnchorsSection.tsx',
       ],
       thresholds: {
         statements: 100,
