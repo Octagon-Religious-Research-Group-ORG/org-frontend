@@ -90,7 +90,8 @@ export interface CommentHistoryEntry {
   seq: number
   savedAt: string
   text: string
-  hash: string
+  /** Absent for a reader who may not know the author (Chunk 16). */
+  hash?: string
 }
 
 export interface CommentHistoryPage {

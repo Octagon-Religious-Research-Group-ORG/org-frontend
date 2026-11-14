@@ -83,6 +83,13 @@ const view = (overrides: Partial<AnchorsView> = {}): AnchorsView => ({
   checkedAt: '2026-11-14T10:00:00.000Z',
   page: 1,
   hasMore: false,
+  totalsScope: 'page',
+  global: {
+    anchors: 2,
+    unfinished: 1,
+    failedWhenLastChecked: 0,
+    neverChecked: 0,
+  },
   coverage: pass('every version up to now is anchored'),
   totals: {
     root: totals,
@@ -192,5 +199,28 @@ describe('review L1: the anchors are paged', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Newer' }))
     await screen.findByText('Page 1')
     expect(mocks.fetchAnchors).toHaveBeenLastCalledWith('tok', 1)
+  })
+})
+
+describe('review round 2, M-C: what the totals cover', () => {
+  it('labels the totals as this page’s, and shows counts over every anchor', async () => {
+    mocks.fetchAnchors.mockResolvedValue(
+      view({
+        totalsScope: 'page',
+        global: {
+          anchors: 41,
+          unfinished: 2,
+          failedWhenLastChecked: 1,
+          neverChecked: 11,
+        },
+      }),
+    )
+    render(<AnchorsSection />)
+    await screen.findByRole('button', { name: 'Run now' })
+    const text = document.body.textContent
+    expect(text).toContain('On this page:')
+    expect(text).toContain(
+      'All 41 anchors: 2 unfinished, 1 failed a check when last checked, 11 never checked.',
+    )
   })
 })

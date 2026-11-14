@@ -148,7 +148,12 @@ export function AnchorsSection() {
               <CheckLine name="Every version anchored" check={view.coverage} />
             </ul>
             <p className="mt-2 text-xs text-[#9f9676]">
-              Checked {when(view.checkedAt)}.{' '}
+              All {view.global.anchors} anchors: {view.global.unfinished}{' '}
+              unfinished, {view.global.failedWhenLastChecked} failed a check
+              when last checked, {view.global.neverChecked} never checked.
+            </p>
+            <p className="mt-1 text-xs text-[#9f9676]">
+              Checked {when(view.checkedAt)}. On this page:{' '}
               {CHECKS.map(
                 ([key, name]) =>
                   `${name}: ${view.totals[key].pass} pass, ${view.totals[key].fail} fail, ${view.totals[key]['cannot-measure']} cannot check.`,

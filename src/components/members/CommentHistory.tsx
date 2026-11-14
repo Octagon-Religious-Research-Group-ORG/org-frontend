@@ -86,16 +86,18 @@ export function CommentHistory({
         <ol className="mt-3 flex flex-col gap-4">
           {loaded.entries.map((entry) => (
             <li
-              key={`${entry.hash}-${entry.seq}`}
+              key={`${entry.seq}-${entry.savedAt}`}
               className="border-t border-[rgba(236,226,196,0.12)] pt-2"
             >
               <div className="flex flex-wrap gap-x-4 font-mono text-[11px] text-[#78aea2]">
                 <time dateTime={entry.savedAt}>
                   {formatSavedAt(entry.savedAt)}
                 </time>
-                <span title="The start of this version's SHA-256 hash">
-                  {entry.hash}
-                </span>
+                {entry.hash && (
+                  <span title="The start of this version's SHA-256 hash">
+                    {entry.hash}
+                  </span>
+                )}
               </div>
               <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#d8ceb0] [overflow-wrap:anywhere]">
                 <MemberText text={entry.text} />

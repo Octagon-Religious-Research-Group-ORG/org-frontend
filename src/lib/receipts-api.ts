@@ -19,7 +19,8 @@ export interface Check {
 export interface ReceiptVersion {
   seq: number
   serverTime: string
-  versionHash: string
+  /** Only for a reader who may know the author (round 2, M-A). */
+  versionHash?: string
   /** Held back from anyone but the author or an admin (Chunk 16). */
   hashInput: { included: boolean }
   imported?: string
@@ -149,6 +150,14 @@ export interface AnchorsView {
   /** 30 anchors a page, newest first (review L1). */
   page: number
   hasMore: boolean
+  /** `totals` count this page only (round 2, M-C). */
+  totalsScope: 'page'
+  global: {
+    anchors: number
+    unfinished: number
+    failedWhenLastChecked: number
+    neverChecked: number
+  }
   coverage: Check
   totals: Record<
     'root' | 'versions' | 'tsa' | 'ots' | 'bitcoin',

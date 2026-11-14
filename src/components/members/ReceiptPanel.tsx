@@ -18,9 +18,13 @@ export const RECEIPT_EXPLAINED = [
 export const COMPLETE_RECEIPT =
   'This receipt is complete: it shows that this exact text existed no later than those time-stamps, and anyone can check every step with free public tools; the steps are inside the file.'
 
-/** Anyone else's (review M3): the hash input is held back. */
+/** The same while anchoring is pending (review round 2, L-d). */
+export const COMPLETE_PENDING_RECEIPT =
+  'This receipt is complete for the text and its fingerprint, but it has no time-stamp yet: until the next daily anchor it proves nothing about when the text existed. Download it again after that.'
+
+/** Anyone else's (review M3, round 2 M-A): the hash material is held back. */
 export const PARTIAL_RECEIPT =
-  'This receipt proves only that this version’s fingerprint (hash) existed no later than those time-stamps; anyone can check that part with free public tools. It cannot show by itself that the text is the text behind that fingerprint: that can be checked only with the author’s complete receipt, which only the author or an ORG admin can download.'
+  'This receipt proves only that this version’s sealed fingerprint (its leaf in the anchor) existed no later than those time-stamps; anyone can check that part with free public tools. It cannot show by itself that the text is the text behind that fingerprint: that can be checked only with the complete receipt, which only the author, an ORG admin, or a reader allowed to see who the author is can download.'
 
 const CHECK_NAMES = {
   hash: 'Fingerprint check',
@@ -104,11 +108,15 @@ function VersionStatus({ version }: { version: ReceiptVersion }) {
           {confirmed && (
             <>Anchored on {day(`${anchor.anchorId}T00:00:00Z`)}. </>
           )}
-          {freetsaLine(anchor.freetsa.status, anchor.freetsa.genTime)}{' '}
-          {otsLine(
-            anchor.opentimestamps.status,
-            anchor.opentimestamps.bitcoinHeights,
+          {/* A provider whose check failed is shown only as the warning. */}
+          {anchor.serverChecks.tsa.outcome !== 'fail' && (
+            <>{freetsaLine(anchor.freetsa.status, anchor.freetsa.genTime)} </>
           )}
+          {anchor.serverChecks.ots.outcome !== 'fail' &&
+            otsLine(
+              anchor.opentimestamps.status,
+              anchor.opentimestamps.bitcoinHeights,
+            )}
         </>
       ) : (
         <span className="text-[#f1d78a]">{ANCHORING_PENDING}</span>
@@ -216,14 +224,18 @@ export function ReceiptPanel({
       {receipt && (
         <>
           <p className="mt-2 text-xs leading-5 text-[#d8ceb0]">
-            {receipt.versions.every((version) => version.hashInput.included)
-              ? COMPLETE_RECEIPT
-              : PARTIAL_RECEIPT}
+            {!receipt.versions.every((version) => version.hashInput.included)
+              ? PARTIAL_RECEIPT
+              : receipt.versions.every(
+                    (version) => version.anchor.state === 'anchored',
+                  )
+                ? COMPLETE_RECEIPT
+                : COMPLETE_PENDING_RECEIPT}
           </p>
           <ul className="mt-3 flex flex-col gap-2">
             {receipt.versions.map((version) => (
               <VersionStatus
-                key={`${version.seq}-${version.versionHash}`}
+                key={`${version.seq}-${version.serverTime}`}
                 version={version}
               />
             ))}

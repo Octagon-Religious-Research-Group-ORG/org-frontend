@@ -136,7 +136,7 @@ export function HistoryPanel({
         <ol className="mt-4 flex flex-col gap-5">
           {loaded.entries.map((entry) => (
             <li
-              key={`${entry.hash}-${entry.seq}`}
+              key={`${entry.seq}-${entry.savedAt}`}
               className="border-t border-[rgba(236,226,196,0.12)] pt-3"
             >
               <div className="flex flex-wrap gap-x-4 font-mono text-[11px] text-[#78aea2]">
@@ -148,9 +148,11 @@ export function HistoryPanel({
                     {entry.partHashes.join(' · ')}
                   </span>
                 ) : (
-                  <span title="The start of this version's SHA-256 hash">
-                    {entry.hash}
-                  </span>
+                  entry.hash && (
+                    <span title="The start of this version's SHA-256 hash">
+                      {entry.hash}
+                    </span>
+                  )
                 )}
               </div>
               {entryNote(entry) && (

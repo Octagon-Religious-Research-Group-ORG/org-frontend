@@ -84,7 +84,8 @@ export interface HistoryEntry {
   seq: number
   savedAt: string
   text: string
-  hash: string
+  /** Absent for a reader who may not know the author (Chunk 16). */
+  hash?: string
   source: 'member' | 'imported' | 'title-before-history'
   /** The text as kept before its first edit here, one record per paragraph. */
   beforeFirstEdit: boolean
