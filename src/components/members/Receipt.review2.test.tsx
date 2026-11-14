@@ -194,3 +194,24 @@ describe('round 3, L-4: the hashes wording while anchoring is pending', () => {
     expect(text).toContain('needs the author’s complete receipt')
   })
 })
+
+describe('round 4, LOW-2: the leaf-only wording while anchoring is pending', () => {
+  it('does not claim time-stamps that are not there yet', async () => {
+    mocks.fetchReceipt.mockResolvedValue(
+      receipt([
+        {
+          seq: 1,
+          serverTime: '2026-11-13T10:00:00.000Z',
+          disclosure: 'none',
+          hashInput: { included: false },
+          anchor: { state: 'pending', message: 'x' },
+        },
+      ]),
+    )
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).not.toContain('existed no later than those time-stamps')
+    expect(text).toContain('no time-stamp yet')
+    expect(text).toContain('author’s complete receipt')
+  })
+})
