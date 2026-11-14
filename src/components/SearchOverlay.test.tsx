@@ -79,7 +79,15 @@ beforeEach(() => {
   mocks.auth.isAuthenticated = false
   mocks.auth.getToken.mockReset().mockResolvedValue('tok')
   mocks.navigate.mockReset()
-  mocks.searchArchive.mockReset().mockResolvedValue(ANSWER)
+  // Only the full word answers: a call for a prefix typed on the way
+  // ("la", "lam") finds nothing, so it can never stand in for "lamp".
+  mocks.searchArchive
+    .mockReset()
+    .mockImplementation(({ q }: { q: string }) =>
+      Promise.resolve(
+        q === 'lamp' ? ANSWER : { ...ANSWER, query: q, total: 0, results: [] },
+      ),
+    )
   mocks.fetchFragments.mockReset().mockResolvedValue({ fragments: [] })
   mocks.loadPublishedPages.mockReset().mockResolvedValue([])
 })
@@ -98,11 +106,13 @@ describe('SearchOverlay', () => {
       ).toBeTruthy()
     }
     await user.type(box(), 'lamp')
-    expect(await screen.findByText(/12 FRAGMENTS/)).toBeTruthy()
-    expect(mocks.searchArchive).toHaveBeenLastCalledWith(
-      { q: 'lamp', type: 'all', page: 1 },
-      undefined,
+    await waitFor(() =>
+      expect(mocks.searchArchive).toHaveBeenLastCalledWith(
+        { q: 'lamp', type: 'all', page: 1 },
+        undefined,
+      ),
     )
+    expect(await screen.findByText(/12 FRAGMENTS/)).toBeTruthy()
     expect(screen.getByText('Synthetic belief · Quiet Fern')).toBeTruthy()
     expect(screen.getAllByRole('option')).toHaveLength(2)
     await user.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}{ArrowUp}{Enter}')
