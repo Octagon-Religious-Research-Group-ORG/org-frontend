@@ -135,3 +135,26 @@ describe('FragmentsSection, review L6', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('Not a term.')
   })
 })
+
+describe('FragmentsSection, round-2 review L4', () => {
+  it('says which hidden word keeps a term out, and what hiding does', async () => {
+    mocks.fetchAdminFragments.mockResolvedValue({
+      fragments: [
+        {
+          term: 'octagon light',
+          searchers: 7,
+          hidden: false,
+          shown: false,
+          blockedBy: 'octagon',
+        },
+      ],
+    })
+    render(<FragmentsSection />)
+    expect(
+      await screen.findByText('7 searchers · Kept out by “octagon”'),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(/every suggestion containing it as a whole word/),
+    ).toBeTruthy()
+  })
+})

@@ -11,10 +11,11 @@ import {
 } from './admin-shared'
 
 export const FRAGMENTS_EXPLAINED =
-  'The Perforated Index suggests terms many different people searched for, counted only as totals, never with who searched; a person counts once however often they search. A term is suggested only while every word of it is in something a signed-out visitor can read. Hide any term that should not be suggested; it stays searchable.'
+  'The Perforated Index suggests terms many different people searched for, counted only as totals, never with who searched; a person counts once however often they search. A term is suggested only while every word of it is in a belief or an ORG page a signed-out visitor can read; member names are never suggested. Hiding a word or phrase keeps it, and every suggestion containing it as a whole word, out of the suggestions; it stays searchable.'
 
 function status(fragment: AdminFragment) {
   if (fragment.hidden) return 'Hidden'
+  if (fragment.blockedBy) return `Kept out by “${fragment.blockedBy}”`
   return fragment.shown ? 'Suggested now' : 'Not suggested'
 }
 

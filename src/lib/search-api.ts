@@ -83,6 +83,8 @@ export interface AdminFragment {
   term: string
   searchers: number
   hidden: boolean
+  /** Kept out because it contains this hidden word or phrase. */
+  blockedBy?: string
   /** Readers see it now. */
   shown: boolean
 }
