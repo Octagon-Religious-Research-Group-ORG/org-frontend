@@ -46,10 +46,15 @@ type Stamps = 'both' | 'freetsa' | 'opentimestamps'
  */
 function versionStamps(version: ReceiptVersion): Stamps | undefined {
   if (version.anchor.state !== 'anchored') return undefined
-  const tsa = version.anchor.freetsa.responseBase64 !== undefined
+  // A stamp counts only when its own server check did not fail (round 9).
+  const checks = version.anchor.serverChecks
+  const tsa =
+    version.anchor.freetsa.responseBase64 !== undefined &&
+    checks.tsa.outcome !== 'fail'
   const ots =
     version.anchor.opentimestamps.proofBase64 !== undefined &&
-    version.anchor.opentimestamps.bitcoinHeights.length > 0
+    version.anchor.opentimestamps.bitcoinHeights.length > 0 &&
+    checks.ots.outcome !== 'fail'
   if (tsa && ots) return 'both'
   if (tsa) return 'freetsa'
   return ots ? 'opentimestamps' : undefined
@@ -76,6 +81,13 @@ export const ONE_STAMP = {
   mixed: 'Some versions hold only one of the two time-stamps.',
 }
 
+/**
+ * When this server's own check of a version's hash or path failed (review
+ * round 9, L2): said plainly, whatever the reader's tier.
+ */
+export const UNCONFIRMED_RECEIPT =
+  'This receipt could not be confirmed: this server’s own check of the version’s fingerprint, or of its place in the anchor, failed. It proves nothing about when the text existed; do not rely on it, and tell an ORG admin.'
+
 /** Said when a version's only proof cannot give a time yet (round 8). */
 export const UNCONFIRMED_OTS =
   'An OpenTimestamps proof is in but not yet confirmed in a Bitcoin block, so it gives no time yet.'
@@ -85,6 +97,13 @@ export const UNCONFIRMED_OTS =
  * a stamp; one stamp only is named (review round 7, LOW-3).
  */
 function noticeOf(versions: ReadonlyArray<ReceiptVersion>): string {
+  const failed = versions.some(
+    (version) =>
+      version.anchor.state === 'anchored' &&
+      (version.anchor.serverChecks.hash.outcome === 'fail' ||
+        version.anchor.serverChecks.path.outcome === 'fail'),
+  )
+  if (failed) return UNCONFIRMED_RECEIPT
   const stamps = stampsOf(versions)
   const unconfirmed = versions.some(
     (version) =>

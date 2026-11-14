@@ -302,3 +302,21 @@ describe('round 7: one anchoring run at a time', () => {
     ).toBeTruthy()
   })
 })
+
+describe('round 9, L4: a run stopped before its build', () => {
+  it('says the build was not reached', async () => {
+    mocks.runAnchorsNow.mockResolvedValueOnce({
+      interrupted: true,
+      build: { state: 'not-reached' },
+      tsa: [],
+      ots: [],
+    })
+    render(<AnchorsSection />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }))
+    expect(
+      await screen.findByText(
+        "Today's anchor: not reached. It stopped early: another run took over its lock.",
+      ),
+    ).toBeTruthy()
+  })
+})

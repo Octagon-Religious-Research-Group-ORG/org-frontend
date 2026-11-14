@@ -109,7 +109,12 @@ function runSummary(report: AnchorRunReport) {
   const build =
     report.build.state === 'built'
       ? `Anchored ${report.build.leaves} version(s) for ${report.build.anchorId}.`
-      : `Today's anchor: ${report.build.state}.`
+      : `Today's anchor: ${
+          // A run stopped before its build (review round 9, L4).
+          report.build.state === 'not-reached'
+            ? 'not reached'
+            : report.build.state
+        }.`
   const steps = [...report.tsa, ...report.ots]
     .map((step) => `${step.anchorId} ${step.outcome}`)
     .join(', ')

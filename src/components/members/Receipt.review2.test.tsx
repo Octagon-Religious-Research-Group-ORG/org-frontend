@@ -318,3 +318,73 @@ describe('round 7, LOW-3: the wording names the stamps the receipt holds', () =>
     )
   })
 })
+
+describe('round 9, L2: a stamp whose check failed is not a stamp', () => {
+  const version = (
+    checks: Partial<Record<'hash' | 'path' | 'tsa' | 'ots', 'fail'>>,
+    tier: Pick<ReceiptVersion, 'hashInput' | 'disclosure'>,
+  ): ReceiptVersion => ({
+    seq: 1,
+    serverTime: '2026-11-13T10:00:00.000Z',
+    ...tier,
+    anchor: {
+      state: 'anchored',
+      anchorId: '2026-11-14',
+      root: 'b'.repeat(64),
+      freetsa: {
+        status: 'granted',
+        genTime: '2026-11-14T03:00:00.000Z',
+        responseBase64: 'AAAA',
+      },
+      opentimestamps: { status: 'pending', bitcoinHeights: [] },
+      serverChecks: {
+        hash: checks.hash ? { outcome: 'fail', detail: 'x' } : ok,
+        path: checks.path ? { outcome: 'fail', detail: 'x' } : ok,
+        tsa: checks.tsa ? { outcome: 'fail', detail: 'x' } : ok,
+        ots: { outcome: 'cannot-measure', detail: 'x' },
+      },
+    },
+  })
+  const complete = { hashInput: { included: true as const } }
+
+  it('a FreeTSA token whose check failed gives no time: pending', async () => {
+    mocks.fetchReceipt.mockResolvedValue(
+      receipt([version({ tsa: 'fail' }, complete)]),
+    )
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).toContain('no time-stamp yet')
+    expect(text).not.toContain('no later than those time-stamps')
+  })
+
+  it.each([
+    ['complete', complete],
+    [
+      'hashes',
+      {
+        hashInput: { included: false as const },
+        disclosure: 'hashes' as const,
+      },
+    ],
+    [
+      'leaf only',
+      { hashInput: { included: false as const }, disclosure: 'none' as const },
+    ],
+  ])(
+    '%s: a failed hash or path check says it could not be confirmed',
+    async (_tier, tier) => {
+      for (const failed of ['hash', 'path'] as const) {
+        cleanup()
+        mocks.fetchReceipt.mockResolvedValue(
+          receipt([version({ [failed]: 'fail' }, tier)]),
+        )
+        render(
+          <ReceiptPanel target={target} label="x" onClose={() => undefined} />,
+        )
+        const text = await shown()
+        expect(text).toContain('could not be confirmed')
+        expect(text).not.toContain('no later than those time-stamps')
+      }
+    },
+  )
+})
