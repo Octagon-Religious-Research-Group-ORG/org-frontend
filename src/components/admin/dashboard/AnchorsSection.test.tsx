@@ -81,6 +81,8 @@ const totals = { pass: 1, fail: 0, 'cannot-measure': 1 }
 const view = (overrides: Partial<AnchorsView> = {}): AnchorsView => ({
   enabled: true,
   checkedAt: '2026-11-14T10:00:00.000Z',
+  page: 1,
+  hasMore: false,
   coverage: pass('every version up to now is anchored'),
   totals: {
     root: totals,
@@ -126,7 +128,7 @@ describe('AnchorsSection', () => {
     expect(text).toContain('Bitcoin block: Cannot check · no Bitcoin node')
     expect(text).toContain('Every version anchored: Pass')
     expect(text).toContain('Versions: 0 pass, 1 fail, 1 cannot check.')
-    expect(mocks.fetchAnchors).toHaveBeenCalledWith('tok')
+    expect(mocks.fetchAnchors).toHaveBeenCalledWith('tok', 1)
   })
 
   it('runs now, reports what happened, and reloads', async () => {
@@ -177,5 +179,18 @@ describe('AnchorsSection', () => {
     mocks.fetchAnchors.mockRejectedValue(new ApiError('Forbidden', 403))
     render(<AnchorsSection />)
     expect((await screen.findByRole('alert')).textContent).toBe(ADMINS_ONLY)
+  })
+})
+
+describe('review L1: the anchors are paged', () => {
+  it('asks for the next page, and back', async () => {
+    mocks.fetchAnchors.mockResolvedValue(view({ page: 1, hasMore: true }))
+    render(<AnchorsSection />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Older' }))
+    await screen.findByText('Page 2')
+    expect(mocks.fetchAnchors).toHaveBeenLastCalledWith('tok', 2)
+    fireEvent.click(screen.getByRole('button', { name: 'Newer' }))
+    await screen.findByText('Page 1')
+    expect(mocks.fetchAnchors).toHaveBeenLastCalledWith('tok', 1)
   })
 })

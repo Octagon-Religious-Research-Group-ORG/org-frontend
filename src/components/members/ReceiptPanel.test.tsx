@@ -48,6 +48,7 @@ const anchored = (
   seq: 2,
   serverTime: '2026-11-13T10:00:00.000Z',
   versionHash: 'a'.repeat(64),
+  hashInput: { included: true },
   anchor: {
     state: 'anchored',
     anchorId: '2026-11-14',
@@ -86,6 +87,7 @@ describe('ReceiptPanel', () => {
           seq: 1,
           serverTime: '2026-11-13T10:00:00.000Z',
           versionHash: 'c'.repeat(64),
+          hashInput: { included: false },
           anchor: { state: 'pending', message: 'x' },
         },
       ]),

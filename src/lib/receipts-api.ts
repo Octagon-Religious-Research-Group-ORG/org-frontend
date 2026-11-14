@@ -20,6 +20,8 @@ export interface ReceiptVersion {
   seq: number
   serverTime: string
   versionHash: string
+  /** Held back from anyone but the author or an admin (Chunk 16). */
+  hashInput: { included: boolean }
   imported?: string
   outlineLabel?: string
   anchor:
@@ -110,7 +112,8 @@ export async function downloadReceipt(
   document.body.append(link)
   link.click()
   link.remove()
-  URL.revokeObjectURL(url)
+  // Some browsers start reading the file only after the click returns.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
   return name
 }
 
@@ -143,6 +146,9 @@ export interface AnchorRow {
 export interface AnchorsView {
   enabled: boolean
   checkedAt: string
+  /** 30 anchors a page, newest first (review L1). */
+  page: number
+  hasMore: boolean
   coverage: Check
   totals: Record<
     'root' | 'versions' | 'tsa' | 'ots' | 'bitcoin',
@@ -157,8 +163,11 @@ export interface AnchorRunReport {
   ots: Array<{ anchorId: string; outcome: string }>
 }
 
-export function fetchAnchors(token: string) {
-  return memberRequest<AnchorsView>('/admin/anchors', { token })
+export function fetchAnchors(token: string, page = 1) {
+  return memberRequest<AnchorsView>(
+    `/admin/anchors${page > 1 ? `?page=${page}` : ''}`,
+    { token },
+  )
 }
 
 export function runAnchorsNow(token: string) {

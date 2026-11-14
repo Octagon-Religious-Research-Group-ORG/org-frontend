@@ -100,7 +100,6 @@ describe('downloading a receipt', () => {
       { headers: { Authorization: 'Bearer tok' } },
     )
     expect(click).toHaveBeenCalled()
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:receipt')
     expect(document.querySelector('a[download]')).toBeNull()
   })
 
@@ -143,5 +142,39 @@ describe('downloading a receipt', () => {
     await expect(
       downloadReceipt({ kind: 'org-comment', pageId: 'about', commentId: 'c' }),
     ).rejects.toThrow("couldn't reach ORG's server")
+  })
+})
+
+describe('review L5: the download link outlives the click', () => {
+  it('revokes the blob address only after the browser has started the download', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
+        () => undefined,
+      )
+      URL.createObjectURL = vi.fn(() => 'blob:later')
+      URL.revokeObjectURL = vi.fn()
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(new Uint8Array([1])),
+      )
+      await downloadReceipt({ kind: 'comment', slug: 'q', commentId: 'c' })
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+      vi.runAllTimers()
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:later')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('review L1: anchors by page', () => {
+  it('asks for a page past the first', async () => {
+    await fetchAnchors('tok', 3)
+    expect(mocks.memberRequest).toHaveBeenLastCalledWith(
+      '/admin/anchors?page=3',
+      {
+        token: 'tok',
+      },
+    )
   })
 })

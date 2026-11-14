@@ -9,10 +9,25 @@ const SESSION_UNCONFIRMED =
 
 /** What a receipt proves, and what it does not, in plain words (plan §6). */
 export const RECEIPT_EXPLAINED = [
-  'A receipt is a file you can keep. It shows that this exact text existed no later than the moment two independent services time-stamped it: FreeTSA (an RFC 3161 time-stamp) and OpenTimestamps (anchored in the Bitcoin blockchain). Anyone can check it with free public tools; the steps are inside the file.',
+  'A receipt is a file you can keep. It holds this version’s fingerprint (hash) and two independent time-stamps of it: FreeTSA (an RFC 3161 time-stamp) and OpenTimestamps (anchored in the Bitcoin blockchain).',
   'It does not show who wrote the text, that it is true, or that it was not written earlier somewhere else. FreeTSA is not an EU “qualified” time-stamp authority, and this is not legal advice.',
   'Beliefs imported from Apple Pages are dated when they were imported here; a receipt never claims an earlier date.',
 ]
+
+/** The author's (or an admin's) receipt: every step can be recomputed. */
+export const COMPLETE_RECEIPT =
+  'This receipt is complete: it shows that this exact text existed no later than those time-stamps, and anyone can check every step with free public tools; the steps are inside the file.'
+
+/** Anyone else's (review M3): the hash input is held back. */
+export const PARTIAL_RECEIPT =
+  'This receipt proves only that this version’s fingerprint (hash) existed no later than those time-stamps; anyone can check that part with free public tools. It cannot show by itself that the text is the text behind that fingerprint: that can be checked only with the author’s complete receipt, which only the author or an ORG admin can download.'
+
+const CHECK_NAMES = {
+  hash: 'Fingerprint check',
+  path: 'Path check',
+  tsa: 'FreeTSA check',
+  ots: 'OpenTimestamps check',
+} as const
 
 export const ANCHORING_PENDING =
   'Anchoring pending: ORG time-stamps new versions once a day. The receipt already holds the text and its fingerprint; download it again after the next daily anchor to get both time-stamps.'
@@ -45,8 +60,26 @@ function otsLine(status: string, heights: Array<number>) {
   return 'OpenTimestamps: not received yet; it is tried again automatically.'
 }
 
+/** Every server check that did not pass, as a plain warning (review M2). */
+function warnings(version: ReceiptVersion) {
+  if (version.anchor.state !== 'anchored') return []
+  const checks = version.anchor.serverChecks
+  return (Object.keys(CHECK_NAMES) as Array<keyof typeof CHECK_NAMES>)
+    .filter((name) => checks[name].outcome !== 'pass')
+    .map(
+      (name) =>
+        `${CHECK_NAMES[name]}: ${
+          checks[name].outcome === 'fail' ? 'FAILED' : 'could not be checked'
+        } (${checks[name].detail}).`,
+    )
+}
+
 function VersionStatus({ version }: { version: ReceiptVersion }) {
   const { anchor } = version
+  const confirmed =
+    anchor.state === 'anchored' &&
+    anchor.serverChecks.hash.outcome === 'pass' &&
+    anchor.serverChecks.path.outcome === 'pass'
   return (
     <li className="text-xs leading-5 text-[#b8ad8d]">
       {version.outlineLabel && (
@@ -60,9 +93,17 @@ function VersionStatus({ version }: { version: ReceiptVersion }) {
           .{' '}
         </span>
       )}
+      {anchor.state === 'anchored' && !confirmed && (
+        <span className="text-[#f1a07a]">
+          ORG’s server could not confirm that this version is in the anchor of{' '}
+          {day(`${anchor.anchorId}T00:00:00Z`)}.{' '}
+        </span>
+      )}
       {anchor.state === 'anchored' ? (
         <>
-          Anchored on {day(`${anchor.anchorId}T00:00:00Z`)}.{' '}
+          {confirmed && (
+            <>Anchored on {day(`${anchor.anchorId}T00:00:00Z`)}. </>
+          )}
           {freetsaLine(anchor.freetsa.status, anchor.freetsa.genTime)}{' '}
           {otsLine(
             anchor.opentimestamps.status,
@@ -72,6 +113,11 @@ function VersionStatus({ version }: { version: ReceiptVersion }) {
       ) : (
         <span className="text-[#f1d78a]">{ANCHORING_PENDING}</span>
       )}
+      {warnings(version).map((line) => (
+        <span key={line} className="block text-[#f1a07a]">
+          {line}
+        </span>
+      ))}
     </li>
   )
 }
@@ -105,8 +151,15 @@ export function ReceiptPanel({
 
   // The target is rebuilt every render; its path says when it changed.
   const key = receiptPath(target)
+  // The sign-in values, not the auth object, so a new object with the same
+  // state asks nothing again (review L6).
+  const { isLoading, isAuthenticated, getToken } = auth
   useEffect(() => {
-    if (auth.isLoading) return
+    // Another version: nothing of the last one stays on screen.
+    setReceipt(undefined)
+    setProblem(undefined)
+    setSaved(undefined)
+    if (isLoading) return
     const closed = new AbortController()
     void (async () => {
       try {
@@ -121,7 +174,7 @@ export function ReceiptPanel({
       }
     })()
     return () => closed.abort()
-  }, [auth, key])
+  }, [isLoading, isAuthenticated, getToken, key])
 
   const download = async () => {
     setSaving(true)
@@ -162,6 +215,11 @@ export function ReceiptPanel({
       )}
       {receipt && (
         <>
+          <p className="mt-2 text-xs leading-5 text-[#d8ceb0]">
+            {receipt.versions.every((version) => version.hashInput.included)
+              ? COMPLETE_RECEIPT
+              : PARTIAL_RECEIPT}
+          </p>
           <ul className="mt-3 flex flex-col gap-2">
             {receipt.versions.map((version) => (
               <VersionStatus

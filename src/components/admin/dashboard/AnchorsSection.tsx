@@ -10,6 +10,7 @@ import { primaryStyle } from '#/components/members/editor-styles'
 import {
   LoadState,
   noteStyle,
+  Pager,
   sectionHeading,
   useAdminAction,
   useAdminLoad,
@@ -117,7 +118,11 @@ function runSummary(report: AnchorRunReport) {
  */
 export function AnchorsSection() {
   const [attempt, setAttempt] = useState(0)
-  const anchors = useAdminLoad(fetchAnchors, `anchors-${attempt}`)
+  const [page, setPage] = useState(1)
+  const anchors = useAdminLoad(
+    (token) => fetchAnchors(token, page),
+    `anchors-${page}-${attempt}`,
+  )
   const action = useAdminAction()
   const [ran, setRan] = useState<string>()
   const view = anchors.data
@@ -182,6 +187,7 @@ export function AnchorsSection() {
                 ))}
               </ol>
             )}
+            <Pager page={page} hasMore={view.hasMore} onPage={setPage} />
           </>
         )}
       </LoadState>
