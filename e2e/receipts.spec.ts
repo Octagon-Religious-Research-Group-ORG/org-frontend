@@ -30,7 +30,7 @@ test.describe('receipts for a logged-out visitor (Chunk 16)', () => {
     const panel = page.getByRole('region', { name: /Receipt for “First tab”/ })
     await expect(panel).toBeVisible()
     await expect(panel).toContainText(
-      'not an EU “qualified” time-stamp authority',
+      'not an EU "qualified" time-stamp authority',
     )
     await expect(panel).toContainText('not legal advice')
     await expect(panel).toContainText('Anchoring pending')

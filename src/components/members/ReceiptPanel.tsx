@@ -9,8 +9,8 @@ const SESSION_UNCONFIRMED =
 
 /** What a receipt proves, and what it does not, in plain words (plan §6). */
 export const RECEIPT_EXPLAINED = [
-  'A receipt is a file you can keep. It holds this version’s fingerprint (hash) and two independent time-stamps of it: FreeTSA (an RFC 3161 time-stamp) and OpenTimestamps (anchored in the Bitcoin blockchain).',
-  'It does not show who wrote the text, that it is true, or that it was not written earlier somewhere else. FreeTSA is not an EU “qualified” time-stamp authority, and this is not legal advice.',
+  "A receipt is a file you can keep. It holds this version's fingerprint (hash) and two independent time-stamps of it: FreeTSA (an RFC 3161 time-stamp) and OpenTimestamps (anchored in the Bitcoin blockchain).",
+  'It does not show who wrote the text, that it is true, or that it was not written earlier somewhere else. FreeTSA is not an EU "qualified" time-stamp authority, and this is not legal advice.',
   'Beliefs imported from Apple Pages are dated when they were imported here; a receipt never claims an earlier date.',
 ]
 
@@ -24,19 +24,19 @@ export const COMPLETE_PENDING_RECEIPT =
 
 /** Anyone else's (review M3, round 2 M-A): the hash material is held back. */
 export const PARTIAL_RECEIPT =
-  'This receipt proves only that this version’s sealed fingerprint (its leaf in the anchor) existed no later than those time-stamps; anyone can check that part with free public tools. It cannot show by itself that the text is the text behind that fingerprint: that can be checked only with the author’s complete receipt, which only the author or an ORG admin can download.'
+  "This receipt proves only that this version's sealed fingerprint (its leaf in the anchor) existed no later than those time-stamps; anyone can check that part with free public tools. It cannot show by itself that the text is the text behind that fingerprint: that can be checked only with the author's complete receipt, which only the author or an ORG admin can download."
 
 /** The leaf-only receipt while anchoring is pending (review round 4, LOW-2). */
 export const PARTIAL_PENDING_RECEIPT =
-  'This receipt has no time-stamp yet: until one arrives (normally within a day of the daily anchor) it proves nothing about when this version existed. Download it again after that. Even then it will prove only that this version’s sealed fingerprint existed by that time; that the text is the text behind it can be checked only with the author’s complete receipt, which only the author or an ORG admin can download.'
+  "This receipt has no time-stamp yet: until one arrives (normally within a day of the daily anchor) it proves nothing about when this version existed. Download it again after that. Even then it will prove only that this version's sealed fingerprint existed by that time; that the text is the text behind it can be checked only with the author's complete receipt, which only the author or an ORG admin can download."
 
 /** The same while anchoring is pending (review round 3, L-4). */
 export const HASHES_PENDING_RECEIPT =
-  'This receipt holds this version’s fingerprint (hash), but it has no time-stamp yet: until one arrives (normally within a day of the daily anchor) it proves nothing about when the version existed. Download it again after that. The step from the text to the fingerprint needs the author’s complete receipt.'
+  "This receipt holds this version's fingerprint (hash), but it has no time-stamp yet: until one arrives (normally within a day of the daily anchor) it proves nothing about when the version existed. Download it again after that. The step from the text to the fingerprint needs the author's complete receipt."
 
 /** A reader allowed to know the author (round 3): hashes, no account id. */
 export const HASHES_RECEIPT =
-  'This receipt proves that this version’s fingerprint (hash) existed no later than those time-stamps; anyone can check every step from that fingerprint on with free public tools. The step from the text to the fingerprint needs the author’s complete receipt, because the fingerprint also covers the author’s account id, which only the author and ORG admins receive.'
+  "This receipt proves that this version's fingerprint (hash) existed no later than those time-stamps; anyone can check every step from that fingerprint on with free public tools. The step from the text to the fingerprint needs the author's complete receipt, because the fingerprint also covers the author's account id, which only the author and ORG admins receive."
 
 type Stamps = 'both' | 'freetsa' | 'opentimestamps'
 
@@ -86,7 +86,7 @@ export const ONE_STAMP = {
  * round 9, L2): said plainly, whatever the reader's tier.
  */
 export const UNCONFIRMED_RECEIPT =
-  'This receipt could not be confirmed: this server’s own check of the version’s fingerprint, or of its place in the anchor, failed. It proves nothing about when the text existed; do not rely on it, and tell an ORG admin.'
+  "This receipt could not be confirmed: this server's own check of the version's fingerprint, or of its place in the anchor, failed. It proves nothing about when the text existed; do not rely on it, and tell an ORG admin."
 
 /** Said when a version's only proof cannot give a time yet (round 8). */
 export const UNCONFIRMED_OTS =
@@ -105,11 +105,13 @@ function noticeOf(versions: ReadonlyArray<ReceiptVersion>): string {
   )
   if (failed) return UNCONFIRMED_RECEIPT
   const stamps = stampsOf(versions)
+  // Only a proof whose check did not fail is "in" (review round 10, LOW-1).
   const unconfirmed = versions.some(
     (version) =>
       version.anchor.state === 'anchored' &&
       versionStamps(version) === undefined &&
-      version.anchor.opentimestamps.proofBase64 !== undefined,
+      version.anchor.opentimestamps.proofBase64 !== undefined &&
+      version.anchor.serverChecks.ots.outcome !== 'fail',
   )
   const partial = versions.some(
     (version) => !version.hashInput.included && version.disclosure !== 'hashes',

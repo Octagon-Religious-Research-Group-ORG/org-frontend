@@ -97,7 +97,7 @@ describe('ReceiptPanel', () => {
     for (const line of RECEIPT_EXPLAINED) {
       expect(screen.getByText(line)).toBeTruthy()
     }
-    expect(RECEIPT_EXPLAINED.join(' ')).toContain('not an EU “qualified”')
+    expect(RECEIPT_EXPLAINED.join(' ')).toContain('not an EU "qualified"')
     expect(RECEIPT_EXPLAINED.join(' ')).toContain('not legal advice')
     expect(await screen.findByText(ANCHORING_PENDING)).toBeTruthy()
     expect(mocks.fetchReceipt).toHaveBeenCalledWith(target, undefined)

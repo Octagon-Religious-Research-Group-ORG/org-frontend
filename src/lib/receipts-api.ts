@@ -181,12 +181,28 @@ export interface AnchorsView {
   anchors: Array<AnchorRow>
 }
 
+/** Every state a run reports for its build, as the server sends it. */
+export type AnchorBuildState =
+  | 'built'
+  | 'already-built'
+  | 'empty'
+  | 'not-due'
+  | 'nothing-new'
+  | 'busy'
+  | 'not-reached'
+  | 'failed'
+
 export interface AnchorRunReport {
   /** Another run held the lock: nothing was done (review round 7). */
   busy?: boolean
   /** The run lost its lock part-way and stopped early. */
   interrupted?: boolean
-  build: { state: string; anchorId?: string; leaves?: number }
+  build: {
+    /** The server's BuildOutcome states (not-reached since review round 9). */
+    state: AnchorBuildState
+    anchorId?: string
+    leaves?: number
+  }
   tsa: Array<{ anchorId: string; outcome: string }>
   ots: Array<{ anchorId: string; outcome: string }>
 }
