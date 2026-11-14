@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CommentView } from '#/lib/comments-api'
 import {
+  ALSO_REMOVED_BY_AUTHOR,
   CommentItem,
   MODERATED_ADMIN_LABELS,
   MODERATED_MINE,
@@ -94,10 +95,17 @@ describe('a comment and moderation (Chunk 13)', () => {
     expect(screen.queryByRole('button', { name: /^Report/ })).toBeNull()
   })
 
-  it('keeps the author’s own removal first', () => {
+  it('shows the moderator’s decision even when the author also removed it (review L-3)', () => {
     show(comment({ moderated: 'hidden', removed: true }))
+    expect(
+      screen.getByText(`${MODERATED_NOTES.hidden} ${ALSO_REMOVED_BY_AUTHOR}`),
+    ).toBeTruthy()
+    expect(screen.queryByText(REMOVED_NOTE)).toBeNull()
+    expect(screen.queryByRole('button')).toBeNull()
+    cleanup()
+    // Removed by its author only: as before.
+    show(comment({ removed: true }))
     expect(screen.getByText(REMOVED_NOTE)).toBeTruthy()
-    expect(screen.queryByText(MODERATED_NOTES.hidden)).toBeNull()
   })
 
   it('offers "Report" to a reader who may write, never on their own words', () => {

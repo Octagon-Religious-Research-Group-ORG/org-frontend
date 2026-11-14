@@ -24,6 +24,8 @@ export const MODERATED_NOTES = {
   hidden: 'Hidden by a moderator.',
   removed: 'Removed by a moderator.',
 } as const
+/** After the moderator's note, when the author also removed it. */
+export const ALSO_REMOVED_BY_AUTHOR = 'Its author also removed it.'
 /** What its author sees. */
 export const MODERATED_MINE =
   'A moderator took this comment down. Only the admins can read it now, and it can no longer be edited.'
@@ -187,17 +189,20 @@ export function CommentItem({
           {MODERATED_ADMIN_LABELS[comment.moderated]}
         </p>
       )}
-      {comment.removed ? (
-        <p className="mt-2 text-sm italic text-[#9f9676]">{REMOVED_NOTE}</p>
-      ) : comment.moderated && comment.body === undefined ? (
+      {/* A moderator's decision shows first, even when the author also
+          removed the comment (review L-3). */}
+      {comment.moderated && comment.body === undefined ? (
         <>
           <p className="mt-2 text-sm italic text-[#9f9676]">
             {MODERATED_NOTES[comment.moderated]}
+            {comment.removed && ` ${ALSO_REMOVED_BY_AUTHOR}`}
           </p>
           {comment.mine && (
             <p className="mt-1 text-xs text-[#f1d78a]">{MODERATED_MINE}</p>
           )}
         </>
+      ) : comment.removed ? (
+        <p className="mt-2 text-sm italic text-[#9f9676]">{REMOVED_NOTE}</p>
       ) : mode === 'editing' ? (
         <CommentForm
           label="Edit your comment"

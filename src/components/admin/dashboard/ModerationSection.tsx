@@ -38,6 +38,9 @@ export const MODERATION_EXPLAINED =
   'Reports from members, one card per comment or page. Hiding or removing a comment keeps its place in the thread and keeps its text for the admins; restoring undoes either. Every action closes the reports on it and is written to the log.'
 export const OWN_CONTENT_NOTE =
   'These reports are about your own words or page: another admin decides.'
+/** Review L-2: hiding an accepted suggestion leaves the belief as it is. */
+export const ACCEPTED_SUGGESTION_NOTE =
+  "This suggestion was accepted, so its wording is already the belief's text. Hiding or removing the suggestion does not change the belief; only the belief's owner can."
 export const PAGE_REPORT_NOTE =
   'A page is taken off from the Members section. Removing it there closes these reports.'
 
@@ -241,6 +244,11 @@ function QueueCard({
           <p className="mt-3 whitespace-pre-wrap text-sm leading-7 [overflow-wrap:anywhere]">
             <MemberText text={comment.body} />
           </p>
+          {comment.suggestionStatus === 'accepted' && (
+            <p className="mt-2 text-xs text-[#f1d78a]">
+              {ACCEPTED_SUGGESTION_NOTE}
+            </p>
+          )}
           {comment.proposedText !== undefined && (
             <p className="mt-2 whitespace-pre-wrap border-l-2 border-[#78aea2] pl-3 text-sm leading-7 [overflow-wrap:anywhere]">
               <MemberText text={comment.proposedText} />

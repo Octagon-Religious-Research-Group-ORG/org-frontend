@@ -303,6 +303,8 @@ export interface ReportedComment {
   importedName?: string
   body: string
   proposedText?: string
+  /** An accepted suggestion's wording is already the belief's text. */
+  suggestionStatus?: 'pending' | 'accepted' | 'declined'
   stance?: 'agree' | 'disagree'
   postedAt: string
   place: CommentPlace
@@ -350,6 +352,8 @@ export function moderateComment(
   return memberRequest<{
     moderation: 'hidden' | 'removed' | null
     reportsClosed: number
+    /** Hiding an accepted suggestion leaves the belief's wording (L-2). */
+    note?: string
   }>(`/admin/moderation/comments/${id(commentId)}/${action}`, {
     token,
     ...post({ reason }),

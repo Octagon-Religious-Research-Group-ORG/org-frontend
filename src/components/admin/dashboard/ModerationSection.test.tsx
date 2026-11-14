@@ -7,6 +7,7 @@ import { ApiError } from '#/lib/api'
 import type * as AdminApi from '#/lib/admin-api'
 import type { QueueEntry, QueueReport } from '#/lib/admin-api'
 import {
+  ACCEPTED_SUGGESTION_NOTE,
   ModerationSection,
   MODERATION_EXPLAINED,
   OWN_CONTENT_NOTE,
@@ -404,5 +405,37 @@ describe('ModerationSection (Chunk 13)', () => {
     })
     renderQueue()
     expect(await screen.findByText('Nothing here.')).toBeTruthy()
+  })
+})
+
+describe('an accepted suggestion in the queue (review L-2)', () => {
+  it('says the belief keeps its wording, and still offers hiding it', async () => {
+    mocks.fetchModerationQueue.mockResolvedValue({
+      entries: [
+        commentEntry(
+          {},
+          {
+            kind: 'suggestion',
+            proposedText: 'Synthetic accepted wording.',
+            suggestionStatus: 'accepted',
+          },
+        ),
+        commentEntry(
+          { targetId: 'cmt_2' },
+          {
+            commentId: 'cmt_2',
+            kind: 'suggestion',
+            proposedText: 'Synthetic pending wording.',
+            suggestionStatus: 'pending',
+          },
+        ),
+      ],
+      hasMore: false,
+    })
+    renderQueue()
+    const cards = await screen.findAllByRole('article')
+    expect(cards[0].textContent).toContain(ACCEPTED_SUGGESTION_NOTE)
+    expect(within(cards[0]).getByRole('button', { name: 'Hide…' })).toBeTruthy()
+    expect(cards[1].textContent).not.toContain(ACCEPTED_SUGGESTION_NOTE)
   })
 })
