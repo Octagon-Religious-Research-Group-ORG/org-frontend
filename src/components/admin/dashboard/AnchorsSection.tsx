@@ -150,7 +150,12 @@ export function AnchorsSection() {
             <p className="mt-2 text-xs text-[#9f9676]">
               All {view.global.anchors} anchors: {view.global.unfinished}{' '}
               unfinished, {view.global.failedWhenLastChecked} failed a check
-              when last checked, {view.global.neverChecked} never checked.
+              when last checked, {view.global.cannotMeasureWhenLastChecked}{' '}
+              could not be checked when last checked, {view.global.neverChecked}{' '}
+              never checked;{' '}
+              {view.global.oldestCheck
+                ? `oldest check: ${when(view.global.oldestCheck)}.`
+                : 'no check stored yet.'}
             </p>
             <p className="mt-1 text-xs text-[#9f9676]">
               Checked {when(view.checkedAt)}. On this page:{' '}

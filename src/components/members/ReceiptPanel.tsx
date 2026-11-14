@@ -26,6 +26,10 @@ export const COMPLETE_PENDING_RECEIPT =
 export const PARTIAL_RECEIPT =
   'This receipt proves only that this version’s sealed fingerprint (its leaf in the anchor) existed no later than those time-stamps; anyone can check that part with free public tools. It cannot show by itself that the text is the text behind that fingerprint: that can be checked only with the author’s complete receipt, which only the author or an ORG admin can download.'
 
+/** The same while anchoring is pending (review round 3, L-4). */
+export const HASHES_PENDING_RECEIPT =
+  'This receipt holds this version’s fingerprint (hash), but it has no time-stamp yet: until the next daily anchor it proves nothing about when the version existed. Download it again after that. The step from the text to the fingerprint needs the author’s complete receipt.'
+
 /** A reader allowed to know the author (round 3): hashes, no account id. */
 export const HASHES_RECEIPT =
   'This receipt proves that this version’s fingerprint (hash) existed no later than those time-stamps; anyone can check every step from that fingerprint on with free public tools. The step from the text to the fingerprint needs the author’s complete receipt, because the fingerprint also covers the author’s account id, which only the author and ORG admins receive.'
@@ -236,7 +240,11 @@ export function ReceiptPanel({
               : receipt.versions.some(
                     (version) => version.disclosure === 'hashes',
                   )
-                ? HASHES_RECEIPT
+                ? receipt.versions.every(
+                    (version) => version.anchor.state === 'anchored',
+                  )
+                  ? HASHES_RECEIPT
+                  : HASHES_PENDING_RECEIPT
                 : receipt.versions.every(
                       (version) => version.anchor.state === 'anchored',
                     )

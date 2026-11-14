@@ -88,7 +88,9 @@ const view = (overrides: Partial<AnchorsView> = {}): AnchorsView => ({
     anchors: 2,
     unfinished: 1,
     failedWhenLastChecked: 0,
+    cannotMeasureWhenLastChecked: 0,
     neverChecked: 0,
+    oldestCheck: '2026-11-14T10:00:00.000Z',
   },
   coverage: pass('every version up to now is anchored'),
   totals: {
@@ -211,7 +213,9 @@ describe('review round 2, M-C: what the totals cover', () => {
           anchors: 41,
           unfinished: 2,
           failedWhenLastChecked: 1,
+          cannotMeasureWhenLastChecked: 0,
           neverChecked: 11,
+          oldestCheck: null,
         },
       }),
     )
@@ -220,7 +224,47 @@ describe('review round 2, M-C: what the totals cover', () => {
     const text = document.body.textContent
     expect(text).toContain('On this page:')
     expect(text).toContain(
-      'All 41 anchors: 2 unfinished, 1 failed a check when last checked, 11 never checked.',
+      'All 41 anchors: 2 unfinished, 1 failed a check when last checked, 0 could not be checked when last checked, 11 never checked;',
     )
+  })
+})
+
+describe('review round 3, MEDIUM-2: unmeasured and stale checks are visible', () => {
+  it('shows the cannot-measure count and the oldest check', async () => {
+    mocks.fetchAnchors.mockResolvedValue(
+      view({
+        global: {
+          anchors: 41,
+          unfinished: 2,
+          failedWhenLastChecked: 1,
+          cannotMeasureWhenLastChecked: 3,
+          neverChecked: 11,
+          oldestCheck: '2026-10-01T09:00:00.000Z',
+        },
+      }),
+    )
+    render(<AnchorsSection />)
+    await screen.findByRole('button', { name: 'Run now' })
+    const text = document.body.textContent
+    expect(text).toContain('3 could not be checked when last checked')
+    expect(text).toContain('oldest check: Oct 1, 2026, 9:00 AM UTC')
+  })
+
+  it('says when no check is stored yet', async () => {
+    mocks.fetchAnchors.mockResolvedValue(
+      view({
+        global: {
+          anchors: 1,
+          unfinished: 1,
+          failedWhenLastChecked: 0,
+          cannotMeasureWhenLastChecked: 0,
+          neverChecked: 1,
+          oldestCheck: null,
+        },
+      }),
+    )
+    render(<AnchorsSection />)
+    await screen.findByRole('button', { name: 'Run now' })
+    expect(document.body.textContent).toContain('no check stored yet')
   })
 })

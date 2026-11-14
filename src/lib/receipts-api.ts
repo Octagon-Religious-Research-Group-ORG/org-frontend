@@ -159,6 +159,9 @@ export interface AnchorsView {
     unfinished: number
     failedWhenLastChecked: number
     neverChecked: number
+    cannotMeasureWhenLastChecked: number
+    /** ISO time of the oldest stored check, or null (round 3, MEDIUM-2). */
+    oldestCheck: string | null
   }
   coverage: Check
   totals: Record<

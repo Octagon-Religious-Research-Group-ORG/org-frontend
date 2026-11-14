@@ -172,3 +172,25 @@ describe('round 3: a reader allowed to know the author gets the hashes, not the 
     expect(text).not.toContain('sealed fingerprint')
   })
 })
+
+describe('round 3, L-4: the hashes wording while anchoring is pending', () => {
+  it('does not claim time-stamps that are not there yet', async () => {
+    mocks.fetchReceipt.mockResolvedValue(
+      receipt([
+        {
+          seq: 1,
+          serverTime: '2026-11-13T10:00:00.000Z',
+          versionHash: 'a'.repeat(64),
+          disclosure: 'hashes',
+          hashInput: { included: false },
+          anchor: { state: 'pending', message: 'x' },
+        },
+      ]),
+    )
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).not.toContain('existed no later than those time-stamps')
+    expect(text).toContain('no time-stamp yet')
+    expect(text).toContain('needs the author’s complete receipt')
+  })
+})
