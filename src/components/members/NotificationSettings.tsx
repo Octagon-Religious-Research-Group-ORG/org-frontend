@@ -6,7 +6,10 @@ import {
   MEMBER_CATEGORIES,
   saveNotificationSettings,
 } from '#/lib/notifications-api'
-import type { NotificationSettings as Settings } from '#/lib/notifications-api'
+import type {
+  NotificationSettings as Settings,
+  NotificationSettingsChange,
+} from '#/lib/notifications-api'
 import { primaryStyle } from './editor-styles'
 
 export const EMAILS_EXPLAINED =
@@ -57,6 +60,35 @@ function Toggle({
   )
 }
 
+/** A category reads as on unless the server says it is off. */
+const isOn = (value: boolean | undefined) => value !== false
+
+/**
+ * Only what the member changed since the page loaded (review L6): saving a
+ * page loaded before an unsubscribe link was used must not turn it back on.
+ */
+export function changesFrom(
+  loaded: Settings,
+  current: Settings,
+): NotificationSettingsChange {
+  const before = { ...loaded.categories, ...loaded.admin?.categories }
+  const now = { ...current.categories, ...current.admin?.categories }
+  const categories = Object.fromEntries(
+    Object.entries(now).filter(([key, on]) => isOn(on) !== isOn(before[key])),
+  )
+  return {
+    ...(Object.keys(categories).length > 0 ? { categories } : {}),
+    ...(current.digest !== loaded.digest ? { digest: current.digest } : {}),
+    ...(current.immediate !== loaded.immediate
+      ? { immediate: current.immediate }
+      : {}),
+    ...(current.admin &&
+    current.admin.adminImmediate !== loaded.admin?.adminImmediate
+      ? { adminImmediate: current.admin.adminImmediate }
+      : {}),
+  }
+}
+
 /**
  * A member's own email settings (Chunk 14): each category on or off, the
  * daily summary, immediate emails, and an admins' section for admins.
@@ -65,6 +97,8 @@ function Toggle({
 export function NotificationSettings() {
   const auth = useOrgAuth()
   const [settings, setSettings] = useState<Settings>()
+  /** What the server last said: changes are measured from it. */
+  const [loaded, setLoaded] = useState<Settings>()
   const [loadError, setLoadError] = useState<string>()
   const [attempt, setAttempt] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -79,7 +113,10 @@ export function NotificationSettings() {
         const token = await auth.getToken()
         if (!token) throw new Error(SESSION_EXPIRED)
         const result = await fetchNotificationSettings(token)
-        if (!closed.signal.aborted) setSettings(result)
+        if (!closed.signal.aborted) {
+          setLoaded(result)
+          setSettings(result)
+        }
       } catch (err) {
         if (closed.signal.aborted) return
         setLoadError(err instanceof Error ? err.message : 'That did not load.')
@@ -104,7 +141,7 @@ export function NotificationSettings() {
       </div>
     )
   }
-  if (!settings) {
+  if (!settings || !loaded) {
     return (
       <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9f9676]">
         Loading your email settings…
@@ -133,14 +170,11 @@ export function NotificationSettings() {
     try {
       const token = await auth.getToken()
       if (!token) throw new Error(SESSION_EXPIRED)
-      const result = await saveNotificationSettings(token, {
-        categories: { ...current.categories, ...current.admin?.categories },
-        digest: current.digest,
-        immediate: current.immediate,
-        ...(current.admin
-          ? { adminImmediate: current.admin.adminImmediate }
-          : {}),
-      })
+      const result = await saveNotificationSettings(
+        token,
+        changesFrom(loaded as Settings, current),
+      )
+      setLoaded(result)
       setSettings(result)
       setSaved(true)
     } catch (err) {

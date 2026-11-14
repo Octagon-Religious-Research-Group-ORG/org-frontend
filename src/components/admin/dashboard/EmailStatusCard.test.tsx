@@ -77,4 +77,15 @@ describe('EmailStatusCard (Chunk 14)', () => {
     expect(await screen.findByText(/for ORG admins/)).toBeTruthy()
     expect(screen.queryByText('Sent today (UTC)')).toBeNull()
   })
+
+  it('shows failed daily summaries too (review L7)', async () => {
+    mocks.fetchNotificationStatus.mockResolvedValue({
+      ...status,
+      digestFailedLast7Days: 3,
+    })
+    render(<EmailStatusCard />)
+    expect(
+      await screen.findByText('2 single emails, 3 daily summaries'),
+    ).toBeTruthy()
+  })
 })

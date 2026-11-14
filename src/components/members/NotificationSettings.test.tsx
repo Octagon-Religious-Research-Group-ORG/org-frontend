@@ -81,7 +81,7 @@ describe('NotificationSettings (Chunk 14)', () => {
     expect(mocks.saveNotificationSettings).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(mocks.saveNotificationSettings).toHaveBeenCalledWith('tok', {
-      categories: { ...member.categories, replies: false },
+      categories: { replies: false },
       digest: false,
       immediate: false,
     })
@@ -103,13 +103,7 @@ describe('NotificationSettings (Chunk 14)', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(mocks.saveNotificationSettings).toHaveBeenCalledWith('tok', {
-      categories: {
-        ...member.categories,
-        ...admin.admin.categories,
-        adminReports: false,
-      },
-      digest: true,
-      immediate: true,
+      categories: { adminReports: false },
       adminImmediate: false,
     })
   })
@@ -191,5 +185,49 @@ describe('NotificationSettings (Chunk 14)', () => {
     second.unmount()
     fail(new Error('late'))
     await Promise.resolve()
+  })
+
+  it('saves only what the member changed, so a stale page never undoes an unsubscribe (review L6)', async () => {
+    const user = userEvent.setup()
+    mocks.fetchNotificationSettings.mockResolvedValue(admin)
+    render(<NotificationSettings />)
+    await user.click(
+      await screen.findByRole('checkbox', { name: 'Agreed beliefs' }),
+    )
+    await user.click(screen.getByRole('checkbox', { name: 'A daily summary' }))
+    // Changed and changed back: not a change.
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Claims and moderation at once' }),
+    )
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Claims and moderation at once' }),
+    )
+    await user.click(screen.getByRole('checkbox', { name: 'Reports' }))
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Claims and reports at once' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(mocks.saveNotificationSettings).toHaveBeenLastCalledWith('tok', {
+      categories: { votes: false, adminReports: false },
+      digest: false,
+      adminImmediate: false,
+    })
+    // Saved: the next save starts from what the server said.
+    await screen.findByRole('status')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(mocks.saveNotificationSettings).toHaveBeenLastCalledWith('tok', {})
+  })
+
+  it('never says "saved" when the server cannot check an admin (review L5)', async () => {
+    const user = userEvent.setup()
+    mocks.saveNotificationSettings.mockRejectedValueOnce(
+      new Error('The server is having trouble right now.'),
+    )
+    render(<NotificationSettings />)
+    await user.click(await screen.findByRole('button', { name: 'Save' }))
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'The server is having trouble right now.',
+    )
+    expect(screen.queryByText(SAVED)).toBeNull()
   })
 })

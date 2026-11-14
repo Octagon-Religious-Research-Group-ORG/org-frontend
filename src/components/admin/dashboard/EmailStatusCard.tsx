@@ -49,7 +49,10 @@ export function EmailStatusCard() {
               {status.data.waiting.adminNotices} admin notices
             </dd>
             <dt>Failed (7 days)</dt>
-            <dd>{status.data.failedLast7Days}</dd>
+            <dd>
+              {status.data.failedLast7Days} single emails,{' '}
+              {status.data.digestFailedLast7Days ?? 0} daily summaries
+            </dd>
             <dt>Daily summary</dt>
             <dd>from {status.data.digestHourUtc}:00 UTC</dd>
           </dl>

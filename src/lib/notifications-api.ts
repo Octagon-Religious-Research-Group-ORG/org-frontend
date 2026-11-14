@@ -91,6 +91,8 @@ export interface NotificationStatus {
   }
   waiting: { digest: number; immediate: number; adminNotices: number }
   failedLast7Days: number
+  /** Daily summaries that ran out of attempts (absent from older servers). */
+  digestFailedLast7Days?: number
 }
 
 const SCOPE_WORDS: Record<string, string> = {
