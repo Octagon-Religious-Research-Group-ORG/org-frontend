@@ -39,6 +39,7 @@ import { Route as Archive5RouteImport } from './routes/archive/5'
 import { Route as MembershipJoinRouteImport } from './routes/membership_.join'
 import { Route as OfferingsCheckoutRouteImport } from './routes/offerings.checkout'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
+import { Route as SettingsDataRouteImport } from './routes/settings.data'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 
 const IndexRoute = IndexRouteImport.update({
@@ -191,6 +192,11 @@ const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
   path: '/orders/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsDataRoute = SettingsDataRouteImport.update({
+  id: '/settings/data',
+  path: '/settings/data',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
   id: '/settings/notifications',
   path: '/settings/notifications',
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/membership/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/data': typeof SettingsDataRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/membership/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/data': typeof SettingsDataRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/membership_/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/data': typeof SettingsDataRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/membership/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/data'
     | '/settings/notifications'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -362,6 +372,7 @@ export interface FileRouteTypes {
     | '/membership/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/data'
     | '/settings/notifications'
     | '/admin'
   id:
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/membership_/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/data'
     | '/settings/notifications'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -428,6 +440,7 @@ export interface RootRouteChildren {
   Archive5Route: typeof Archive5Route
   MembershipJoinRoute: typeof MembershipJoinRoute
   OrdersOrderIdRoute: typeof OrdersOrderIdRoute
+  SettingsDataRoute: typeof SettingsDataRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -644,6 +657,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/data': {
+      id: '/settings/data'
+      path: '/settings/data'
+      fullPath: '/settings/data'
+      preLoaderRoute: typeof SettingsDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/notifications': {
       id: '/settings/notifications'
       path: '/settings/notifications'
@@ -695,6 +715,7 @@ const rootRouteChildren: RootRouteChildren = {
   Archive5Route: Archive5Route,
   MembershipJoinRoute: MembershipJoinRoute,
   OrdersOrderIdRoute: OrdersOrderIdRoute,
+  SettingsDataRoute: SettingsDataRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

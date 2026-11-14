@@ -204,6 +204,13 @@ function Profile() {
             Email settings
           </Link>
 
+          <Link
+            to="/settings/data"
+            className="block border border-[#ece2c4]/18 px-4 py-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-[#9f9676] no-underline hover:border-[#9dcf83] hover:text-[#9dcf83]"
+          >
+            Your data
+          </Link>
+
           <ProfileAdminLinks capabilities={capabilities} />
         </aside>
 

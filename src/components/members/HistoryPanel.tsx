@@ -27,6 +27,7 @@ function formatDay(iso: string) {
 function suggesterName(author: CommentAuthor) {
   if (author.kind === 'admin') return 'an ORG admin'
   if (author.kind === 'imported') return author.name
+  if (author.former) return 'a former member'
   return author.displayName ?? 'a member'
 }
 

@@ -145,6 +145,8 @@ describe('HistoryPanel', () => {
     [{ kind: 'imported' as const, name: 'Pages Name' }, 'Pages Name'],
     [{ kind: 'admin' as const }, 'an ORG admin'],
     [{ kind: 'member' as const }, 'a member'],
+    // Chunk 17: the suggester deleted their page.
+    [{ kind: 'member' as const, former: true as const }, 'a former member'],
   ])(
     'names whose suggestion a version came from (%o)',
     async (author, name) => {

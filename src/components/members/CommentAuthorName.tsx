@@ -16,6 +16,7 @@ export function authorLabel(author: CommentAuthor) {
       : author.name
   }
   if (author.kind === 'admin') return 'ORG admin'
+  if (author.former) return 'A former member'
   return author.displayName ?? 'A member'
 }
 

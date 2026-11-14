@@ -10,7 +10,8 @@ export type CommentAuthor =
    * A site member: named only when their page is approved and the reader
    * may see it; `slug` only when the reader may open the whole page.
    */
-  | { kind: 'member'; displayName?: string; slug?: string }
+  /** `former`: the author deleted their page (Chunk 17). */
+  | { kind: 'member'; displayName?: string; slug?: string; former?: true }
   /**
    * A name typed into Apple Pages; it proves no identity. `member` is the
    * member an admin linked it to after their claim (Chunk 11), named by the

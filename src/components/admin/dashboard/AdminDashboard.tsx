@@ -4,6 +4,7 @@ import { AdminClaims } from '#/components/admin/claims/AdminClaims'
 import { buttonStyle, primaryStyle } from '#/components/members/editor-styles'
 import { LoadState, useAdminLoad } from './admin-shared'
 import { AnchorsSection } from './AnchorsSection'
+import { DeletedPagesSection } from './DeletedPagesSection'
 import { FragmentsSection } from './FragmentsSection'
 import { InboxSection } from './InboxSection'
 import { LogSection } from './LogSection'
@@ -15,6 +16,7 @@ import { SettingsSection } from './SettingsSection'
 export const SECTIONS = [
   { id: 'inbox', label: 'Inbox' },
   { id: 'members', label: 'Members' },
+  { id: 'deleted', label: 'Deleted pages' },
   { id: 'claims', label: 'Claims' },
   { id: 'roles', label: 'Roles' },
   { id: 'moderation', label: 'Moderation queue' },
@@ -89,6 +91,7 @@ export function AdminDashboard({
                 : {})}
             />
           )}
+          {section === 'deleted' && <DeletedPagesSection />}
           {section === 'claims' && <AdminClaims embedded />}
           {section === 'roles' && <RolesSection />}
           {section === 'moderation' && (

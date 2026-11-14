@@ -71,6 +71,9 @@ vi.mock('./LogSection', () => ({ LogSection: () => <p>log stub</p> }))
 vi.mock('./FragmentsSection', () => ({
   FragmentsSection: () => <p>fragments stub</p>,
 }))
+vi.mock('./DeletedPagesSection', () => ({
+  DeletedPagesSection: () => <p>deleted stub</p>,
+}))
 vi.mock('./AnchorsSection', () => ({
   AnchorsSection: () => <p>anchors stub</p>,
 }))
@@ -111,6 +114,7 @@ describe('AdminDashboard', () => {
       ['Log', 'log stub'],
       ['Search fragments', 'fragments stub'],
       ['Anchors', 'anchors stub'],
+      ['Deleted pages', 'deleted stub'],
       ['Settings', 'settings stub'],
       ['Moderation queue', 'moderation stub'],
     ]
