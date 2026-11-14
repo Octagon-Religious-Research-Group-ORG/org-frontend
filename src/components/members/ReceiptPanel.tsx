@@ -20,7 +20,7 @@ export const COMPLETE_RECEIPT =
 
 /** The same while anchoring is pending (review round 2, L-d). */
 export const COMPLETE_PENDING_RECEIPT =
-  'This receipt is complete for the text and its fingerprint, but it has no time-stamp yet: until the next daily anchor it proves nothing about when the text existed. Download it again after that.'
+  'This receipt is complete for the text and its fingerprint, but it has no time-stamp yet: until one arrives (normally within a day of the daily anchor) it proves nothing about when the text existed. Download it again after that.'
 
 /** Anyone else's (review M3, round 2 M-A): the hash material is held back. */
 export const PARTIAL_RECEIPT =
@@ -28,15 +28,64 @@ export const PARTIAL_RECEIPT =
 
 /** The leaf-only receipt while anchoring is pending (review round 4, LOW-2). */
 export const PARTIAL_PENDING_RECEIPT =
-  'This receipt has no time-stamp yet: until the next daily anchor it proves nothing about when this version existed. Download it again after that. Even then it will prove only that this version’s sealed fingerprint existed by that time; that the text is the text behind it can be checked only with the author’s complete receipt, which only the author or an ORG admin can download.'
+  'This receipt has no time-stamp yet: until one arrives (normally within a day of the daily anchor) it proves nothing about when this version existed. Download it again after that. Even then it will prove only that this version’s sealed fingerprint existed by that time; that the text is the text behind it can be checked only with the author’s complete receipt, which only the author or an ORG admin can download.'
 
 /** The same while anchoring is pending (review round 3, L-4). */
 export const HASHES_PENDING_RECEIPT =
-  'This receipt holds this version’s fingerprint (hash), but it has no time-stamp yet: until the next daily anchor it proves nothing about when the version existed. Download it again after that. The step from the text to the fingerprint needs the author’s complete receipt.'
+  'This receipt holds this version’s fingerprint (hash), but it has no time-stamp yet: until one arrives (normally within a day of the daily anchor) it proves nothing about when the version existed. Download it again after that. The step from the text to the fingerprint needs the author’s complete receipt.'
 
 /** A reader allowed to know the author (round 3): hashes, no account id. */
 export const HASHES_RECEIPT =
   'This receipt proves that this version’s fingerprint (hash) existed no later than those time-stamps; anyone can check every step from that fingerprint on with free public tools. The step from the text to the fingerprint needs the author’s complete receipt, because the fingerprint also covers the author’s account id, which only the author and ORG admins receive.'
+
+/** Which stamps every version holds, or none (review round 7, LOW-3). */
+function stampsOf(
+  versions: ReadonlyArray<ReceiptVersion>,
+): 'both' | 'freetsa' | 'opentimestamps' | undefined {
+  let tsa = true
+  let ots = true
+  for (const version of versions) {
+    if (version.anchor.state !== 'anchored') return undefined
+    tsa &&= version.anchor.freetsa.responseBase64 !== undefined
+    ots &&= version.anchor.opentimestamps.proofBase64 !== undefined
+  }
+  if (tsa && ots) return 'both'
+  if (tsa) return 'freetsa'
+  return ots ? 'opentimestamps' : undefined
+}
+
+/** Names the one stamp a receipt holds so far (review round 7, LOW-3). */
+export const ONE_STAMP = {
+  freetsa:
+    'Only the FreeTSA time-stamp is in this receipt so far; the OpenTimestamps proof is not in yet.',
+  opentimestamps:
+    'Only the OpenTimestamps proof is in this receipt so far; the FreeTSA time-stamp is not in yet.',
+}
+
+/**
+ * The receipt's wording: pending unless every version is anchored AND holds
+ * a stamp; one stamp only is named (review round 7, LOW-3).
+ */
+function noticeOf(versions: ReadonlyArray<ReceiptVersion>): string {
+  const stamps = stampsOf(versions)
+  const partial = versions.some(
+    (version) => !version.hashInput.included && version.disclosure !== 'hashes',
+  )
+  const hashes = versions.some((version) => version.disclosure === 'hashes')
+  if (!stamps) {
+    return partial
+      ? PARTIAL_PENDING_RECEIPT
+      : hashes
+        ? HASHES_PENDING_RECEIPT
+        : COMPLETE_PENDING_RECEIPT
+  }
+  const text = partial
+    ? PARTIAL_RECEIPT
+    : hashes
+      ? HASHES_RECEIPT
+      : COMPLETE_RECEIPT
+  return stamps === 'both' ? text : `${text} ${ONE_STAMP[stamps]}`
+}
 
 const CHECK_NAMES = {
   hash: 'Fingerprint check',
@@ -236,28 +285,7 @@ export function ReceiptPanel({
       {receipt && (
         <>
           <p className="mt-2 text-xs leading-5 text-[#d8ceb0]">
-            {receipt.versions.some(
-              (version) =>
-                !version.hashInput.included && version.disclosure !== 'hashes',
-            )
-              ? receipt.versions.every(
-                  (version) => version.anchor.state === 'anchored',
-                )
-                ? PARTIAL_RECEIPT
-                : PARTIAL_PENDING_RECEIPT
-              : receipt.versions.some(
-                    (version) => version.disclosure === 'hashes',
-                  )
-                ? receipt.versions.every(
-                    (version) => version.anchor.state === 'anchored',
-                  )
-                  ? HASHES_RECEIPT
-                  : HASHES_PENDING_RECEIPT
-                : receipt.versions.every(
-                      (version) => version.anchor.state === 'anchored',
-                    )
-                  ? COMPLETE_RECEIPT
-                  : COMPLETE_PENDING_RECEIPT}
+            {noticeOf(receipt.versions)}
           </p>
           <ul className="mt-3 flex flex-col gap-2">
             {receipt.versions.map((version) => (

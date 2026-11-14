@@ -42,8 +42,16 @@ function version(
       state: 'anchored',
       anchorId: '2026-11-14',
       root: 'b'.repeat(64),
-      freetsa: { status: 'granted', genTime: '2026-11-14T03:00:00.000Z' },
-      opentimestamps: { status: 'pending', bitcoinHeights: [] },
+      freetsa: {
+        status: 'granted',
+        genTime: '2026-11-14T03:00:00.000Z',
+        responseBase64: 'AAAA',
+      },
+      opentimestamps: {
+        status: 'pending',
+        bitcoinHeights: [],
+        proofBase64: 'AAAA',
+      },
       serverChecks: { hash: ok, path: ok, tsa: ok, ots: ok, ...checks },
     },
   }

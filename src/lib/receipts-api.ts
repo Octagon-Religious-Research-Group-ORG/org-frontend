@@ -33,8 +33,18 @@ export interface ReceiptVersion {
         state: 'anchored'
         anchorId: string
         root: string
-        freetsa: { status: string; genTime?: string }
-        opentimestamps: { status: string; bitcoinHeights: Array<number> }
+        freetsa: {
+          status: string
+          genTime?: string
+          /** Present once the FreeTSA token is in (review round 7). */
+          responseBase64?: string
+        }
+        opentimestamps: {
+          status: string
+          bitcoinHeights: Array<number>
+          /** Present once the OpenTimestamps proof is in (round 7). */
+          proofBase64?: string
+        }
         serverChecks: Record<'hash' | 'path' | 'tsa' | 'ots', Check>
       }
 }
@@ -172,6 +182,10 @@ export interface AnchorsView {
 }
 
 export interface AnchorRunReport {
+  /** Another run held the lock: nothing was done (review round 7). */
+  busy?: boolean
+  /** The run lost its lock part-way and stopped early. */
+  interrupted?: boolean
   build: { state: string; anchorId?: string; leaves?: number }
   tsa: Array<{ anchorId: string; outcome: string }>
   ots: Array<{ anchorId: string; outcome: string }>

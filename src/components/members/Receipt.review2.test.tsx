@@ -158,8 +158,16 @@ describe('round 3: a reader allowed to know the author gets the hashes, not the 
             state: 'anchored',
             anchorId: '2026-11-14',
             root: 'b'.repeat(64),
-            freetsa: { status: 'granted', genTime: '2026-11-14T03:00:00.000Z' },
-            opentimestamps: { status: 'pending', bitcoinHeights: [] },
+            freetsa: {
+              status: 'granted',
+              genTime: '2026-11-14T03:00:00.000Z',
+              responseBase64: 'AAAA',
+            },
+            opentimestamps: {
+              status: 'pending',
+              bitcoinHeights: [],
+              proofBase64: 'AAAA',
+            },
             serverChecks: { hash: ok, path: ok, tsa: ok, ots: ok },
           },
         },
@@ -213,5 +221,55 @@ describe('round 4, LOW-2: the leaf-only wording while anchoring is pending', () 
     expect(text).not.toContain('existed no later than those time-stamps')
     expect(text).toContain('no time-stamp yet')
     expect(text).toContain('author’s complete receipt')
+  })
+})
+
+describe('round 7, LOW-3: the wording names the stamps the receipt holds', () => {
+  const anchoredWith = (stamps: {
+    tsa?: boolean
+    ots?: boolean
+  }): ReceiptVersion => ({
+    seq: 1,
+    serverTime: '2026-11-13T10:00:00.000Z',
+    hashInput: { included: true },
+    anchor: {
+      state: 'anchored',
+      anchorId: '2026-11-14',
+      root: 'b'.repeat(64),
+      freetsa: {
+        status: stamps.tsa ? 'granted' : 'pending',
+        ...(stamps.tsa ? { responseBase64: 'AAAA' } : {}),
+      },
+      opentimestamps: {
+        status: stamps.ots ? 'pending' : 'submit',
+        bitcoinHeights: [],
+        ...(stamps.ots ? { proofBase64: 'AAAA' } : {}),
+      },
+      serverChecks: {
+        hash: ok,
+        path: ok,
+        tsa: { outcome: 'cannot-measure', detail: 'x' },
+        ots: { outcome: 'cannot-measure', detail: 'x' },
+      },
+    },
+  })
+
+  it('anchored, but neither proof received yet: the pending wording', async () => {
+    mocks.fetchReceipt.mockResolvedValue(receipt([anchoredWith({})]))
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).toContain('no time-stamp yet')
+    expect(text).not.toContain('no later than those time-stamps')
+  })
+
+  it.each([
+    [{ tsa: true }, 'Only the FreeTSA time-stamp is in this receipt so far'],
+    [{ ots: true }, 'Only the OpenTimestamps proof is in this receipt so far'],
+  ])('one stamp: names it (%o)', async (stamps, phrase) => {
+    mocks.fetchReceipt.mockResolvedValue(receipt([anchoredWith(stamps)]))
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).toContain(phrase)
+    expect(text).not.toContain('no time-stamp yet')
   })
 })

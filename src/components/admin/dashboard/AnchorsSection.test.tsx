@@ -268,3 +268,37 @@ describe('review round 3, MEDIUM-2: unmeasured and stale checks are visible', ()
     expect(document.body.textContent).toContain('no check stored yet')
   })
 })
+
+describe('round 7: one anchoring run at a time', () => {
+  it('"Run now" while another run holds the lock says so plainly', async () => {
+    mocks.runAnchorsNow.mockResolvedValueOnce({
+      busy: true,
+      build: { state: 'busy' },
+      tsa: [],
+      ots: [],
+    })
+    render(<AnchorsSection />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }))
+    expect(
+      await screen.findByText(
+        'Another anchoring run is in progress, so nothing was done. Try again in a few minutes.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('a run that lost its lock part-way says it stopped early', async () => {
+    mocks.runAnchorsNow.mockResolvedValueOnce({
+      interrupted: true,
+      build: { state: 'built', anchorId: '2026-11-14', leaves: 1 },
+      tsa: [],
+      ots: [],
+    })
+    render(<AnchorsSection />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }))
+    expect(
+      await screen.findByText(
+        'Anchored 1 version(s) for 2026-11-14. It stopped early: another run took over its lock.',
+      ),
+    ).toBeTruthy()
+  })
+})

@@ -102,6 +102,10 @@ function AnchorCard({ anchor }: { anchor: AnchorRow }) {
 }
 
 function runSummary(report: AnchorRunReport) {
+  // One run at a time (review round 7): say so plainly.
+  if (report.busy) {
+    return 'Another anchoring run is in progress, so nothing was done. Try again in a few minutes.'
+  }
   const build =
     report.build.state === 'built'
       ? `Anchored ${report.build.leaves} version(s) for ${report.build.anchorId}.`
@@ -109,7 +113,10 @@ function runSummary(report: AnchorRunReport) {
   const steps = [...report.tsa, ...report.ots]
     .map((step) => `${step.anchorId} ${step.outcome}`)
     .join(', ')
-  return steps ? `${build} Steps: ${steps}.` : build
+  const done = steps ? `${build} Steps: ${steps}.` : build
+  return report.interrupted
+    ? `${done} It stopped early: another run took over its lock.`
+    : done
 }
 
 /**
