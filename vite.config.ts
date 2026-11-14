@@ -88,6 +88,12 @@ const config = defineConfig({
         'src/components/members/NotificationSettings.tsx',
         'src/components/members/UnsubscribePanel.tsx',
         'src/components/admin/dashboard/EmailStatusCard.tsx',
+        'src/lib/search-api.ts',
+        'src/components/search/use-archive-search.ts',
+        'src/components/search/ResultSnippet.tsx',
+        'src/components/search/SearchResults.tsx',
+        'src/components/SearchOverlay.tsx',
+        'src/components/admin/dashboard/FragmentsSection.tsx',
       ],
       thresholds: {
         statements: 100,

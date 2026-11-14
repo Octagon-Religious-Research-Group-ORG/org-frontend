@@ -362,9 +362,102 @@ createServer((request, response) => {
     })
     return
   }
+  // Chunk 15: search as the server answers a GUEST. A request carrying a
+  // token gets a members-only result, so a guest page that ever sent one
+  // would show it, and the browser test would fail.
+  if (url.pathname === '/api/v1/search/fragments') {
+    send(200, { fragments: ['first tab'] })
+    return
+  }
+  if (url.pathname === '/api/v1/search') {
+    send(200, fakeSearch(url, Boolean(request.headers.authorization)))
+    return
+  }
   if (url.pathname === '/api/v1/members/chats') {
     send(200, { voting: 'hidden' })
     return
   }
   send(404, { statusCode: 404, message: 'Not found' })
 }).listen(3001, '127.0.0.1')
+
+/** Synthetic search answers (Chunk 15), shaped like the real server's. */
+function fakeSearch(url, signedIn) {
+  const q = (url.searchParams.get('q') ?? '').trim().toLowerCase()
+  const type = url.searchParams.get('type') ?? 'all'
+  const page = Number(url.searchParams.get('page') ?? '1')
+  const mark = (snippet) => {
+    const at = snippet.toLowerCase().indexOf(q.split(' ')[0])
+    return at < 0 ? [] : [{ start: at, end: at + q.split(' ')[0].length }]
+  }
+  const all = []
+  if ('community'.includes(q) || q.includes('community')) {
+    all.push({
+      kind: 'page',
+      pageId: 'community',
+      title: 'Members Community',
+      part: 'title',
+      snippet: 'Members Community',
+      highlights: mark('Members Community'),
+    })
+  }
+  if (q.includes('example')) {
+    all.push(
+      {
+        kind: 'member',
+        slug: 'open-example',
+        displayName: 'Open Example',
+        membersOnly: false,
+        snippet: 'Open Example',
+        highlights: mark('Open Example'),
+      },
+      {
+        kind: 'member',
+        slug: 'members-example',
+        displayName: 'Members Example',
+        membersOnly: !signedIn,
+        snippet: 'Members Example',
+        highlights: mark('Members Example'),
+      },
+    )
+    for (let n = 1; n <= 10; n += 1) {
+      all.push({
+        kind: 'belief',
+        slug: 'open-example',
+        displayName: 'Open Example',
+        tabId: `t${n}`,
+        title: `Example tab ${n}`,
+        matched: 'title',
+        snippet: `Example tab ${n}`,
+        highlights: mark(`Example tab ${n}`),
+      })
+    }
+    if (signedIn) {
+      all.push({
+        kind: 'belief',
+        slug: 'members-example',
+        displayName: 'Members Example',
+        tabId: 'tm',
+        title: 'MEMBERS-ONLY SECRET',
+        matched: 'title',
+        snippet: 'MEMBERS-ONLY SECRET example',
+        highlights: [],
+      })
+    }
+  }
+  const kinds =
+    {
+      all: ['member', 'belief', 'page'],
+      members: ['member'],
+      beliefs: ['belief'],
+      pages: ['page'],
+    }[type] ?? []
+  const shown = all.filter((result) => kinds.includes(result.kind))
+  return {
+    query: q,
+    type,
+    page,
+    pageSize: 10,
+    total: shown.length,
+    results: shown.slice((page - 1) * 10, page * 10),
+  }
+}

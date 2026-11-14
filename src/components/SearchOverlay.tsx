@@ -1,15 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { X } from 'lucide-react'
-import { search, withHighlight, PAGE_META } from '#/lib/search'
+import { search as searchPages, withHighlight, PAGE_META } from '#/lib/search'
 import { DEFAULT_WEBSITE_PAGES } from '#/lib/content-defaults'
 import { loadPublishedPages } from '#/lib/content-api'
 import type { WebsitePageContent } from '#/lib/content-types'
+import { fetchFragments, MAX_QUERY_LENGTH, resultLink } from '#/lib/search-api'
+import {
+  resultBadge,
+  resultContext,
+  ResultSnippet,
+} from '#/components/search/ResultSnippet'
+import { useArchiveSearch } from '#/components/search/use-archive-search'
 
 const NOISE_URL =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' seed='7'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.65'/></svg>\")"
 
-const SUGGESTIONS = [
+/**
+ * Shown until enough people have searched for something public (plan D21):
+ * the fragments then follow what is searched, through the server's
+ * aggregate counts only.
+ */
+export const DEFAULT_SUGGESTIONS = [
   { label: 'DMT vapor meditation', term: 'DMT' },
   { label: 'Octagon temple', term: 'octagon' },
   { label: 'How to join', term: 'How To Join' },
@@ -18,161 +31,177 @@ const SUGGESTIONS = [
   { label: 'Entheo Community', term: 'Entheo Community' },
 ]
 
+/** Search waits this long after the last keystroke. */
+const TYPING_PAUSE_MS = 250
+
+interface Item {
+  key: string
+  badge: string
+  accent: string
+  snippet: ReactNode
+  context: string
+  open: () => void
+}
+
+/** Perforation frame for the panel (6px, d=25px, g=20px, separate v/h). */
+function PerforationFrame() {
+  const perfColor = 'rgba(236,226,196,0.88)'
+  const d = '25px'
+  const g = '20px'
+  const t = '6px'
+  const gradient = (direction: string) =>
+    `repeating-linear-gradient(${direction}, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
+  return (
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-10"
+        style={{
+          backgroundImage: `${gradient('to bottom')},${gradient('to bottom')}`,
+          backgroundSize: `${t} 100%,${t} 100%`,
+          backgroundPosition: '0% 0%,100% 0%',
+          backgroundRepeat: 'no-repeat,no-repeat',
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-20"
+        style={{
+          backgroundImage: `${gradient('to right')},${gradient('to right')}`,
+          backgroundSize: `100% ${t},100% ${t}`,
+          backgroundPosition: '0% 0%,0% 100%',
+          backgroundRepeat: 'no-repeat,no-repeat',
+        }}
+      />
+    </>
+  )
+}
+
+/**
+ * The Perforated Index (Chunk 15): the ⌘K search over member names,
+ * beliefs and ORG pages, as the server lets this reader see them. If the
+ * server cannot be reached it still searches the ORG pages it has here, and
+ * says so.
+ */
 export function SearchOverlay() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
-  const [pages, setPages] = useState<WebsitePageContent[]>(
+  const [pages, setPages] = useState<Array<WebsitePageContent>>(
     Object.values(DEFAULT_WEBSITE_PAGES),
   )
+  const [fragments, setFragments] = useState<Array<string>>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-
-  const results = useMemo(() => search(query, pages), [query, pages])
-
-  async function refreshContent() {
-    const published = await loadPublishedPages()
-    setPages(published.map((page) => page.content))
-  }
-
-  useEffect(() => {
-    setSelected(0)
-  }, [query])
-
-  // Global hotkey (⌘K / Ctrl+K) + when open: arrows, enter, esc
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const isMetaK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'
-      if (isMetaK) {
-        e.preventDefault()
-        toggle()
-        return
-      }
-      if (!open) return
-
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        close()
-        return
-      }
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setSelected((s) => Math.min(s + 1, Math.max(0, results.length - 1)))
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setSelected((s) => Math.max(s - 1, 0))
-      }
-      if (e.key === 'Enter' && results[selected]) {
-        e.preventDefault()
-        activate(selected)
-      }
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [open, results, selected])
-
-  // Listen for triggers from nav/home (custom event, no provider needed)
-  useEffect(() => {
-    function handleOpen() {
-      setOpen(true)
-      setQuery('')
-      void refreshContent()
-      // focus input after paint
-      setTimeout(() => inputRef.current?.focus(), 60)
-    }
-    window.addEventListener('org:open-search', handleOpen)
-    window.addEventListener('org:content-published', refreshContent)
-    return () => {
-      window.removeEventListener('org:open-search', handleOpen)
-      window.removeEventListener('org:content-published', refreshContent)
-    }
-  }, [])
-
-  function toggle() {
-    const next = !open
-    setOpen(next)
-    if (next) {
-      setQuery('')
-      void refreshContent()
-      setTimeout(() => inputRef.current?.focus(), 60)
-    } else {
-      setQuery('')
-    }
-  }
+  const { state } = useArchiveSearch(
+    open ? query : '',
+    'all',
+    1,
+    TYPING_PAUSE_MS,
+  )
+  const q = query.trim()
 
   function close() {
     setOpen(false)
     setQuery('')
   }
 
-  function activate(idx: number) {
-    const r = results.at(idx)
-    if (!r) return
-    const q = query.trim()
-    close()
-    // Preserve the query so target page can highlight + scroll
-    navigate({
-      to: r.href,
-      search: q ? { q } : undefined,
-    })
+  function openWith() {
+    setOpen(true)
+    setQuery('')
+    void loadPublishedPages()
+      .then((published) => setPages(published.map((page) => page.content)))
+      .catch(() => undefined)
+    void fetchFragments()
+      .then((result) => setFragments(result.fragments))
+      .catch(() => setFragments([]))
+    setTimeout(() => inputRef.current?.focus(), 60)
   }
 
-  function onSuggestion(term: string) {
-    setQuery(term)
-    // results will update, user can arrow or click
-    setTimeout(() => inputRef.current?.focus(), 10)
-  }
+  const items = useMemo((): Array<Item> => {
+    const go = (to: Parameters<typeof navigate>[0]) => () => {
+      close()
+      void navigate(to)
+    }
+    if (state.status === 'error') {
+      // Offline: the ORG pages bundled here, never member content.
+      return searchPages(q, pages).map((result, index) => ({
+        key: `local-${result.pageId}-${index}`,
+        badge: PAGE_META[result.pageId].short,
+        accent: PAGE_META[result.pageId].accent,
+        snippet: withHighlight(result.snippet, q),
+        context: result.title,
+        open: go({ to: result.href, search: { q } } as never),
+      }))
+    }
+    const data = state.status === 'idle' ? undefined : state.data
+    if (!data) return []
+    return data.results.map((result, index) => ({
+      key: `${result.kind}-${index}`,
+      badge: resultBadge(result),
+      accent: '#5800FF',
+      snippet: <ResultSnippet result={result} />,
+      context: resultContext(result),
+      open: go(resultLink(result, data.query) as never),
+    }))
+    // `navigate` is stable; `close` only sets state.
+  }, [state, pages, q])
+
+  const total =
+    state.status === 'ready' || state.status === 'loading'
+      ? (state.data?.total ?? 0)
+      : items.length
+
+  useEffect(() => setSelected(0), [query])
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        if (open) close()
+        else openWith()
+        return
+      }
+      if (!open) return
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        close()
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setSelected((s) => Math.min(s + 1, Math.max(0, items.length - 1)))
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setSelected((s) => Math.max(s - 1, 0))
+      } else if (event.key === 'Enter' && items[selected]) {
+        event.preventDefault()
+        items[selected].open()
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  })
+
+  useEffect(() => {
+    const handleOpen = () => openWith()
+    const refresh = () =>
+      void loadPublishedPages()
+        .then((published) => setPages(published.map((page) => page.content)))
+        .catch(() => undefined)
+    window.addEventListener('org:open-search', handleOpen)
+    window.addEventListener('org:content-published', refresh)
+    return () => {
+      window.removeEventListener('org:open-search', handleOpen)
+      window.removeEventListener('org:content-published', refresh)
+    }
+  }, [])
 
   if (!open) return null
 
-  // Perforation frame for the panel (exact aesthetic match: 6px, d=25px, g=20px, separate v/h)
-  const perfFrame = (() => {
-    const perfColor = 'rgba(236,226,196,0.88)'
-    const d = '25px'
-    const g = '20px'
-    const t = '6px'
-    const vGrad = `repeating-linear-gradient(to bottom, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
-    const hGrad = `repeating-linear-gradient(to right, ${perfColor} 0, ${perfColor} ${d}, transparent ${d}, transparent calc(${d} + ${g}))`
-    // Frame: left/right verticals + top/bottom horizontals
-    const vPositions = ['0%', '100%']
-    const hPositions = ['0%', '100%']
-    const vBgImages = vPositions.map(() => vGrad).join(',')
-    const vBgSizes = vPositions.map(() => `${t} 100%`).join(',')
-    const vBgPositions = vPositions.map((p) => `${p} 0%`).join(',')
-    const vBgRepeats = vPositions.map(() => 'no-repeat').join(',')
-    const hBgImages = hPositions.map(() => hGrad).join(',')
-    const hBgSizes = hPositions.map(() => `100% ${t}`).join(',')
-    const hBgPositions = hPositions.map((p) => `0% ${p}`).join(',')
-    const hBgRepeats = hPositions.map(() => 'no-repeat').join(',')
-    return (
-      <>
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none z-10"
-          style={{
-            backgroundImage: vBgImages,
-            backgroundSize: vBgSizes,
-            backgroundPosition: vBgPositions,
-            backgroundRepeat: vBgRepeats,
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none z-20"
-          style={{
-            backgroundImage: hBgImages,
-            backgroundSize: hBgSizes,
-            backgroundPosition: hBgPositions,
-            backgroundRepeat: hBgRepeats,
-          }}
-        />
-      </>
-    )
-  })()
-
-  const showResults = query.trim().length > 0
-  const currentResults = showResults ? results : []
+  const suggestions =
+    fragments.length > 0
+      ? fragments.map((term) => ({ label: term, term }))
+      : DEFAULT_SUGGESTIONS
+  const searching = q.length >= 2
 
   return (
     <div
@@ -182,7 +211,6 @@ export function SearchOverlay() {
       role="dialog"
       aria-label="Search the ORG archive"
     >
-      {/* subtle inner noise like the rest of the site */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay"
@@ -190,13 +218,11 @@ export function SearchOverlay() {
       />
 
       <div
-        className="relative w-full max-w-[min(92vw,620px)] overflow-hidden rounded-sm bg-[#0b0d12] text-[#ece2c4] shadow-[0_0_0_1px_rgba(236,226,196,0.12)]"
-        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-[min(92vw,640px)] overflow-hidden rounded-sm bg-[#0b0d12] text-[#ece2c4] shadow-[0_0_0_1px_rgba(236,226,196,0.12),0_24px_80px_rgba(0,0,0,0.6)]"
+        onClick={(event) => event.stopPropagation()}
       >
-        {/* The blotter perforation frame — makes the panel read as a torn square from the sheet */}
-        {perfFrame}
+        <PerforationFrame />
 
-        {/* Header / ritual title */}
         <div className="relative z-30 flex items-center justify-between border-b border-[rgba(236,226,196,0.12)] px-5 pb-3 pt-4">
           <div>
             <div className="text-[10px] uppercase tracking-[0.38em] text-[#b8ad8d]">
@@ -216,48 +242,75 @@ export function SearchOverlay() {
           </button>
         </div>
 
-        {/* Input — styled like an index card / typewriter field with perf underline */}
         <div className="relative z-30 px-5 pb-2 pt-4">
-          <label className="mb-1 block text-[10px] uppercase tracking-[0.34em] text-[#9f9676]">
+          <label
+            htmlFor="perforated-index-query"
+            className="mb-1 block text-[10px] uppercase tracking-[0.34em] text-[#9f9676]"
+          >
             What vision do you seek?
           </label>
           <input
+            id="perforated-index-query"
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="DMT ceremony, octagon, vote, how to join, Greg Lake…"
-            className="w-full border-0 border-b border-dashed border-[#d4a24a]/60 bg-transparent pb-2 text-[17px] font-light tracking-[0.01em] text-[#f3ead0] placeholder:text-[#9f9676] focus:outline-none focus:border-[#d4a24a]"
+            maxLength={MAX_QUERY_LENGTH}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Names, beliefs, ORG pages…"
+            className="w-full border-0 border-b border-dashed border-[#d4a24a]/60 bg-transparent pb-2 text-[17px] font-light tracking-[0.01em] text-[#f3ead0] placeholder:text-[#9f9676] focus:border-[#d4a24a] focus:outline-none"
             spellCheck={false}
+            aria-controls="perforated-index-results"
           />
         </div>
 
-        {/* Results or suggestions */}
-        <div className="relative z-30 max-h-[58vh] overflow-auto px-2 pb-3 pt-1 text-sm">
-          {!showResults && (
+        <div
+          id="perforated-index-results"
+          aria-live="polite"
+          className="relative z-30 max-h-[58vh] overflow-auto px-2 pb-3 pt-1 text-sm"
+        >
+          {!searching && (
             <div className="px-3 py-2">
               <div className="mb-2 text-[10px] uppercase tracking-[0.32em] text-[#9f9676]">
                 SUGGESTED FRAGMENTS
               </div>
               <div className="flex flex-wrap gap-2">
-                {SUGGESTIONS.map((s, i) => (
+                {suggestions.map((suggestion) => (
                   <button
-                    key={i}
+                    key={suggestion.term}
                     type="button"
-                    onClick={() => onSuggestion(s.term)}
-                    className="border border-[rgba(236,226,196,0.22)] px-3 py-1 text-[12px] uppercase tracking-[0.2em] text-[#d8ceb0] transition-colors hover:border-[#d4a24a] hover:text-[#f0e6d0]"
+                    onClick={() => {
+                      setQuery(suggestion.term)
+                      setTimeout(() => inputRef.current?.focus(), 10)
+                    }}
+                    className="border border-dashed border-[rgba(236,226,196,0.3)] px-3 py-1 text-[12px] uppercase tracking-[0.2em] text-[#d8ceb0] transition-colors hover:border-solid hover:border-[#d4a24a] hover:text-[#f0e6d0]"
                   >
-                    {s.label}
+                    {suggestion.label}
                   </button>
                 ))}
               </div>
               <div className="mt-4 text-[10px] text-[#9f9676]">
-                Or type anything — beliefs, events, names, sacraments. Results
+                Or type anything — names, beliefs, events, sacraments. Results
                 are extracts from the living archive.
               </div>
             </div>
           )}
 
-          {showResults && currentResults.length === 0 && (
+          {searching && state.status === 'loading' && items.length === 0 && (
+            <p role="status" className="px-3 py-6 text-center text-[#b8ad8d]">
+              Searching the records…
+            </p>
+          )}
+
+          {searching && state.status === 'error' && (
+            <p
+              role="alert"
+              className="px-3 pb-2 pt-1 text-[12px] text-[#f1a07a]"
+            >
+              Member pages could not be searched right now; showing ORG pages
+              only.
+            </p>
+          )}
+
+          {searching && items.length === 0 && state.status !== 'loading' && (
             <div className="px-3 py-6 text-center text-[#b8ad8d]">
               No matches in the records.
               <br />
@@ -267,80 +320,77 @@ export function SearchOverlay() {
             </div>
           )}
 
-          {currentResults.length > 0 && (
+          {searching && items.length > 0 && (
             <>
               <div className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.32em] text-[#9f9676]">
-                {currentResults.length} FRAGMENT
-                {currentResults.length === 1 ? '' : 'S'} —{' '}
+                {total} FRAGMENT{total === 1 ? '' : 'S'} —{' '}
                 <span className="normal-case tracking-normal">
-                  tap or ↵ to open with highlight
+                  tap or ↵ to open
                 </span>
               </div>
               <div
                 role="listbox"
-                aria-activedescendant={
-                  currentResults[selected] ? `result-${selected}` : undefined
-                }
+                aria-label="Results"
+                aria-activedescendant={`result-${Math.min(selected, items.length - 1)}`}
               >
-                {currentResults.map((r, i) => {
-                  const meta = PAGE_META[r.pageId]
-                  const isActive = i === selected
+                {items.map((item, index) => {
+                  const isActive = index === selected
                   return (
                     <button
-                      key={`${r.pageId}-${i}`}
-                      id={`result-${i}`}
+                      key={item.key}
+                      id={`result-${index}`}
                       type="button"
                       role="option"
                       aria-selected={isActive}
-                      onClick={() => activate(i)}
-                      onMouseEnter={() => setSelected(i)}
+                      onClick={item.open}
+                      onMouseEnter={() => setSelected(index)}
                       className={`group mb-1 flex w-full flex-col gap-1 border-l-2 px-3 py-2 text-left transition-all ${
                         isActive
                           ? 'border-[#d4a24a] bg-[rgba(212,162,74,0.06)]'
                           : 'border-[rgba(236,226,196,0.12)] hover:border-[#d4a24a] hover:bg-[rgba(236,226,196,0.025)]'
                       }`}
                     >
-                      {/* Mini perf accent (left vertical dash strip) + badge */}
                       <div className="flex items-center gap-2.5">
-                        {/* tiny left perf */}
                         <div
                           aria-hidden
                           className="h-3 w-[3px] flex-none opacity-70"
                           style={{
-                            background: `repeating-linear-gradient(to bottom, ${meta.accent} 0, ${meta.accent} 3px, transparent 3px, transparent 7px)`,
+                            background: `repeating-linear-gradient(to bottom, ${item.accent} 0, ${item.accent} 3px, transparent 3px, transparent 7px)`,
                           }}
                         />
                         <span
                           className="inline-block text-[10px] font-bold uppercase tracking-[0.26em] text-[#f3ead0] group-hover:text-white"
-                          style={{ color: isActive ? meta.accent : undefined }}
+                          style={{ color: isActive ? '#d4a24a' : undefined }}
                         >
-                          {meta.short}
+                          {item.badge}
                         </span>
-                        {r.lineIndex !== undefined && (
-                          <span className="text-[10px] text-[#9f9676] tabular-nums">
-                            LINE {r.lineIndex + 1}
-                          </span>
-                        )}
                       </div>
-
-                      {/* Snippet with blotter-ink highlight */}
-                      <div className="pl-5 text-[13.5px] leading-snug text-[#d8ceb0] group-hover:text-[#ece2c4]">
-                        {withHighlight(r.snippet, query)}
+                      <div className="pl-5 text-[13.5px] leading-snug text-[#d8ceb0] [overflow-wrap:anywhere] group-hover:text-[#ece2c4]">
+                        {item.snippet}
                       </div>
-
-                      {/* Meta line */}
-                      <div className="pl-5 text-[10px] uppercase tracking-[0.26em] text-[#9f9676]">
-                        {r.title}
+                      <div className="pl-5 text-[10px] uppercase tracking-[0.26em] text-[#9f9676] [overflow-wrap:anywhere]">
+                        {item.context}
                       </div>
                     </button>
                   )
                 })}
               </div>
+              {state.status !== 'error' && total > items.length && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    close()
+                    void navigate({ to: '/search', search: { q } } as never)
+                  }}
+                  className="mx-3 mt-2 border border-[rgba(236,226,196,0.22)] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#d8ceb0] hover:border-[#d4a24a]"
+                >
+                  See all {total} results
+                </button>
+              )}
             </>
           )}
         </div>
 
-        {/* Footer ritual hints */}
         <div className="relative z-30 border-t border-[rgba(236,226,196,0.12)] px-5 py-2 text-[10px] uppercase tracking-[0.32em] text-[#9f9676]">
           ⌘K / CTRL+K &nbsp;·&nbsp; ↑↓ &nbsp;·&nbsp; ↵ OPEN &nbsp;·&nbsp; ESC
           CLOSE

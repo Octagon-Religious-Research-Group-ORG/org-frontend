@@ -68,6 +68,9 @@ vi.mock('./ModerationSection', () => ({
 }))
 vi.mock('./RolesSection', () => ({ RolesSection: () => <p>roles stub</p> }))
 vi.mock('./LogSection', () => ({ LogSection: () => <p>log stub</p> }))
+vi.mock('./FragmentsSection', () => ({
+  FragmentsSection: () => <p>fragments stub</p>,
+}))
 vi.mock('./SettingsSection', () => ({
   SettingsSection: () => <p>settings stub</p>,
 }))
@@ -103,6 +106,7 @@ describe('AdminDashboard', () => {
       ['Claims', 'claims stub embedded'],
       ['Roles', 'roles stub'],
       ['Log', 'log stub'],
+      ['Search fragments', 'fragments stub'],
       ['Settings', 'settings stub'],
       ['Moderation queue', 'moderation stub'],
     ]

@@ -3,6 +3,7 @@ import { fetchAdminSettings } from '#/lib/admin-api'
 import { AdminClaims } from '#/components/admin/claims/AdminClaims'
 import { buttonStyle, primaryStyle } from '#/components/members/editor-styles'
 import { LoadState, useAdminLoad } from './admin-shared'
+import { FragmentsSection } from './FragmentsSection'
 import { InboxSection } from './InboxSection'
 import { LogSection } from './LogSection'
 import { MembersSection } from './MembersSection'
@@ -17,6 +18,7 @@ export const SECTIONS = [
   { id: 'roles', label: 'Roles' },
   { id: 'moderation', label: 'Moderation queue' },
   { id: 'log', label: 'Log' },
+  { id: 'fragments', label: 'Search fragments' },
   { id: 'settings', label: 'Settings' },
 ] as const
 
@@ -96,6 +98,7 @@ export function AdminDashboard({
             />
           )}
           {section === 'log' && <LogSection />}
+          {section === 'fragments' && <FragmentsSection />}
           {section === 'settings' && <SettingsSection />}
         </div>
       </LoadState>
