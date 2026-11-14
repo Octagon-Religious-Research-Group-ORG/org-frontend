@@ -228,6 +228,8 @@ describe('round 7, LOW-3: the wording names the stamps the receipt holds', () =>
   const anchoredWith = (stamps: {
     tsa?: boolean
     ots?: boolean
+    /** The OpenTimestamps proof is confirmed in Bitcoin (round 8). */
+    inBitcoin?: boolean
   }): ReceiptVersion => ({
     seq: 1,
     serverTime: '2026-11-13T10:00:00.000Z',
@@ -242,7 +244,7 @@ describe('round 7, LOW-3: the wording names the stamps the receipt holds', () =>
       },
       opentimestamps: {
         status: stamps.ots ? 'pending' : 'submit',
-        bitcoinHeights: [],
+        bitcoinHeights: stamps.inBitcoin ? [975755] : [],
         ...(stamps.ots ? { proofBase64: 'AAAA' } : {}),
       },
       serverChecks: {
@@ -263,13 +265,56 @@ describe('round 7, LOW-3: the wording names the stamps the receipt holds', () =>
   })
 
   it.each([
-    [{ tsa: true }, 'Only the FreeTSA time-stamp is in this receipt so far'],
-    [{ ots: true }, 'Only the OpenTimestamps proof is in this receipt so far'],
+    [
+      { tsa: true },
+      'Only the FreeTSA time-stamp gives a time so far; the OpenTimestamps proof is not confirmed in Bitcoin yet.',
+    ],
+    [
+      { ots: true, inBitcoin: true },
+      'Only the OpenTimestamps proof, confirmed in Bitcoin, gives a time so far; the FreeTSA time-stamp is not in yet.',
+    ],
   ])('one stamp: names it (%o)', async (stamps, phrase) => {
     mocks.fetchReceipt.mockResolvedValue(receipt([anchoredWith(stamps)]))
     render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
     const text = await shown()
     expect(text).toContain(phrase)
     expect(text).not.toContain('no time-stamp yet')
+  })
+
+  it('both stamps, the OpenTimestamps proof confirmed in Bitcoin: the complete wording, no note', async () => {
+    mocks.fetchReceipt.mockResolvedValue(
+      receipt([anchoredWith({ tsa: true, ots: true, inBitcoin: true })]),
+    )
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).toContain('no later than those time-stamps')
+    expect(text).not.toContain('Only the')
+    expect(text).not.toContain('not yet confirmed')
+  })
+
+  it('round 8, LOW-1: only an OpenTimestamps proof not yet in Bitcoin is pending, and says why', async () => {
+    mocks.fetchReceipt.mockResolvedValue(receipt([anchoredWith({ ots: true })]))
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).toContain('no time-stamp yet')
+    expect(text).toContain(
+      'An OpenTimestamps proof is in but not yet confirmed in a Bitcoin block, so it gives no time yet.',
+    )
+    expect(text).not.toContain('Only the OpenTimestamps proof')
+  })
+
+  it('round 8, LOW-2: versions holding different stamps are stamped, with a neutral sentence', async () => {
+    mocks.fetchReceipt.mockResolvedValue(
+      receipt([
+        anchoredWith({ tsa: true }),
+        { ...anchoredWith({ ots: true, inBitcoin: true }), seq: 2 },
+      ]),
+    )
+    render(<ReceiptPanel target={target} label="x" onClose={() => undefined} />)
+    const text = await shown()
+    expect(text).not.toContain('no time-stamp yet')
+    expect(text).toContain(
+      'Some versions hold only one of the two time-stamps.',
+    )
   })
 })

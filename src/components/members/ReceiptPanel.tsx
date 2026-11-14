@@ -38,29 +38,47 @@ export const HASHES_PENDING_RECEIPT =
 export const HASHES_RECEIPT =
   'This receipt proves that this version’s fingerprint (hash) existed no later than those time-stamps; anyone can check every step from that fingerprint on with free public tools. The step from the text to the fingerprint needs the author’s complete receipt, because the fingerprint also covers the author’s account id, which only the author and ORG admins receive.'
 
-/** Which stamps every version holds, or none (review round 7, LOW-3). */
-function stampsOf(
-  versions: ReadonlyArray<ReceiptVersion>,
-): 'both' | 'freetsa' | 'opentimestamps' | undefined {
-  let tsa = true
-  let ots = true
-  for (const version of versions) {
-    if (version.anchor.state !== 'anchored') return undefined
-    tsa &&= version.anchor.freetsa.responseBase64 !== undefined
-    ots &&= version.anchor.opentimestamps.proofBase64 !== undefined
-  }
+type Stamps = 'both' | 'freetsa' | 'opentimestamps'
+
+/**
+ * The stamps one version holds that give a time: an OpenTimestamps proof
+ * counts only once confirmed in Bitcoin (review round 8, LOW-1).
+ */
+function versionStamps(version: ReceiptVersion): Stamps | undefined {
+  if (version.anchor.state !== 'anchored') return undefined
+  const tsa = version.anchor.freetsa.responseBase64 !== undefined
+  const ots =
+    version.anchor.opentimestamps.proofBase64 !== undefined &&
+    version.anchor.opentimestamps.bitcoinHeights.length > 0
   if (tsa && ots) return 'both'
   if (tsa) return 'freetsa'
   return ots ? 'opentimestamps' : undefined
 }
 
-/** Names the one stamp a receipt holds so far (review round 7, LOW-3). */
+/**
+ * Stamped only when EVERY version holds at least one stamp that gives a
+ * time; `mixed` when their kinds differ (review round 8, LOW-2).
+ */
+function stampsOf(
+  versions: ReadonlyArray<ReceiptVersion>,
+): Stamps | 'mixed' | undefined {
+  const each = versions.map(versionStamps)
+  if (each.some((stamps) => stamps === undefined)) return undefined
+  return new Set(each).size === 1 ? each[0] : 'mixed'
+}
+
+/** Names the stamps when not both are in (review rounds 7 and 8). */
 export const ONE_STAMP = {
   freetsa:
-    'Only the FreeTSA time-stamp is in this receipt so far; the OpenTimestamps proof is not in yet.',
+    'Only the FreeTSA time-stamp gives a time so far; the OpenTimestamps proof is not confirmed in Bitcoin yet.',
   opentimestamps:
-    'Only the OpenTimestamps proof is in this receipt so far; the FreeTSA time-stamp is not in yet.',
+    'Only the OpenTimestamps proof, confirmed in Bitcoin, gives a time so far; the FreeTSA time-stamp is not in yet.',
+  mixed: 'Some versions hold only one of the two time-stamps.',
 }
+
+/** Said when a version's only proof cannot give a time yet (round 8). */
+export const UNCONFIRMED_OTS =
+  'An OpenTimestamps proof is in but not yet confirmed in a Bitcoin block, so it gives no time yet.'
 
 /**
  * The receipt's wording: pending unless every version is anchored AND holds
@@ -68,16 +86,23 @@ export const ONE_STAMP = {
  */
 function noticeOf(versions: ReadonlyArray<ReceiptVersion>): string {
   const stamps = stampsOf(versions)
+  const unconfirmed = versions.some(
+    (version) =>
+      version.anchor.state === 'anchored' &&
+      versionStamps(version) === undefined &&
+      version.anchor.opentimestamps.proofBase64 !== undefined,
+  )
   const partial = versions.some(
     (version) => !version.hashInput.included && version.disclosure !== 'hashes',
   )
   const hashes = versions.some((version) => version.disclosure === 'hashes')
   if (!stamps) {
-    return partial
+    const pending = partial
       ? PARTIAL_PENDING_RECEIPT
       : hashes
         ? HASHES_PENDING_RECEIPT
         : COMPLETE_PENDING_RECEIPT
+    return unconfirmed ? `${pending} ${UNCONFIRMED_OTS}` : pending
   }
   const text = partial
     ? PARTIAL_RECEIPT
