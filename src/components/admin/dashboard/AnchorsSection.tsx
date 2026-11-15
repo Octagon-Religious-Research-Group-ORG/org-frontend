@@ -7,6 +7,7 @@ import type {
   CheckOutcome,
 } from '#/lib/receipts-api'
 import { primaryStyle } from '#/components/members/editor-styles'
+import { ANCHOR_LOG_VERIFIER_KEY } from '#/lib/anchor-log'
 import {
   LoadState,
   noteStyle,
@@ -30,6 +31,28 @@ const OUTCOME_STYLE: Record<CheckOutcome, string> = {
   fail: 'text-[#f1a07a]',
   'cannot-measure': 'text-[#f1d78a]',
 }
+
+/**
+ * Log states that need the owner (review round 2, H1), by reason code:
+ * the server signs nothing until they are dealt with.
+ */
+export const LOG_ALERTS: Record<string, string> = {
+  'published-missing':
+    'The published anchor log checkpoint is MISSING (HTTP 404): check ANCHOR_LOG_PUBLISHED_URL and the checkpoints repository. Nothing is signed until it is back.',
+  'bootstrap-on':
+    'ANCHOR_LOG_BOOTSTRAP is still set although a checkpoint is published: remove it on the server. Nothing is signed while it is set.',
+}
+
+/**
+ * Shown for as long as the server reports ANCHOR_LOG_BOOTSTRAP (review
+ * round 3, L1): while it is set, a server whose database was wiped would
+ * again take a missing publication as "nothing published yet".
+ */
+export const LOG_BOOTSTRAP_WARNING =
+  'ANCHOR_LOG_BOOTSTRAP is set on the server. It is only for the first publication of the anchor log: remove it as soon as the first checkpoint is published.'
+
+export const LOG_KEY_MISSING =
+  'not published in the website yet (the owner makes it with the backend key script)'
 
 const CHECKS = [
   ['root', 'Root'],
@@ -96,6 +119,9 @@ function AnchorCard({ anchor }: { anchor: AnchorRow }) {
         {CHECKS.map(([key, name]) => (
           <CheckLine key={key} name={name} check={anchor.verify[key]} />
         ))}
+        {anchor.verify.log && (
+          <CheckLine name="Anchor log" check={anchor.verify.log} />
+        )}
       </ul>
     </li>
   )
@@ -156,9 +182,33 @@ export function AnchorsSection() {
                 (ANCHORING_ENABLED=false): no version is being time-stamped.
               </p>
             )}
+            {view.log?.bootstrap && view.log.reason !== 'bootstrap-on' && (
+              <p role="alert" className="mt-4 text-sm text-[#f1d78a]">
+                {LOG_BOOTSTRAP_WARNING}
+              </p>
+            )}
+            {view.log?.reason && LOG_ALERTS[view.log.reason] && (
+              <p role="alert" className="mt-4 text-sm text-[#f1a07a]">
+                {LOG_ALERTS[view.log.reason]}
+              </p>
+            )}
             <ul className="mt-4">
               <CheckLine name="Every version anchored" check={view.coverage} />
+              {view.log && (
+                <CheckLine
+                  name={`Anchor log (${view.log.size} days in this server's log, ${
+                    view.log.publishedSize === undefined
+                      ? 'none published'
+                      : `${view.log.publishedSize} published`
+                  })`}
+                  check={view.log}
+                />
+              )}
             </ul>
+            <p className="mt-2 font-mono text-[10px] text-[#9f9676] [overflow-wrap:anywhere]">
+              Anchor log public key:{' '}
+              {ANCHOR_LOG_VERIFIER_KEY ?? LOG_KEY_MISSING}
+            </p>
             <p className="mt-2 text-xs text-[#9f9676]">
               All {view.global.anchors} anchors: {view.global.unfinished}{' '}
               unfinished, {view.global.failedWhenLastChecked} failed a check
@@ -175,6 +225,8 @@ export function AnchorsSection() {
                 ([key, name]) =>
                   `${name}: ${view.totals[key].pass} pass, ${view.totals[key].fail} fail, ${view.totals[key]['cannot-measure']} cannot check.`,
               ).join(' ')}
+              {view.totals.log &&
+                ` Anchor log: ${view.totals.log.pass} pass, ${view.totals.log.fail} fail, ${view.totals.log['cannot-measure']} cannot check.`}
             </p>
             <button
               type="button"

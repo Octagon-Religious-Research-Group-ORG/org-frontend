@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useOrgAuth } from '#/lib/auth'
 import { downloadReceipt, fetchReceipt, receiptPath } from '#/lib/receipts-api'
-import type { Receipt, ReceiptTarget, ReceiptVersion } from '#/lib/receipts-api'
+import type {
+  LogCheck,
+  Receipt,
+  ReceiptTarget,
+  ReceiptVersion,
+} from '#/lib/receipts-api'
 import { buttonStyle, primaryStyle } from './editor-styles'
 
 const SESSION_UNCONFIRMED =
@@ -101,7 +106,9 @@ function noticeOf(versions: ReadonlyArray<ReceiptVersion>): string {
     (version) =>
       version.anchor.state === 'anchored' &&
       (version.anchor.serverChecks.hash.outcome === 'fail' ||
-        version.anchor.serverChecks.path.outcome === 'fail'),
+        version.anchor.serverChecks.path.outcome === 'fail' ||
+        // The anchor log does not hold (Chunk 16b).
+        version.anchor.serverChecks.log?.outcome === 'fail'),
   )
   if (failed) return UNCONFIRMED_RECEIPT
   const stamps = stampsOf(versions)
@@ -139,6 +146,45 @@ const CHECK_NAMES = {
   tsa: 'FreeTSA check',
   ots: 'OpenTimestamps check',
 } as const
+
+export const LOG_PUBLISHED =
+  "Anchor log: this day is in ORG's public checkpoint log, kept outside this website."
+export const LOG_PENDING =
+  "Anchor log: not yet in ORG's public checkpoint log, which is updated once a day."
+export const LOG_FAILED = 'Anchor log check: FAILED'
+/** Not set up, or the public copy unreadable: never called pending (L4). */
+export const LOG_UNCHECKED = 'Anchor log: could not be checked'
+
+/** The day's place in the public anchor log (Chunk 16b), when known. */
+function logLine(log: LogCheck | undefined) {
+  if (!log) return undefined
+  // The structured state decides, never the detail text (review 2, L3); a
+  // server from before it gives only the outcome, and never "pending".
+  const state =
+    log.state ??
+    (log.outcome === 'pass'
+      ? 'published'
+      : log.outcome === 'fail'
+        ? 'failed'
+        : 'cannot-measure')
+  if (state === 'published') return { text: LOG_PUBLISHED, failed: false }
+  if (state === 'failed') {
+    return { text: `${LOG_FAILED} (${log.detail}).`, failed: true }
+  }
+  return state === 'pending'
+    ? { text: LOG_PENDING, failed: false }
+    : { text: `${LOG_UNCHECKED} (${log.detail})`, failed: false }
+}
+
+function LogStatus({ log }: { log: LogCheck | undefined }) {
+  const line = logLine(log)
+  if (!line) return null
+  return (
+    <span className={line.failed ? 'block text-[#f1a07a]' : 'block'}>
+      {line.text}
+    </span>
+  )
+}
 
 export const ANCHORING_PENDING =
   'Anchoring pending: ORG time-stamps new versions once a day. The receipt already holds the text and its fingerprint; download it again after the next daily anchor to get both time-stamps.'
@@ -227,6 +273,9 @@ function VersionStatus({ version }: { version: ReceiptVersion }) {
         </>
       ) : (
         <span className="text-[#f1d78a]">{ANCHORING_PENDING}</span>
+      )}
+      {anchor.state === 'anchored' && (
+        <LogStatus log={anchor.serverChecks.log} />
       )}
       {warnings(version).map((line) => (
         <span key={line} className="block text-[#f1a07a]">

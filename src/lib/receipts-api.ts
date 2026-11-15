@@ -15,6 +15,16 @@ export interface Check {
   detail: string
 }
 
+/**
+ * The anchor log's check (Chunk 16b review round 2, L3): a structured state
+ * and reason code, so a page never has to read the detail text. Absent on
+ * a server from before it.
+ */
+export interface LogCheck extends Check {
+  state?: 'published' | 'pending' | 'failed' | 'cannot-measure'
+  reason?: string
+}
+
 /** One version in a receipt, as far as the page shows it. */
 export interface ReceiptVersion {
   seq: number
@@ -45,7 +55,10 @@ export interface ReceiptVersion {
           /** Present once the OpenTimestamps proof is in (round 7). */
           proofBase64?: string
         }
-        serverChecks: Record<'hash' | 'path' | 'tsa' | 'ots', Check>
+        /** `log` (Chunk 16b): the day in ORG's public anchor log. */
+        serverChecks: Record<'hash' | 'path' | 'tsa' | 'ots', Check> & {
+          log?: LogCheck
+        }
       }
 }
 
@@ -153,7 +166,10 @@ export interface AnchorRow {
     nextAttemptAt?: string
     lastError?: string
   }
-  verify: Record<'root' | 'versions' | 'tsa' | 'ots' | 'bitcoin', Check>
+  verify: Record<'root' | 'versions' | 'tsa' | 'ots' | 'bitcoin', Check> & {
+    /** Its day in the anchor log (Chunk 16b). */
+    log?: LogCheck
+  }
 }
 
 export interface AnchorsView {
@@ -177,7 +193,15 @@ export interface AnchorsView {
   totals: Record<
     'root' | 'versions' | 'tsa' | 'ots' | 'bitcoin',
     Record<CheckOutcome, number>
-  >
+  > & { log?: Record<CheckOutcome, number> }
+  /** The anchor log against its published checkpoint (Chunk 16b). */
+  log?: LogCheck & {
+    size: number
+    publishedSize?: number
+    auditedAt?: string
+    /** ANCHOR_LOG_BOOTSTRAP is set on the server (review round 3, L1). */
+    bootstrap?: true
+  }
   anchors: Array<AnchorRow>
 }
 
