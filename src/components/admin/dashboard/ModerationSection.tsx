@@ -4,13 +4,16 @@ import {
   adminTime,
   dismissReports,
   fetchModerationQueue,
+  hideConnectionNote,
   MAX_REMOVAL_REASON_LENGTH,
   moderateComment,
 } from '#/lib/admin-api'
 import type {
   CommentModeration,
+  ConnectionEndReason,
   QueueEntry,
   ReportedComment,
+  ReportedNote,
   ReportResolution,
   ReportStatus,
 } from '#/lib/admin-api'
@@ -56,12 +59,30 @@ export const RESOLUTION_LABELS: Record<ReportResolution, string> = {
   'member-removed': 'Page removed',
 }
 
+/** Why a connection request ended (admins only). */
+export const END_REASON_LABELS: Record<ConnectionEndReason, string> = {
+  block: 'ended by a block',
+  disconnect: 'ended by a disconnect',
+  'page-deleted': 'ended when a page was deleted',
+  'no-longer-allowed': 'closed: no longer allowed',
+}
+
+/**
+ * An end reason in words; one this page does not know yet (a newer server)
+ * reads neutrally, never as "undefined".
+ */
+export function endReasonLabel(reason: string) {
+  return Object.hasOwn(END_REASON_LABELS, reason)
+    ? END_REASON_LABELS[reason as ConnectionEndReason]
+    : 'ended for another reason'
+}
+
 export const STATE_LABELS = {
   hidden: 'Hidden by a moderator',
   removed: 'Removed by a moderator',
 } as const
 
-type Decision = CommentModeration | 'dismiss'
+type Decision = CommentModeration | 'dismiss' | 'hide-note'
 
 const DECISIONS: Record<
   Decision,
@@ -70,6 +91,11 @@ const DECISIONS: Record<
   hide: { label: 'Hide…', submit: 'Hide the comment', danger: true },
   remove: { label: 'Remove…', submit: 'Remove the comment', danger: true },
   restore: { label: 'Restore…', submit: 'Restore the comment', danger: false },
+  'hide-note': {
+    label: 'Hide the note…',
+    submit: 'Hide the note',
+    danger: true,
+  },
   dismiss: {
     label: 'Dismiss the reports…',
     submit: 'Dismiss the reports',
@@ -155,6 +181,12 @@ function cardTitle(entry: QueueEntry) {
     return `${what} by ${authorLabel(entry.comment.author)}`
   }
   if (entry.page) return `Member page ${entry.page.displayName}`
+  if (entry.note) {
+    return `Note with a connection request from ${entry.note.sender.displayName}`
+  }
+  if (entry.targetType === 'connection-note') {
+    return 'A connection request that no longer exists'
+  }
   return entry.targetType === 'comment'
     ? 'A comment that no longer exists'
     : 'A page that no longer exists'
@@ -194,6 +226,34 @@ function Place({ comment }: { comment: ReportedComment }) {
   )
 }
 
+/** A reported note: who sent it to whom, when, and its text (admins). */
+function NoteDetails({ note }: { note: ReportedNote }) {
+  const person = (who: ReportedNote['sender']) =>
+    who.slug ? (
+      <Link
+        to="/$slug"
+        params={{ slug: who.slug }}
+        className="underline underline-offset-4"
+      >
+        {who.displayName}
+      </Link>
+    ) : (
+      who.displayName
+    )
+  return (
+    <>
+      <p className="mt-1 text-xs text-[#9f9676]">
+        From {person(note.sender)} (account {note.sender.ownerUserId}) to{' '}
+        {person(note.recipient)} · sent {adminTime(note.sentAt)} · {note.status}
+        {note.endReason && ` · ${endReasonLabel(note.endReason)}`}
+      </p>
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-7 [overflow-wrap:anywhere]">
+        <MemberText text={note.note} />
+      </p>
+    </>
+  )
+}
+
 function QueueCard({
   entry,
   open,
@@ -222,6 +282,7 @@ function QueueCard({
     if (comment.moderation !== 'removed') offered.push('remove')
     if (comment.moderation !== null) offered.push('restore')
   }
+  if (entry.note && !entry.note.hidden) offered.push('hide-note')
   if (open) offered.push('dismiss')
   const title = cardTitle(entry)
 
@@ -231,6 +292,7 @@ function QueueCard({
         {entry.count === 1 ? '1 report' : `${entry.count} reports`}
         {comment?.moderation && ` · ${STATE_LABELS[comment.moderation]}`}
         {comment?.removedByAuthor && ' · removed by its author'}
+        {entry.note?.hidden && ` · ${STATE_LABELS.hidden}`}
       </p>
       <h3 className="mt-2 text-lg text-[#f6efd9]">{title}</h3>
       {comment && (
@@ -256,6 +318,7 @@ function QueueCard({
           )}
         </>
       )}
+      {entry.note && <NoteDetails note={entry.note} />}
       {entry.page && (
         <p className="mt-1 text-xs text-[#9f9676]">
           <Link
@@ -347,12 +410,14 @@ function QueueCard({
                           entry.targetId,
                           reason,
                         )
-                      : moderateComment(
-                          token,
-                          entry.targetId,
-                          deciding,
-                          reason,
-                        ),
+                      : deciding === 'hide-note'
+                        ? hideConnectionNote(token, entry.targetId, reason)
+                        : moderateComment(
+                            token,
+                            entry.targetId,
+                            deciding,
+                            reason,
+                          ),
                   () => {
                     close()
                     onChanged()

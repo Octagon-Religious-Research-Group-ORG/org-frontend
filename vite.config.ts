@@ -100,6 +100,12 @@ const config = defineConfig({
         'src/lib/receipts-api.ts',
         'src/components/members/ReceiptPanel.tsx',
         'src/components/admin/dashboard/AnchorsSection.tsx',
+        'src/lib/connections-api.ts',
+        'src/components/members/use-connection-terms.ts',
+        'src/components/members/ConnectionButton.tsx',
+        'src/components/members/ConnectionLists.tsx',
+        'src/components/members/ConnectionsSettings.tsx',
+        'src/components/admin/dashboard/ConnectionNameCard.tsx',
       ],
       thresholds: {
         statements: 100,

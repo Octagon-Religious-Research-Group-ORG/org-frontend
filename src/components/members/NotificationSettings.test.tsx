@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as NotificationsApi from '#/lib/notifications-api'
 import {
   ADMIN_EMAILS_EXPLAINED,
+  categoryWords,
   NotificationSettings,
   SAVED,
   SESSION_EXPIRED,
@@ -229,5 +230,21 @@ describe('NotificationSettings (Chunk 14)', () => {
       'The server is having trouble right now.',
     )
     expect(screen.queryByText(SAVED)).toBeNull()
+  })
+})
+
+describe('connection request emails (Chunk 18)', () => {
+  it('names them as the admins chose', () => {
+    const terms = { singular: 'introduction', plural: 'introductions' }
+    const words = { label: 'x', hint: 'y' }
+    expect(categoryWords('connectionRequests', words, terms)).toEqual({
+      label: 'New introductions',
+      hint: 'A member sends you an introduction (at most one email a day per member).',
+    })
+    expect(categoryWords('connectionAccepts', words, terms)).toEqual({
+      label: 'Accepted introductions',
+      hint: 'A member accepts an introduction you sent.',
+    })
+    expect(categoryWords('comments', words, terms)).toBe(words)
   })
 })

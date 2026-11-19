@@ -1,3 +1,5 @@
+import { renamed } from './connections-api'
+import type { ConnectionTerms } from './connections-api'
 import { memberRequest } from './membership-api'
 
 /** Categories every member can turn on or off (Chunk 14). */
@@ -31,6 +33,16 @@ export const MEMBER_CATEGORIES = [
     key: 'moderation',
     label: 'Moderation of my comments',
     hint: 'A moderator hides, removes or restores one of your comments.',
+  },
+  {
+    key: 'connectionRequests',
+    label: 'New connection requests',
+    hint: 'A member sends you a connection request (at most one email a day per member).',
+  },
+  {
+    key: 'connectionAccepts',
+    label: 'Accepted connection requests',
+    hint: 'A member accepts a connection request you sent.',
   },
 ] as const
 
@@ -105,6 +117,8 @@ const SCOPE_WORDS: Record<string, string> = {
   votes: 'emails about your agreed beliefs',
   claims: 'emails about your claim requests',
   moderation: 'emails about moderation of your comments',
+  connectionRequests: 'emails about new connection requests',
+  connectionAccepts: 'emails about accepted connection requests',
   adminPages: 'admin emails about new member pages',
   adminEam: 'admin emails about EaM requests',
   adminReports: 'admin emails about reports',
@@ -116,10 +130,13 @@ const SCOPE_WORDS: Record<string, string> = {
  * (the third part of its token). Only the server can say whether the link is
  * genuine; this is just what to show on the button.
  */
-export function unsubscribeScopeWords(token: string): string | undefined {
+export function unsubscribeScopeWords(
+  token: string,
+  terms?: ConnectionTerms,
+): string | undefined {
   const scope = token.split('.')[2]
   return scope && Object.hasOwn(SCOPE_WORDS, scope)
-    ? SCOPE_WORDS[scope]
+    ? renamed(SCOPE_WORDS[scope], terms)
     : undefined
 }
 

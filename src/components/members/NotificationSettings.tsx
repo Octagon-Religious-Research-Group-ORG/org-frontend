@@ -10,7 +10,10 @@ import type {
   NotificationSettings as Settings,
   NotificationSettingsChange,
 } from '#/lib/notifications-api'
+import { article, capitalised } from '#/lib/connections-api'
+import type { ConnectionTerms } from '#/lib/connections-api'
 import { primaryStyle } from './editor-styles'
+import { useConnectionTerms } from './use-connection-terms'
 
 export const EMAILS_EXPLAINED =
   'ORG emails you about activity that concerns you. To keep within its free email service, most news comes once a day in one summary; decisions on your claims and on your comments come at once. Emails never quote anyone: they say there is something new and link to it, and the site shows you only what you are allowed to see.'
@@ -60,6 +63,30 @@ function Toggle({
   )
 }
 
+/**
+ * The two connection categories (Chunk 18), in the name the admins chose
+ * for the feature; every other category as written.
+ */
+export function categoryWords(
+  key: string,
+  words: { label: string; hint: string },
+  terms: ConnectionTerms,
+) {
+  if (key === 'connectionRequests') {
+    return {
+      label: `New ${terms.plural}`,
+      hint: `A member sends you ${article(terms.singular)} ${terms.singular} (at most one email a day per member).`,
+    }
+  }
+  if (key === 'connectionAccepts') {
+    return {
+      label: `Accepted ${terms.plural}`,
+      hint: `A member accepts ${article(terms.singular)} ${terms.singular} you sent.`,
+    }
+  }
+  return words
+}
+
 /** A category reads as on unless the server says it is off. */
 const isOn = (value: boolean | undefined) => value !== false
 
@@ -96,6 +123,7 @@ export function changesFrom(
  */
 export function NotificationSettings() {
   const auth = useOrgAuth()
+  const terms = useConnectionTerms()
   const [settings, setSettings] = useState<Settings>()
   /** What the server last said: changes are measured from it. */
   const [loaded, setLoaded] = useState<Settings>()
@@ -217,17 +245,20 @@ export function NotificationSettings() {
 
       <fieldset className={boxStyle}>
         <legend className="px-2 text-lg text-[#f6efd9]">What to email</legend>
-        {MEMBER_CATEGORIES.map(({ key, label, hint }) => (
-          <Toggle
-            key={key}
-            id={`notify-${key}`}
-            label={label}
-            hint={hint}
-            checked={settings.categories[key] !== false}
-            disabled={busy}
-            onChange={(on) => setCategory(key, on)}
-          />
-        ))}
+        {MEMBER_CATEGORIES.map(({ key, label, hint }) => {
+          const words = categoryWords(key, { label, hint }, terms)
+          return (
+            <Toggle
+              key={key}
+              id={`notify-${key}`}
+              label={capitalised(words.label)}
+              hint={words.hint}
+              checked={settings.categories[key] !== false}
+              disabled={busy}
+              onChange={(on) => setCategory(key, on)}
+            />
+          )
+        })}
       </fieldset>
 
       {admin && (

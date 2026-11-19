@@ -5,6 +5,7 @@ import { CONTACT_METHODS } from '#/lib/membership-api'
 import { BeliefTabs } from './BeliefTabs'
 import { BioSection } from './BioSection'
 import { ClaimPanel } from './ClaimPanel'
+import { ConnectionButton } from './ConnectionButton'
 import { CommentThread } from './CommentThread'
 import { GetStartedChecklist } from './GetStartedChecklist'
 import { OwnerTools } from './OwnerTools'
@@ -45,6 +46,11 @@ export function ProfileView({
       />
     </div>
   )
+  // Chunk 18: connection requests; the server says what this reader may do
+  // and, once connected, which contact details they see.
+  const connect = auth.isAuthenticated && !profile.isOwner && (
+    <ConnectionButton slug={profile.slug} displayName={profile.displayName} />
+  )
 
   if (profile.access === 'name-only') {
     return (
@@ -61,6 +67,7 @@ export function ProfileView({
           to join or sign in.
         </p>
         {profile.claimable && <ClaimPanel slug={profile.slug} />}
+        {connect}
         {report}
       </>
     )
@@ -96,6 +103,7 @@ export function ProfileView({
       </div>
 
       {profile.claimable && <ClaimPanel slug={profile.slug} />}
+      {connect}
       {report}
 
       {/* New members only: an imported member is not new here. */}

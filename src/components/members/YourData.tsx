@@ -13,7 +13,7 @@ import { buttonStyle, primaryStyle } from './editor-styles'
 
 export const SESSION_EXPIRED = 'Your sign-in session has expired.'
 export const DOWNLOAD_EXPLAINED =
-  'A zip file with your page and every earlier version of it, your comments and suggestions, your votes, your settings, and a timestamp receipt for each version that has been anchored. Other people appear only as the site shows them to you.'
+  'A zip file with your page and every earlier version of it, your comments and suggestions, your votes, your connection requests and connections (and the members you blocked), your settings, and a timestamp receipt for each version that has been anchored. Other people appear only as the site shows them to you.'
 export const DOWNLOADED = (name: string) =>
   `Your data is downloading as ${name}.`
 export const DELETED_NOTE = 'Your page is deleted.'

@@ -265,6 +265,8 @@ export const MAX_REPORT_NOTE_LENGTH = 1_000
 export type ReportTarget =
   | { targetType: 'comment'; commentId: string }
   | { targetType: 'member-page'; slug: string }
+  /** The note with a connection request the reader received (Chunk 18). */
+  | { targetType: 'connection-note'; connectionId: string }
 
 /**
  * Reports a comment or a member page to the admins. The answer says only

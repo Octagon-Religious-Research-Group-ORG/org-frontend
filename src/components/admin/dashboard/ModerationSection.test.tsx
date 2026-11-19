@@ -8,6 +8,7 @@ import type * as AdminApi from '#/lib/admin-api'
 import type { QueueEntry, QueueReport } from '#/lib/admin-api'
 import {
   ACCEPTED_SUGGESTION_NOTE,
+  END_REASON_LABELS,
   ModerationSection,
   MODERATION_EXPLAINED,
   OWN_CONTENT_NOTE,
@@ -24,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   fetchModerationQueue: vi.fn(),
   moderateComment: vi.fn(),
   dismissReports: vi.fn(),
+  hideConnectionNote: vi.fn(),
 }))
 
 vi.mock('#/lib/auth', () => ({ useOrgAuth: () => mocks.auth }))
@@ -32,6 +34,7 @@ vi.mock('#/lib/admin-api', async (original) => ({
   fetchModerationQueue: mocks.fetchModerationQueue,
   moderateComment: mocks.moderateComment,
   dismissReports: mocks.dismissReports,
+  hideConnectionNote: mocks.hideConnectionNote,
 }))
 vi.mock('@tanstack/react-router', async () => ({
   Link: (await import('./test-helpers')).FakeLink,
@@ -437,5 +440,179 @@ describe('an accepted suggestion in the queue (review L-2)', () => {
     expect(cards[0].textContent).toContain(ACCEPTED_SUGGESTION_NOTE)
     expect(within(cards[0]).getByRole('button', { name: 'Hide…' })).toBeTruthy()
     expect(cards[1].textContent).not.toContain(ACCEPTED_SUGGESTION_NOTE)
+  })
+})
+
+describe('reported notes with connection requests (Chunk 18)', () => {
+  const noteEntry = (overrides: Partial<QueueEntry> = {}): QueueEntry => ({
+    targetType: 'connection-note',
+    targetId: 'conn_1',
+    count: 1,
+    firstReportedAt: '2026-11-13T10:00:00Z',
+    lastReportedAt: '2026-11-13T10:00:00Z',
+    reports: [report()],
+    ownContent: false,
+    note: {
+      note: 'Synthetic note words.',
+      hidden: false,
+      status: 'pending',
+      sentAt: '2026-11-12T10:00:00Z',
+      sender: {
+        slug: 'member-a',
+        displayName: 'Member A',
+        ownerUserId: 'user_a',
+      },
+      recipient: { slug: '', displayName: 'Member B', ownerUserId: 'user_b' },
+    },
+    ...overrides,
+  })
+
+  it('shows the note, who sent it to whom, and hides it with a reason', async () => {
+    const user = userEvent.setup()
+    mocks.fetchModerationQueue.mockResolvedValue({
+      entries: [noteEntry()],
+      hasMore: false,
+    })
+    mocks.hideConnectionNote.mockResolvedValue({
+      hidden: true,
+      reportsClosed: 1,
+    })
+    renderQueue()
+    const card = await screen.findByRole('article', {
+      name: 'Note with a connection request from Member A',
+    })
+    expect(card.textContent).toContain('Synthetic note words.')
+    expect(card.textContent).toContain('account user_a')
+    expect(card.textContent).toContain('Member B')
+    expect(card.querySelector('a')?.getAttribute('href')).toBe('/member-a')
+    await user.click(
+      within(card).getByRole('button', { name: 'Hide the note…' }),
+    )
+    await user.type(
+      screen.getByLabelText('Why (for the admins and the log)'),
+      'Synthetic: rude',
+    )
+    await user.click(screen.getByRole('button', { name: 'Hide the note' }))
+    expect(mocks.hideConnectionNote).toHaveBeenCalledWith(
+      'tok',
+      'conn_1',
+      'Synthetic: rude',
+    )
+  })
+
+  it('offers no hide for a hidden note, and names a request that is gone', async () => {
+    mocks.fetchModerationQueue.mockResolvedValue({
+      entries: [
+        noteEntry({
+          note: { ...noteEntry().note!, hidden: true },
+        }),
+        noteEntry({ targetId: 'conn_2', note: undefined, missing: true }),
+      ],
+      hasMore: false,
+    })
+    renderQueue()
+    const card = await screen.findByRole('article', {
+      name: 'Note with a connection request from Member A',
+    })
+    expect(card.textContent).toContain('Hidden by a moderator')
+    expect(
+      within(card)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Dismiss the reports…'])
+    expect(
+      screen.getByRole('article', {
+        name: 'A connection request that no longer exists',
+      }),
+    ).toBeTruthy()
+  })
+})
+
+describe('why a reported request ended (review round 4)', () => {
+  it('shows admins the end reason next to the status', async () => {
+    mocks.fetchModerationQueue.mockResolvedValue({
+      entries: [
+        {
+          targetType: 'connection-note',
+          targetId: 'conn_9',
+          count: 1,
+          firstReportedAt: '2026-11-13T10:00:00Z',
+          lastReportedAt: '2026-11-13T10:00:00Z',
+          reports: [report()],
+          ownContent: false,
+          note: {
+            note: 'Synthetic note words.',
+            hidden: false,
+            status: 'declined',
+            endReason: 'block',
+            sentAt: '2026-11-12T10:00:00Z',
+            sender: {
+              slug: '',
+              displayName: 'Member A',
+              ownerUserId: 'user_a',
+            },
+            recipient: {
+              slug: '',
+              displayName: 'Member B',
+              ownerUserId: 'user_b',
+            },
+          },
+        },
+      ],
+      hasMore: false,
+    })
+    renderQueue()
+    const card = await screen.findByRole('article', {
+      name: 'Note with a connection request from Member A',
+    })
+    expect(card.textContent).toContain('declined · ended by a block')
+    expect(END_REASON_LABELS).toEqual({
+      block: 'ended by a block',
+      disconnect: 'ended by a disconnect',
+      'page-deleted': 'ended when a page was deleted',
+      'no-longer-allowed': 'closed: no longer allowed',
+    })
+  })
+})
+
+describe('an end reason this page does not know (review round 5)', () => {
+  it('shows a neutral word, never "undefined"', async () => {
+    mocks.fetchModerationQueue.mockResolvedValue({
+      entries: [
+        {
+          targetType: 'connection-note',
+          targetId: 'conn_10',
+          count: 1,
+          firstReportedAt: '2026-11-13T10:00:00Z',
+          lastReportedAt: '2026-11-13T10:00:00Z',
+          reports: [report()],
+          ownContent: false,
+          note: {
+            note: 'Synthetic note words.',
+            hidden: false,
+            status: 'ended',
+            endReason: 'something-new' as never,
+            sentAt: '2026-11-12T10:00:00Z',
+            sender: {
+              slug: '',
+              displayName: 'Member A',
+              ownerUserId: 'user_a',
+            },
+            recipient: {
+              slug: '',
+              displayName: 'Member B',
+              ownerUserId: 'user_b',
+            },
+          },
+        },
+      ],
+      hasMore: false,
+    })
+    renderQueue()
+    const card = await screen.findByRole('article', {
+      name: 'Note with a connection request from Member A',
+    })
+    expect(card.textContent).not.toContain('undefined')
+    expect(card.textContent).toContain('ended · ended for another reason')
   })
 })

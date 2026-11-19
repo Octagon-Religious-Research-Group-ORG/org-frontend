@@ -20,6 +20,7 @@ import {
   useAdminAction,
   useAdminLoad,
 } from './admin-shared'
+import { ConnectionNameCard } from './ConnectionNameCard'
 import { EmailStatusCard } from './EmailStatusCard'
 
 export const INVITE_FORMAT =
@@ -30,8 +31,8 @@ export const ANONYMOUS_VOTING_EXPLAINED =
   'Whether members who joined under a nickname can vote, and have their votes counted. The members decide this in a vote of their own; until then it stays off.'
 
 /**
- * Settings (Chunk 12): anonymous voting and the ORG Voting invite; and email
- * delivery today (Chunk 14).
+ * Settings (Chunk 12): anonymous voting and the ORG Voting invite; the name
+ * of connection requests (Chunk 18); and email delivery today (Chunk 14).
  */
 export function SettingsSection() {
   const settings = useAdminLoad(fetchAdminSettings, 'settings')
@@ -50,6 +51,7 @@ export function SettingsSection() {
           <SettingsForms settings={settings.data} onChanged={settings.reload} />
         )}
       </LoadState>
+      <ConnectionNameCard />
       <EmailStatusCard />
     </section>
   )

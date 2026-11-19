@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { unsubscribe, unsubscribeScopeWords } from '#/lib/notifications-api'
 import { primaryStyle } from './editor-styles'
+import { useConnectionTerms } from './use-connection-terms'
 
 export const NO_LINK =
   'This page needs the link from an ORG email. You can change your email settings after signing in.'
@@ -20,7 +21,8 @@ export function UnsubscribePanel({ token }: { token?: string }) {
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string>()
-  const words = token ? unsubscribeScopeWords(token) : undefined
+  const terms = useConnectionTerms()
+  const words = token ? unsubscribeScopeWords(token, terms) : undefined
 
   async function turnOff(linkToken: string) {
     setBusy(true)

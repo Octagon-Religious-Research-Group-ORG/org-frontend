@@ -39,6 +39,7 @@ import { Route as Archive5RouteImport } from './routes/archive/5'
 import { Route as MembershipJoinRouteImport } from './routes/membership_.join'
 import { Route as OfferingsCheckoutRouteImport } from './routes/offerings.checkout'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
+import { Route as SettingsConnectionsRouteImport } from './routes/settings.connections'
 import { Route as SettingsDataRouteImport } from './routes/settings.data'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 
@@ -192,6 +193,11 @@ const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
   path: '/orders/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsConnectionsRoute = SettingsConnectionsRouteImport.update({
+  id: '/settings/connections',
+  path: '/settings/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsDataRoute = SettingsDataRouteImport.update({
   id: '/settings/data',
   path: '/settings/data',
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/membership/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/data': typeof SettingsDataRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin/': typeof AdminIndexRoute
@@ -267,6 +274,7 @@ export interface FileRoutesByTo {
   '/membership/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/data': typeof SettingsDataRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin': typeof AdminIndexRoute
@@ -302,6 +310,7 @@ export interface FileRoutesById {
   '/membership_/join': typeof MembershipJoinRoute
   '/offerings/checkout': typeof OfferingsCheckoutRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/data': typeof SettingsDataRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/admin/': typeof AdminIndexRoute
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/membership/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/connections'
     | '/settings/data'
     | '/settings/notifications'
     | '/admin/'
@@ -372,6 +382,7 @@ export interface FileRouteTypes {
     | '/membership/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/connections'
     | '/settings/data'
     | '/settings/notifications'
     | '/admin'
@@ -406,6 +417,7 @@ export interface FileRouteTypes {
     | '/membership_/join'
     | '/offerings/checkout'
     | '/orders/$orderId'
+    | '/settings/connections'
     | '/settings/data'
     | '/settings/notifications'
     | '/admin/'
@@ -440,6 +452,7 @@ export interface RootRouteChildren {
   Archive5Route: typeof Archive5Route
   MembershipJoinRoute: typeof MembershipJoinRoute
   OrdersOrderIdRoute: typeof OrdersOrderIdRoute
+  SettingsConnectionsRoute: typeof SettingsConnectionsRoute
   SettingsDataRoute: typeof SettingsDataRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -657,6 +670,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/connections': {
+      id: '/settings/connections'
+      path: '/settings/connections'
+      fullPath: '/settings/connections'
+      preLoaderRoute: typeof SettingsConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/data': {
       id: '/settings/data'
       path: '/settings/data'
@@ -715,6 +735,7 @@ const rootRouteChildren: RootRouteChildren = {
   Archive5Route: Archive5Route,
   MembershipJoinRoute: MembershipJoinRoute,
   OrdersOrderIdRoute: OrdersOrderIdRoute,
+  SettingsConnectionsRoute: SettingsConnectionsRoute,
   SettingsDataRoute: SettingsDataRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   AdminIndexRoute: AdminIndexRoute,

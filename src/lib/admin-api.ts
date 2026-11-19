@@ -263,7 +263,7 @@ export function requestEam(token: string, note: string) {
   })
 }
 
-export type ReportTargetType = 'comment' | 'member-page'
+export type ReportTargetType = 'comment' | 'member-page' | 'connection-note'
 export type ReportStatus = 'open' | 'resolved'
 export type ReportResolution =
   'hidden' | 'removed' | 'restored' | 'dismissed' | 'member-removed'
@@ -326,9 +326,27 @@ export interface QueueEntry {
     reviewStatus: string
     ownerUserId?: string
   }
-  /** The comment or page no longer exists. */
+  /** A reported note with a connection request (Chunk 18). */
+  note?: ReportedNote
+  /** The comment, page or request no longer exists. */
   missing?: boolean
 }
+
+/** The note sent with a connection request, as only admins see it. */
+export interface ReportedNote {
+  /** Its text, whatever its state. */
+  note: string
+  hidden: boolean
+  status: string
+  sentAt: string
+  sender: { slug: string; displayName: string; ownerUserId: string }
+  recipient: { slug: string; displayName: string; ownerUserId: string }
+  /** Why it ended, when it did (admins only). */
+  endReason?: ConnectionEndReason
+}
+
+export type ConnectionEndReason =
+  'block' | 'disconnect' | 'page-deleted' | 'no-longer-allowed'
 
 export function fetchModerationQueue(
   token: string,
@@ -358,6 +376,18 @@ export function moderateComment(
     token,
     ...post({ reason }),
   })
+}
+
+/** Hides a reported note: its recipient no longer sees it (Chunk 18). */
+export function hideConnectionNote(
+  token: string,
+  connectionId: string,
+  reason: string,
+) {
+  return memberRequest<{ hidden: boolean; reportsClosed: number }>(
+    `/admin/moderation/connection-notes/${id(connectionId)}/hide`,
+    { token, ...post({ reason }) },
+  )
 }
 
 export function dismissReports(
