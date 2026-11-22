@@ -17,6 +17,7 @@ import {
   labelStyle,
   primaryStyle,
 } from '#/components/members/editor-styles'
+import { actionName } from '#/components/admin/dashboard/admin-shared'
 import { LegacyCommentLinker } from './LegacyCommentLinker'
 
 export const STATUS_TABS: Array<{ status: ClaimStatus; label: string }> = [
@@ -237,6 +238,7 @@ function ClaimCard({
             <button
               type="button"
               className={primaryStyle}
+              aria-label={actionName('Approve', `the request for ${pageName}`)}
               disabled={busy}
               onClick={() =>
                 void decide((token) => approveClaim(token, claim.claimId))
@@ -247,6 +249,7 @@ function ClaimCard({
             <button
               type="button"
               className={dangerStyle}
+              aria-label={actionName('Reject…', `the request for ${pageName}`)}
               disabled={busy}
               onClick={() => setRejecting(true)}
             >

@@ -8,6 +8,7 @@ import {
 import type { DeletedPage } from '#/lib/member-data-api'
 import { buttonStyle, primaryStyle } from '#/components/members/editor-styles'
 import {
+  actionName,
   cardStyle,
   LoadState,
   noteStyle,
@@ -155,6 +156,7 @@ function DeletedRow({
         <button
           type="button"
           className={`${buttonStyle} mt-3`}
+          aria-label={actionName('Restore…', row.displayName)}
           onClick={() => setOpen(true)}
         >
           Restore…

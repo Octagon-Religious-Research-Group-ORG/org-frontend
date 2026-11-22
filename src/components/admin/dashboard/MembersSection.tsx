@@ -19,6 +19,7 @@ import {
   primaryStyle,
 } from '#/components/members/editor-styles'
 import {
+  actionName,
   cardStyle,
   LoadState,
   noteStyle,
@@ -261,6 +262,7 @@ function MemberCard({
             <button
               type="button"
               className={primaryStyle}
+              aria-label={actionName('Approve', member.displayName)}
               disabled={action.busy}
               onClick={() =>
                 void action.run(
@@ -278,6 +280,10 @@ function MemberCard({
               key={decision}
               type="button"
               className={decision === 'restore' ? buttonStyle : dangerStyle}
+              aria-label={actionName(
+                DECISIONS[decision].label,
+                member.displayName,
+              )}
               disabled={action.busy}
               onClick={() => setOpen(decision)}
             >
@@ -288,6 +294,7 @@ function MemberCard({
             <button
               type="button"
               className={buttonStyle}
+              aria-label={actionName('Make admin…', member.displayName)}
               disabled={action.busy}
               onClick={() => setOpen('promote')}
             >

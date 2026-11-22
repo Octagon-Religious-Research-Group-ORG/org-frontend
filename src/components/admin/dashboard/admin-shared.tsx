@@ -6,6 +6,18 @@ import { buttonStyle } from '#/components/members/editor-styles'
 
 export const ADMINS_ONLY = 'This page is for ORG admins.'
 
+/**
+ * The accessible name of an admin action button: its visible label plus what it
+ * acts on, so a screen reader's list of buttons reads "Approve Ana Silva",
+ * "Reject Ana Silva…" rather than a row of identical "Approve"s. The visible
+ * words come first (WCAG 2.5.3, label in name); a trailing "…" stays last.
+ */
+export function actionName(label: string, target: string) {
+  return label.endsWith('…')
+    ? `${label.slice(0, -1)} ${target}…`
+    : `${label} ${target}`
+}
+
 export function sessionToken(token: string | undefined) {
   if (!token) throw new Error('Your sign-in session has expired.')
   return token

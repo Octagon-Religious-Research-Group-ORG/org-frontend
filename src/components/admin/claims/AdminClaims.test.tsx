@@ -111,7 +111,7 @@ describe('AdminClaims', () => {
   it('approves, then reloads the queue', async () => {
     const user = userEvent.setup()
     render(<AdminClaims />)
-    await user.click(await screen.findByRole('button', { name: 'Approve' }))
+    await user.click(await screen.findByRole('button', { name: /^Approve / }))
     expect(mocks.approveClaim).toHaveBeenCalledWith('tok', 'c1')
     await waitFor(() => expect(mocks.fetchAdminClaims).toHaveBeenCalledTimes(2))
   })
@@ -119,9 +119,9 @@ describe('AdminClaims', () => {
   it('rejects with an optional reason, or cancels', async () => {
     const user = userEvent.setup()
     render(<AdminClaims />)
-    await user.click(await screen.findByRole('button', { name: 'Reject…' }))
+    await user.click(await screen.findByRole('button', { name: /^Reject / }))
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    await user.click(screen.getByRole('button', { name: 'Reject…' }))
+    await user.click(screen.getByRole('button', { name: /^Reject / }))
     await user.type(
       screen.getByLabelText(/Reason, shown to the person who asked/),
       'Synthetic reason',
@@ -140,19 +140,19 @@ describe('AdminClaims', () => {
       new ApiError('That page now belongs to another member.', 409),
     )
     render(<AdminClaims />)
-    await user.click(await screen.findByRole('button', { name: 'Approve' }))
+    await user.click(await screen.findByRole('button', { name: /^Approve / }))
     await waitFor(() => expect(mocks.fetchAdminClaims).toHaveBeenCalledTimes(2))
     mocks.approveClaim.mockRejectedValueOnce(new ApiError('Busy server.', 503))
-    await user.click(await screen.findByRole('button', { name: 'Approve' }))
+    await user.click(await screen.findByRole('button', { name: /^Approve / }))
     expect((await screen.findByRole('alert')).textContent).toBe('Busy server.')
     expect(mocks.fetchAdminClaims).toHaveBeenCalledTimes(2)
     mocks.approveClaim.mockRejectedValueOnce('odd')
-    await user.click(screen.getByRole('button', { name: 'Approve' }))
+    await user.click(screen.getByRole('button', { name: /^Approve / }))
     await waitFor(() =>
       expect(screen.getByRole('alert').textContent).toBe('That did not work.'),
     )
     mocks.auth.getToken.mockResolvedValueOnce(undefined)
-    await user.click(screen.getByRole('button', { name: 'Approve' }))
+    await user.click(screen.getByRole('button', { name: /^Approve / }))
     await waitFor(() =>
       expect(screen.getByRole('alert').textContent).toMatch(/expired/),
     )
@@ -191,7 +191,7 @@ describe('AdminClaims', () => {
       /email not confirmed/,
     )
     expect(screen.getByText('Decided on Nov 14, 2026')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Approve / })).toBeNull()
   })
 
   it('says when there is nothing', async () => {
@@ -246,8 +246,8 @@ describe('AdminClaims', () => {
     })
     render(<AdminClaims />)
     expect(await screen.findAllByText(OWN_REQUEST_NOTE)).toHaveLength(2)
-    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Reject…' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Approve / })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Reject / })).toBeNull()
     expect(
       screen.queryByRole('button', { name: 'Link imported comments…' }),
     ).toBeNull()

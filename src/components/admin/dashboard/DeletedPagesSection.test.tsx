@@ -103,14 +103,14 @@ describe('DeletedPagesSection', () => {
     })
     render(<DeletedPagesSection />)
     expect(await screen.findByText(/the owner’s account is gone/)).toBeTruthy()
-    await userEvent.click(screen.getByRole('button', { name: 'Restore…' }))
+    await userEvent.click(screen.getByRole('button', { name: /^Restore / }))
     expect(screen.getByText(/no one able to sign in to it/)).toBeTruthy()
   })
 
   it('restores with a reason, then says so and reloads', async () => {
     render(<DeletedPagesSection />)
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Restore…' }),
+      await screen.findByRole('button', { name: /^Restore / }),
     )
     const submit = screen.getByRole('button', { name: 'Restore the page' })
     expect((submit as HTMLButtonElement).disabled).toBe(true)
@@ -133,7 +133,7 @@ describe('DeletedPagesSection', () => {
     mocks.restoreDeletedPage.mockRejectedValue(new ApiError('Too late.', 409))
     render(<DeletedPagesSection />)
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Restore…' }),
+      await screen.findByRole('button', { name: /^Restore / }),
     )
     await userEvent.type(screen.getByLabelText(/Why are you restoring it/), 'x')
     await userEvent.click(
@@ -142,7 +142,7 @@ describe('DeletedPagesSection', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('Too late.')
     expect(mocks.fetchDeletedPages).toHaveBeenCalledTimes(2)
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.getByRole('button', { name: 'Restore…' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Restore / })).toBeTruthy()
   })
 
   it('offers no restore once purged or past the five years', async () => {

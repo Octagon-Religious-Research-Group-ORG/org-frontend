@@ -74,6 +74,17 @@ afterEach(cleanup)
 const card = (name: string) => screen.findByRole('article', { name })
 
 describe('MembersSection', () => {
+  it('names each action button after the member it acts on', async () => {
+    render(<MembersSection />)
+    const page = await card('Quiet Fern')
+    expect(
+      within(page).getByRole('button', { name: 'Approve Quiet Fern' }),
+    ).toBeTruthy()
+    expect(
+      within(page).getByRole('button', { name: 'Reject Quiet Fern…' }),
+    ).toBeTruthy()
+  })
+
   it('opens on the waiting pages and approves one', async () => {
     const user = userEvent.setup()
     render(<MembersSection />)
@@ -85,8 +96,8 @@ describe('MembersSection', () => {
       1,
     )
     expect(within(page).getByText(/Waiting for approval/)).toBeTruthy()
-    expect(within(page).queryByRole('button', { name: 'Remove…' })).toBeNull()
-    await user.click(within(page).getByRole('button', { name: 'Approve' }))
+    expect(within(page).queryByRole('button', { name: /^Remove / })).toBeNull()
+    await user.click(within(page).getByRole('button', { name: /^Approve / }))
     expect(mocks.decideOnPage).toHaveBeenCalledWith(
       'tok',
       'quiet-fern',
@@ -103,7 +114,7 @@ describe('MembersSection', () => {
     render(<MembersSection />)
     const page = await card('Quiet Fern')
     expect(within(page).getByText('Name reads like: /quiet-fem')).toBeTruthy()
-    await user.click(within(page).getByRole('button', { name: 'Reject…' }))
+    await user.click(within(page).getByRole('button', { name: /^Reject / }))
     const submit = within(page).getByRole('button', { name: 'Reject the page' })
     expect((submit as HTMLButtonElement).disabled).toBe(true)
     await user.type(
@@ -130,9 +141,9 @@ describe('MembersSection', () => {
     render(<MembersSection />)
     const page = await card('Quiet Fern')
     expect(within(page).getByText(/imported, claimed/)).toBeTruthy()
-    await user.click(within(page).getByRole('button', { name: 'Remove…' }))
+    await user.click(within(page).getByRole('button', { name: /^Remove / }))
     await user.click(within(page).getByRole('button', { name: 'Cancel' }))
-    await user.click(within(page).getByRole('button', { name: 'Remove…' }))
+    await user.click(within(page).getByRole('button', { name: /^Remove / }))
     await user.type(within(page).getByRole('textbox'), 'Synthetic')
     await user.click(
       within(page).getByRole('button', { name: 'Remove the page' }),
@@ -169,9 +180,9 @@ describe('MembersSection', () => {
       within(page).getByText(/nickname · public · imported, unclaimed/),
     ).toBeTruthy()
     expect(
-      within(page).queryByRole('button', { name: 'Make admin…' }),
+      within(page).queryByRole('button', { name: /^Make admin / }),
     ).toBeNull()
-    await user.click(within(page).getByRole('button', { name: 'Restore…' }))
+    await user.click(within(page).getByRole('button', { name: /^Restore / }))
     await user.type(
       within(page).getByLabelText('Why it comes back (for the admins only)'),
       'Mistake',
@@ -206,11 +217,11 @@ describe('MembersSection', () => {
     const admin = await card('An Admin')
     expect(within(admin).getByText('Admin')).toBeTruthy()
     expect(
-      within(admin).queryByRole('button', { name: 'Make admin…' }),
+      within(admin).queryByRole('button', { name: /^Make admin / }),
     ).toBeNull()
     const page = await card('Quiet Fern')
     await user.click(
-      await within(page).findByRole('button', { name: 'Make admin…' }),
+      await within(page).findByRole('button', { name: /^Make admin / }),
     )
     await user.type(
       within(page).getByLabelText('Why they become an admin'),
@@ -233,7 +244,7 @@ describe('MembersSection', () => {
     render(<MembersSection />)
     const page = await card('Quiet Fern')
     expect(
-      within(page).queryByRole('button', { name: 'Make admin…' }),
+      within(page).queryByRole('button', { name: /^Make admin / }),
     ).toBeNull()
   })
 
@@ -250,7 +261,7 @@ describe('MembersSection', () => {
     listOf(member({ ownerUserId: undefined }))
     render(<MembersSection />)
     const page = await card('Quiet Fern')
-    expect(within(page).getByRole('button', { name: 'Approve' })).toBeTruthy()
+    expect(within(page).getByRole('button', { name: /^Approve / })).toBeTruthy()
   })
 
   it('filters, searches and pages', async () => {
@@ -295,7 +306,7 @@ describe('MembersSection', () => {
     )
     render(<MembersSection />)
     const page = await card('Quiet Fern')
-    await user.click(within(page).getByRole('button', { name: 'Approve' }))
+    await user.click(within(page).getByRole('button', { name: /^Approve / }))
     expect((await within(page).findByRole('alert')).textContent).toBe(
       'Another admin must decide.',
     )
@@ -311,7 +322,7 @@ describe('MembersSection', () => {
     render(<MembersSection />)
     const page = await card('Quiet Fern')
     await user.click(
-      await within(page).findByRole('button', { name: 'Make admin…' }),
+      await within(page).findByRole('button', { name: /^Make admin / }),
     )
     await user.type(
       within(page).getByLabelText('Why they become an admin'),
@@ -336,7 +347,7 @@ describe('MembersSection', () => {
     )
     render(<MembersSection />)
     const page = await card('Quiet Fern')
-    await user.click(within(page).getByRole('button', { name: 'Approve' }))
+    await user.click(within(page).getByRole('button', { name: /^Approve / }))
     expect((await within(page).findByRole('alert')).textContent).toBe(
       'Someone else decided first.',
     )
