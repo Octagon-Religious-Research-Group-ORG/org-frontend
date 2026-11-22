@@ -1,6 +1,9 @@
 [build]
   command = "vite build"
   publish = "dist/client"
+  # Skip the build (and its 15 Netlify credits) when only .github/ changed, e.g. a CI or
+  # Dependabot config update. Exit 0 = skip; any change outside .github/ builds as before.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude).github'"
 [dev]
   command = "npm run dev"
   targetPort = 3000
