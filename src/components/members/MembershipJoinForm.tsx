@@ -24,6 +24,7 @@ import {
   loadJoinDraft,
   saveJoinDraft,
 } from '#/lib/membership-draft'
+import { MAX_PICTURE_BYTES, uploadProfilePicture } from '#/lib/members-api'
 import { ContactRows, field } from './ContactRows'
 import { ImportedPageNote } from './ImportedPageNote'
 import { SLOW_SERVER_MESSAGE, useSlowNotice } from './use-slow-notice'
@@ -154,6 +155,14 @@ function JoinForm({ nickname }: { nickname: boolean }) {
   const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string>()
+  // An optional picture, uploaded right after the page is created (plan §2e:
+  // Tripp could not find where a new member adds one).
+  const [picture, setPicture] = useState<File>()
+  const [pictureProblem, setPictureProblem] = useState<string>()
+  const [justJoined, setJustJoined] = useState<{
+    pictureFailed?: string
+    pictureAdded?: boolean
+  }>()
 
   const slow = useSlowNotice(
     submitting || slugStatus === 'checking' || (!terms && !loadError),
@@ -304,6 +313,38 @@ function JoinForm({ nickname }: { nickname: boolean }) {
       </div>
     )
   }
+  if (justJoined && summary?.status === 'approved') {
+    return (
+      <div className="border border-[rgba(236,226,196,0.16)] p-8">
+        <h1 className="text-3xl font-light uppercase tracking-[0.06em] text-[#f6efd9]">
+          Your page is live
+        </h1>
+        <p className="mt-4 text-sm leading-7 text-[#b8ad8d]">
+          It is in the Members Community now.{' '}
+          {summary.profile?.slug && (
+            <Link
+              to="/$slug"
+              params={{ slug: summary.profile.slug }}
+              className="text-[#f1d78a] underline"
+            >
+              Open your page
+            </Link>
+          )}
+        </p>
+        {justJoined.pictureAdded && (
+          <p role="status" className="mt-3 text-sm text-[#9dcf83]">
+            Your picture was added.
+          </p>
+        )}
+        {justJoined.pictureFailed && (
+          <p role="alert" className="mt-3 text-sm text-[#f1a07a]">
+            Your picture could not be added ({justJoined.pictureFailed}). You
+            can add it from your page.
+          </p>
+        )}
+      </div>
+    )
+  }
   if (summary && summary.status !== 'none') {
     return (
       <div className="border border-[rgba(236,226,196,0.16)] p-8">
@@ -374,6 +415,20 @@ function JoinForm({ nickname }: { nickname: boolean }) {
         backupContacts: filledBackup,
         termsVersion: terms.version,
       })
+      const outcome: { pictureFailed?: string; pictureAdded?: boolean } = {}
+      if (picture && result.status !== 'none') {
+        try {
+          // A fresh token: waking a slow server can outlast the join's.
+          const fresh = await auth.getToken()
+          if (!fresh) throw new Error('please sign in again')
+          await uploadProfilePicture(fresh, picture)
+          outcome.pictureAdded = true
+        } catch (err) {
+          outcome.pictureFailed =
+            err instanceof Error ? err.message : 'the upload failed'
+        }
+      }
+      setJustJoined(outcome)
       setSummary(result)
     } catch (err) {
       setSubmitError(
@@ -554,7 +609,7 @@ function JoinForm({ nickname }: { nickname: boolean }) {
             <div className="flex gap-2">
               <input
                 aria-label={`Belief ${index + 1} title`}
-                placeholder="Tab title, e.g. God"
+                placeholder="Tab title, e.g. The Universal Creator"
                 required
                 maxLength={120}
                 value={belief.title}
@@ -611,6 +666,38 @@ function JoinForm({ nickname }: { nickname: boolean }) {
             </span>
           )}
         </p>
+      </Section>
+
+      <Section
+        title="Picture"
+        hint="Optional, and it need not be a photo: an avatar or artwork is fine. JPEG, PNG, WebP or GIF, up to 10 MB. You can change it later on your page."
+      >
+        <label className="grid gap-1 text-xs text-[#b8ad8d]">
+          Picture (optional)
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(event) => {
+              const chosen = event.target.files?.[0]
+              setPictureProblem(undefined)
+              if (chosen && chosen.size > MAX_PICTURE_BYTES) {
+                setPicture(undefined)
+                setPictureProblem(
+                  'That picture is over 10 MB. Please choose a smaller one.',
+                )
+                event.target.value = ''
+                return
+              }
+              setPicture(chosen)
+            }}
+            className="text-sm text-[#ece2c4]"
+          />
+        </label>
+        {pictureProblem && (
+          <p role="alert" className="text-xs text-[#f1a07a]">
+            {pictureProblem}
+          </p>
+        )}
       </Section>
 
       <Section
@@ -681,7 +768,7 @@ function JoinForm({ nickname }: { nickname: boolean }) {
         </p>
       )}
       <p className="text-xs text-[#9f9676]">
-        An admin reviews every new page before it opens to the community.
+        Your page opens to the community as soon as it is created.
       </p>
     </form>
   )

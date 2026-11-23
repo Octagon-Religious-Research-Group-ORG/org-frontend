@@ -12,6 +12,7 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '#/lib/api'
 import { ADDRESS_CHECK_DAILY_LIMIT } from '#/lib/membership-api'
+import type * as MembersApi from '#/lib/members-api'
 import type * as MembershipApi from '#/lib/membership-api'
 import { MembershipJoinForm } from './MembershipJoinForm'
 import { SLOW_NOTICE_AFTER_MS, SLOW_SERVER_MESSAGE } from './use-slow-notice'
@@ -22,12 +23,23 @@ const mocks = vi.hoisted(() => ({
   fetchMyMembership: vi.fn(),
   checkSlug: vi.fn(),
   joinMembership: vi.fn(),
+  uploadProfilePicture: vi.fn(),
 }))
 
 vi.mock('#/lib/auth', () => ({ useOrgAuth: () => mocks.auth }))
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ to, children }: { to: string; children: ReactNode }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    to,
+    params,
+    children,
+  }: {
+    to: string
+    params?: { slug?: string }
+    children: ReactNode
+  }) => (
+    <a href={params?.slug ? to.replace('$slug', params.slug) : to}>
+      {children}
+    </a>
   ),
 }))
 vi.mock('#/lib/membership-api', async (original) => ({
@@ -36,6 +48,10 @@ vi.mock('#/lib/membership-api', async (original) => ({
   fetchMyMembership: mocks.fetchMyMembership,
   checkSlug: mocks.checkSlug,
   joinMembership: mocks.joinMembership,
+}))
+vi.mock('#/lib/members-api', async (original) => ({
+  ...(await original<typeof MembersApi>()),
+  uploadProfilePicture: mocks.uploadProfilePicture,
 }))
 
 const terms = {
@@ -57,9 +73,10 @@ beforeEach(() => {
   mocks.fetchMyMembership.mockReset().mockResolvedValue({ status: 'none' })
   mocks.checkSlug.mockReset().mockResolvedValue({ available: true })
   mocks.joinMembership.mockReset().mockResolvedValue({
-    status: 'pending',
-    profile: { displayName: 'Quiet Fern' },
+    status: 'approved',
+    profile: { displayName: 'Quiet Fern', slug: 'quiet-fern' },
   })
+  mocks.uploadProfilePicture.mockReset().mockResolvedValue({ hasPicture: true })
 })
 
 afterEach(() => {
@@ -140,9 +157,7 @@ describe('MembershipJoinForm', () => {
     expect(submitButton().disabled).toBe(false)
     fireEvent.click(submitButton())
 
-    expect(
-      await screen.findByText('Your page is waiting for approval'),
-    ).toBeTruthy()
+    expect(await screen.findByText('Your page is live')).toBeTruthy()
     expect(mocks.checkSlug).toHaveBeenCalledWith('quiet-fern', 'tok')
     expect(mocks.joinMembership).toHaveBeenCalledWith('tok', {
       displayName: 'Quiet Fern',
@@ -154,6 +169,81 @@ describe('MembershipJoinForm', () => {
       contacts: [],
       backupContacts: [{ method: 'telegram', value: '@fern' }],
       termsVersion: '2026-10-11',
+    })
+  })
+
+  it('opens the page at once, with no approval step (plan §2e)', async () => {
+    render(<MembershipJoinForm nickname={false} />)
+    await fillAndAgree()
+    expect(screen.queryByText(/admin reviews every new page/i)).toBeNull()
+    fireEvent.click(submitButton())
+    expect(await screen.findByText('Your page is live')).toBeTruthy()
+    expect(
+      screen.getByRole('link', { name: 'Open your page' }).getAttribute('href'),
+    ).toBe('/quiet-fern')
+    expect(mocks.uploadProfilePicture).not.toHaveBeenCalled()
+  })
+
+  it('suggests "The Universal Creator" as a belief title (Tripp)', async () => {
+    render(<MembershipJoinForm nickname={false} />)
+    await screen.findByText('Create your page')
+    expect(
+      screen.getByPlaceholderText('Tab title, e.g. The Universal Creator'),
+    ).toBeTruthy()
+  })
+
+  describe('a picture at join (optional)', () => {
+    const picture = (bytes = 10) =>
+      new File([new Uint8Array(bytes)], 'me.png', { type: 'image/png' })
+    const choose = (file: File) =>
+      fireEvent.change(screen.getByLabelText('Picture (optional)'), {
+        target: { files: [file] },
+      })
+
+    it('uploads the chosen picture right after the page is created', async () => {
+      render(<MembershipJoinForm nickname={false} />)
+      await fillAndAgree()
+      const file = picture()
+      choose(file)
+      fireEvent.click(submitButton())
+      expect(await screen.findByText('Your page is live')).toBeTruthy()
+      // A fresh token: a slow, waking server can outlast the join's token.
+      expect(
+        Math.max(...mocks.auth.getToken.mock.invocationCallOrder),
+      ).toBeGreaterThan(mocks.joinMembership.mock.invocationCallOrder[0])
+      expect(mocks.uploadProfilePicture).toHaveBeenCalledWith('tok', file)
+      expect(
+        mocks.uploadProfilePicture.mock.invocationCallOrder[0],
+      ).toBeGreaterThan(mocks.joinMembership.mock.invocationCallOrder[0])
+      expect(screen.getByText('Your picture was added.')).toBeTruthy()
+    })
+
+    it('refuses a picture over 10 MB before anything is sent', async () => {
+      render(<MembershipJoinForm nickname={false} />)
+      await fillAndAgree()
+      choose(picture(10 * 1024 * 1024 + 1))
+      expect(
+        screen.getByText(
+          'That picture is over 10 MB. Please choose a smaller one.',
+        ),
+      ).toBeTruthy()
+      fireEvent.click(submitButton())
+      await screen.findByText('Your page is live')
+      expect(mocks.uploadProfilePicture).not.toHaveBeenCalled()
+    })
+
+    it('keeps the new page when the picture fails, and says how to add it later', async () => {
+      mocks.uploadProfilePicture.mockRejectedValueOnce(new Error('Too big'))
+      render(<MembershipJoinForm nickname={false} />)
+      await fillAndAgree()
+      choose(picture())
+      fireEvent.click(submitButton())
+      expect(await screen.findByText('Your page is live')).toBeTruthy()
+      expect(
+        screen.getByText(
+          'Your picture could not be added (Too big). You can add it from your page.',
+        ),
+      ).toBeTruthy()
     })
   })
 
@@ -248,7 +338,7 @@ describe('MembershipJoinForm', () => {
         target: { value: 'signal' },
       })
       fireEvent.click(submitButton())
-      await screen.findByText('Your page is waiting for approval')
+      await screen.findByText('Your page is live')
       expect(mocks.joinMembership.mock.calls[0][1]).toMatchObject({
         contacts: [{ method: 'signal', value: '@public' }],
       })
@@ -413,9 +503,7 @@ describe('MembershipJoinForm', () => {
       )
       expect(submitButton().disabled).toBe(false)
       fireEvent.click(submitButton())
-      expect(
-        await screen.findByText('Your page is waiting for approval'),
-      ).toBeTruthy()
+      expect(await screen.findByText('Your page is live')).toBeTruthy()
       expect(mocks.joinMembership).toHaveBeenCalledTimes(2)
     })
 
@@ -438,7 +526,7 @@ describe('MembershipJoinForm', () => {
           name: 'Creating your page…',
         }).disabled,
       ).toBe(true)
-      await act(async () => finish({ status: 'pending' }))
+      await act(async () => finish({ status: 'approved' }))
     })
 
     it('asks to sign in again when the session has lapsed', async () => {
@@ -501,7 +589,7 @@ describe('MembershipJoinForm', () => {
       agree()
       expect(screen.queryByText(/read them again/)).toBeNull()
       fireEvent.click(submitButton())
-      await screen.findByText('Your page is waiting for approval')
+      await screen.findByText('Your page is live')
       expect(mocks.joinMembership.mock.calls[1][1]).toMatchObject({
         termsVersion: '2026-12-01',
       })
@@ -517,12 +605,18 @@ describe('MembershipJoinForm', () => {
       expect(screen.queryByText(/read them again/)).toBeNull()
     })
 
-    it('shows the waiting page when a join that timed out actually landed', async () => {
+    it('shows the member their page when a join that timed out actually landed', async () => {
       mocks.joinMembership.mockRejectedValueOnce(conflict)
       render(<MembershipJoinForm nickname={false} />)
       await fillAndAgree()
-      mocks.fetchMyMembership.mockResolvedValue({ status: 'pending' })
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'approved' })
       fireEvent.click(submitButton())
+      expect(await screen.findByText('You are already a member')).toBeTruthy()
+    })
+
+    it('still explains an older page that is waiting for approval', async () => {
+      mocks.fetchMyMembership.mockResolvedValue({ status: 'pending' })
+      render(<MembershipJoinForm nickname={false} />)
       expect(
         await screen.findByText('Your page is waiting for approval'),
       ).toBeTruthy()
@@ -664,7 +758,7 @@ describe('MembershipJoinForm', () => {
       await fillAndAgree()
       expect(stored()).not.toBe('')
       fireEvent.click(submitButton())
-      await screen.findByText('Your page is waiting for approval')
+      await screen.findByText('Your page is live')
       expect(stored()).toBe('')
     })
 

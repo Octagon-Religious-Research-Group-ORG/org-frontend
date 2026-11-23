@@ -128,7 +128,7 @@ describe('AdminDashboard', () => {
     const user = userEvent.setup()
     render(<AdminDashboard />)
     await user.click(await screen.findByText('inbox stub'))
-    expect(screen.getByText('members stub default none')).toBeTruthy()
+    expect(screen.getByText('members stub pending none')).toBeTruthy()
   })
 
   it('takes a report notice to the queue, and a reported page to Members (Chunk 13)', async () => {

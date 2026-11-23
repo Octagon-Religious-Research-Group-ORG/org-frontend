@@ -85,9 +85,20 @@ describe('MembersSection', () => {
     ).toBeTruthy()
   })
 
-  it('opens on the waiting pages and approves one', async () => {
-    const user = userEvent.setup()
+  it('opens on the pages on the site: new pages need no approval (plan §2e)', async () => {
     render(<MembersSection />)
+    await card('Quiet Fern')
+    expect(mocks.fetchAdminMembers).toHaveBeenCalledWith(
+      'tok',
+      'approved',
+      '',
+      1,
+    )
+  })
+
+  it('still approves an older page that is waiting', async () => {
+    const user = userEvent.setup()
+    render(<MembersSection initialFilter="pending" />)
     const page = await card('Quiet Fern')
     expect(mocks.fetchAdminMembers).toHaveBeenCalledWith(
       'tok',
@@ -111,7 +122,7 @@ describe('MembersSection', () => {
   it('rejects a waiting page only with a reason', async () => {
     const user = userEvent.setup()
     listOf(member({ similarNameOf: ['quiet-fem'] }))
-    render(<MembersSection />)
+    render(<MembersSection initialFilter="pending" />)
     const page = await card('Quiet Fern')
     expect(within(page).getByText('Name reads like: /quiet-fem')).toBeTruthy()
     await user.click(within(page).getByRole('button', { name: /^Reject / }))

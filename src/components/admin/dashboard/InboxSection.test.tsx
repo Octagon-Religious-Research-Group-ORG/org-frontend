@@ -8,6 +8,8 @@ import type * as AdminApi from '#/lib/admin-api'
 import {
   InboxSection,
   KIND_LABELS,
+  LOOK_ALIKE_LABEL,
+  NEW_PAGE_LABEL,
   OWN_NOTICE,
   reportSubject,
 } from './InboxSection'
@@ -75,6 +77,51 @@ describe('InboxSection', () => {
       screen.getByRole('button', { name: 'Review waiting pages' }),
     )
     expect(review).toHaveBeenCalled()
+  })
+
+  it('labels a new page whose name reads like another as a look-alike, with nothing to approve (plan §2e)', async () => {
+    mocks.fetchInbox.mockResolvedValue({
+      entries: [
+        entry({
+          page: {
+            slug: 'quiet-fern-2',
+            displayName: 'Quiet Fern',
+            reviewStatus: 'approved',
+            similarNameOf: ['quiet-fern'],
+          },
+        }),
+      ],
+      hasMore: false,
+    })
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={vi.fn()} />)
+    const card = await screen.findByRole('article', { name: LOOK_ALIKE_LABEL })
+    expect(card.querySelector('a')?.getAttribute('href')).toBe('/quiet-fern-2')
+    expect(screen.getByText('Name reads like: /quiet-fern')).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: 'Review waiting pages' }),
+    ).toBeNull()
+    expect(screen.getByRole('button', { name: 'Mark handled' })).toBeTruthy()
+  })
+
+  it('calls an older notice about a page now live simply a new page', async () => {
+    mocks.fetchInbox.mockResolvedValue({
+      entries: [
+        entry({
+          status: 'handled',
+          page: {
+            slug: 'quiet-fern',
+            displayName: 'Quiet Fern',
+            reviewStatus: 'approved',
+          },
+        }),
+      ],
+      hasMore: false,
+    })
+    render(<InboxSection onReviewPages={vi.fn()} onOpenModeration={vi.fn()} />)
+    expect(
+      await screen.findByRole('article', { name: NEW_PAGE_LABEL }),
+    ).toBeTruthy()
+    expect(screen.queryByText(LOOK_ALIKE_LABEL)).toBeNull()
   })
 
   it('marks a notice handled and reloads', async () => {

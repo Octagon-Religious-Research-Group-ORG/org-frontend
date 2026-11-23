@@ -159,7 +159,11 @@ export function ProfileView({
       />
 
       {profile.manage?.removedTabs && profile.manage.removedTabs.length > 0 && (
-        <RemovedBeliefs slug={profile.slug} tabs={profile.manage.removedTabs} />
+        <RemovedBeliefs
+          slug={profile.slug}
+          tabs={profile.manage.removedTabs}
+          owner={profile.isOwner ? { onChanged } : undefined}
+        />
       )}
 
       {profile.extras.map((extra) => (

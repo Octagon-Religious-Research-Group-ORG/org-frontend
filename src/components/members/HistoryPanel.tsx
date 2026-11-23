@@ -134,39 +134,51 @@ export function HistoryPanel({
       ) : loaded.entries.length === 0 ? (
         <p className="mt-4 text-sm text-[#b8ad8d]">No saved versions yet.</p>
       ) : (
-        <ol className="mt-4 flex flex-col gap-5">
-          {loaded.entries.map((entry) => (
-            <li
-              key={`${entry.seq}-${entry.savedAt}`}
-              className="border-t border-[rgba(236,226,196,0.12)] pt-3"
-            >
-              <div className="flex flex-wrap gap-x-4 font-mono text-[11px] text-[#78aea2]">
-                <time dateTime={entry.savedAt}>
-                  {formatSavedAt(entry.savedAt)}
-                </time>
-                {entry.partHashes && entry.partHashes.length > 1 ? (
-                  <span title="The start of each paragraph's SHA-256 hash, in order">
-                    {entry.partHashes.join(' · ')}
-                  </span>
-                ) : (
-                  entry.hash && (
-                    <span title="The start of this version's SHA-256 hash">
-                      {entry.hash}
-                    </span>
-                  )
-                )}
-              </div>
-              {entryNote(entry) && (
-                <p className="mt-1 text-xs text-[#f1d78a]">
-                  {entryNote(entry)}
-                </p>
-              )}
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#d8ceb0] [overflow-wrap:anywhere]">
-                <MemberText text={entry.text} />
+        <>
+          {loaded.page === 1 &&
+            loaded.removals?.map((removal) => (
+              <p
+                key={removal.removedAt}
+                className="mt-4 text-xs leading-5 text-[#f1d78a]"
+              >
+                Removed {formatSavedAt(removal.removedAt)}, brought back{' '}
+                {formatSavedAt(removal.restoredAt)}.
               </p>
-            </li>
-          ))}
-        </ol>
+            ))}
+          <ol className="mt-4 flex flex-col gap-5">
+            {loaded.entries.map((entry) => (
+              <li
+                key={`${entry.seq}-${entry.savedAt}`}
+                className="border-t border-[rgba(236,226,196,0.12)] pt-3"
+              >
+                <div className="flex flex-wrap gap-x-4 font-mono text-[11px] text-[#78aea2]">
+                  <time dateTime={entry.savedAt}>
+                    {formatSavedAt(entry.savedAt)}
+                  </time>
+                  {entry.partHashes && entry.partHashes.length > 1 ? (
+                    <span title="The start of each paragraph's SHA-256 hash, in order">
+                      {entry.partHashes.join(' · ')}
+                    </span>
+                  ) : (
+                    entry.hash && (
+                      <span title="The start of this version's SHA-256 hash">
+                        {entry.hash}
+                      </span>
+                    )
+                  )}
+                </div>
+                {entryNote(entry) && (
+                  <p className="mt-1 text-xs text-[#f1d78a]">
+                    {entryNote(entry)}
+                  </p>
+                )}
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#d8ceb0] [overflow-wrap:anywhere]">
+                  <MemberText text={entry.text} />
+                </p>
+              </li>
+            ))}
+          </ol>
+        </>
       )}
       {loaded && (page > 1 || loaded.hasMore) && (
         <div className="mt-4 flex gap-3">

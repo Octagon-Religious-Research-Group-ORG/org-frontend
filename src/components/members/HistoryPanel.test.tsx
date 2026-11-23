@@ -54,6 +54,57 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('HistoryPanel', () => {
+  it('says when a belief was removed and brought back (plan §2e)', async () => {
+    mocks.fetchHistory.mockResolvedValue({
+      entries: [entry()],
+      page: 1,
+      hasMore: false,
+      removals: [
+        {
+          removedAt: '2026-11-02T10:00:00.000Z',
+          restoredAt: '2026-11-03T11:00:00.000Z',
+        },
+      ],
+    })
+    render(
+      <HistoryPanel
+        slug="quiet-fern"
+        tabId="tab_a"
+        label="“Old belief”"
+        onClose={onClose}
+      />,
+    )
+    expect(
+      await screen.findByText(
+        `Removed ${formatSavedAt('2026-11-02T10:00:00.000Z')}, brought back ${formatSavedAt('2026-11-03T11:00:00.000Z')}.`,
+      ),
+    ).toBeTruthy()
+  })
+
+  it('shows the removal dates on the first page of the history only', async () => {
+    mocks.fetchHistory.mockResolvedValue({
+      entries: [entry()],
+      page: 2,
+      hasMore: false,
+      removals: [
+        {
+          removedAt: '2026-11-02T10:00:00.000Z',
+          restoredAt: '2026-11-03T11:00:00.000Z',
+        },
+      ],
+    })
+    render(
+      <HistoryPanel
+        slug="quiet-fern"
+        tabId="tab_a"
+        label="“Old belief”"
+        onClose={onClose}
+      />,
+    )
+    await screen.findByText('A synthetic belief, edited.')
+    expect(screen.queryByText(/brought back/)).toBeNull()
+  })
+
   it('reads a bio history as a guest, without a token', async () => {
     render(<HistoryPanel slug="quiet-fern" label="the bio" onClose={onClose} />)
     expect(screen.getByRole('status').textContent).toMatch(/Opening/)

@@ -70,11 +70,12 @@ const DECISIONS: Record<
 }
 
 /**
- * Member pages (Chunk 12): find one, approve or reject a new page, remove or
- * restore a page, and make its owner an admin.
+ * Member pages (Chunk 12): find one, remove or restore a page, and make its
+ * owner an admin. New pages open at once (plan §2e), so it starts on the
+ * pages on the site; "Waiting" still holds any older page left waiting.
  */
 export function MembersSection({
-  initialFilter = 'pending',
+  initialFilter = 'approved',
   initialQuery = '',
 }: {
   initialFilter?: MemberFilter

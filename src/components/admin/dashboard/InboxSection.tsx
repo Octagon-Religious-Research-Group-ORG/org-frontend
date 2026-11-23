@@ -25,6 +25,11 @@ export const KIND_LABELS: Record<InboxEntry['kind'], string> = {
   report: 'Reported',
 }
 
+/** A new page whose name reads like an existing page's (plan §2e). */
+export const LOOK_ALIKE_LABEL = "New page with a name like an existing member's"
+/** An older page notice about a page that is on the site now. */
+export const NEW_PAGE_LABEL = 'New page'
+
 export const OWN_NOTICE =
   'This notice is about you, so another admin handles it.'
 
@@ -53,9 +58,10 @@ export function InboxSection({
         Inbox
       </h2>
       <p className={noteStyle}>
-        New member pages, EaM requests and reports land here. Mark a notice
-        handled once you have dealt with it; approving or rejecting a page, or
-        acting on a report in the moderation queue, handles its notice for you.
+        New pages whose name reads like an existing member's (check it is not
+        impersonation), EaM requests and reports land here. New pages need no
+        approval. Mark a notice handled once you have dealt with it; acting on a
+        report in the moderation queue handles its notice for you.
       </p>
       <div role="tablist" aria-label="Notices" className="mt-4 flex gap-2">
         {(['open', 'handled'] as const).map((tab) => (
@@ -130,11 +136,20 @@ function InboxCard({
     entry.kind === 'report'
       ? reportSubject(entry)
       : (entry.page?.displayName ?? 'A member without a live page')
+  // Pages open at once now; a page notice about a live page is the
+  // look-alike-name check, and needs no approval.
+  const lookAlike = entry.page?.similarNameOf ?? []
+  const label =
+    entry.kind !== 'page-submitted' || entry.page?.reviewStatus === 'pending'
+      ? KIND_LABELS[entry.kind]
+      : lookAlike.length > 0
+        ? LOOK_ALIKE_LABEL
+        : NEW_PAGE_LABEL
 
   return (
-    <article aria-label={KIND_LABELS[entry.kind]} className={cardStyle}>
+    <article aria-label={label} className={cardStyle}>
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#9dcf83]">
-        {KIND_LABELS[entry.kind]}
+        {label}
       </p>
       <h3 className="mt-2 text-lg text-[#f6efd9]">
         {entry.page && entry.kind !== 'report' ? (
@@ -153,6 +168,11 @@ function InboxCard({
         {adminTime(entry.createdAt)}
         {entry.handledAt && ` · handled ${adminTime(entry.handledAt)}`}
       </p>
+      {entry.kind === 'page-submitted' && lookAlike.length > 0 && (
+        <p className="mt-2 text-sm text-[#f1d78a]">
+          Name reads like: {lookAlike.map((slug) => `/${slug}`).join(', ')}
+        </p>
+      )}
       {entry.note && (
         <p className="mt-3 whitespace-pre-wrap text-sm leading-7 [overflow-wrap:anywhere]">
           {entry.note}

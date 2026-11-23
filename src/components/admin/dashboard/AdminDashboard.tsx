@@ -41,6 +41,9 @@ export function AdminDashboard({
   const [section, setSection] = useState<SectionId>(initialSection)
   // The Members section opened from a reported page (Chunk 13), searched.
   const [memberQuery, setMemberQuery] = useState('')
+  // The Members section opened from an inbox notice about an older page
+  // still waiting for approval.
+  const [membersWaiting, setMembersWaiting] = useState(false)
   // The cheapest admin read, as the gate: a 403 here hides every section.
   const gate = useAdminLoad(fetchAdminSettings, 'gate')
 
@@ -69,6 +72,7 @@ export function AdminDashboard({
               className={tab.id === section ? primaryStyle : buttonStyle}
               onClick={() => {
                 setMemberQuery('')
+                setMembersWaiting(false)
                 setSection(tab.id)
               }}
             >
@@ -79,16 +83,21 @@ export function AdminDashboard({
         <div role="tabpanel" className="mt-10">
           {section === 'inbox' && (
             <InboxSection
-              onReviewPages={() => setSection('members')}
+              onReviewPages={() => {
+                setMembersWaiting(true)
+                setSection('members')
+              }}
               onOpenModeration={() => setSection('moderation')}
             />
           )}
           {section === 'members' && (
             <MembersSection
-              key={memberQuery}
+              key={`${memberQuery}:${membersWaiting}`}
               {...(memberQuery
                 ? { initialFilter: 'all' as const, initialQuery: memberQuery }
-                : {})}
+                : membersWaiting
+                  ? { initialFilter: 'pending' as const }
+                  : {})}
             />
           )}
           {section === 'deleted' && <DeletedPagesSection />}

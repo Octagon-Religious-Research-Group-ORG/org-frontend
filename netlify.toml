@@ -4,6 +4,16 @@
   # Skip the build (and its 15 Netlify credits) when only .github/ changed, e.g. a CI or
   # Dependabot config update. Exit 0 = skip; any change outside .github/ builds as before.
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude).github'"
+# The TEST site (plan Chunk 19, round 1): a branch deploy of this site at
+# https://test-release--org-spirituality.netlify.app. Branch deploys cost no
+# Netlify credits; a production deploy costs 15. These three values are public
+# by design (they are in the built JavaScript) and point at the TEST backend
+# and the ORG Testing Clerk app, never at the live ones. They apply only to the
+# branch named test-release; production builds are unaffected.
+[context.test-release.environment]
+  VITE_API_BASE_URL = "https://org-backend-testing.onrender.com/api/v1"
+  VITE_CLERK_PUBLISHABLE_KEY = "pk_test_b3V0Z29pbmctY2hvdy0xMzcyLmNsZXJrLmFjY291bnRzLmRldiQ"
+  VITE_SITE_ENV = "test"
 [dev]
   command = "npm run dev"
   targetPort = 3000

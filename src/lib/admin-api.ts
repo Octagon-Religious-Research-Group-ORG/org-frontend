@@ -72,7 +72,13 @@ export interface InboxEntry {
   kind: InboxKind
   status: InboxStatus
   subjectUserId: string
-  page?: { slug: string; displayName: string; reviewStatus: string }
+  page?: {
+    slug: string
+    displayName: string
+    reviewStatus: string
+    /** Existing pages whose name reads like this one (plan §2e). */
+    similarNameOf?: Array<string>
+  }
   note?: string
   createdAt: string
   handledAt?: string

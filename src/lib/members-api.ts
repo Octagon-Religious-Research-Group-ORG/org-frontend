@@ -134,6 +134,8 @@ export interface HistoryPage {
   entries: Array<HistoryEntry>
   page: number
   hasMore: boolean
+  /** Each time the belief was removed and brought back (plan §2e). */
+  removals?: Array<{ removedAt: string; restoredAt: string }>
 }
 
 /** Which history to read: the bio, or one belief's text or title. */
@@ -264,6 +266,14 @@ export function editorText(paragraphs: Array<ParagraphView>) {
 
 const tabPath = (tabId: string) =>
   `/me/member-page/tabs/${encodeURIComponent(tabId)}`
+
+/** Brings a removed belief back onto the owner's page (plan §2e). */
+export function restoreBeliefTab(token: string, tabId: string) {
+  return memberRequest<{ restored: boolean }>(`${tabPath(tabId)}/restore`, {
+    method: 'POST',
+    token,
+  })
+}
 
 export function editBio(token: string, text: string, baseSeq: number) {
   return memberRequest<SaveResult>('/me/member-page/bio', {
